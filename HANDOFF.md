@@ -49,3 +49,20 @@ curl http://localhost:8000/health
 
 ```text
 START -> agent -> END
+```
+
+## Day5 - SQLite Persistent Short-Term Memory
+
+### Completed
+
+- Installed `langgraph-checkpoint-sqlite`
+- Added `src/app/agent/memory.py`
+- Replaced `InMemorySaver` with `SqliteSaver`
+- SQLite checkpoint file path: `data/checkpoints.sqlite`
+- `/agent/chat` keeps using `thread_id` for short-term memory
+- Same `thread_id` can restore conversation state after service restart
+
+### Current Memory Strategy
+
+```text
+Short-term memory = SqliteSaver + thread_id

@@ -1,21 +1,23 @@
 from uuid import uuid4
 
 from langchain_core.messages import HumanMessage
-from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import START, StateGraph
 from langgraph.prebuilt import ToolNode, tools_condition
 
+from src.app.agent.memory import build_sqlite_checkpointer
 from src.app.agent.nodes import agent_node
 from src.app.agent.state import AgentState
 from src.app.agent.tools import tools
 
 def build_agent_graph():
     """
+    Build Day5 Tool Calling Agent graph with SQLite short-term memory.
+
     Flow:
         START -> agent -> tools -> agent -> END
 
-    Short-term memory:
-        checkpointer + thread_id
+    Persistent short-term memory:
+        SqliteSaver + thread_id
     """
     builder = StateGraph(AgentState)
 
@@ -26,7 +28,7 @@ def build_agent_graph():
     builder.add_conditional_edges("agent", tools_condition)
     builder.add_edge("tools", "agent")
 
-    checkpointer = InMemorySaver()
+    checkpointer = build_sqlite_checkpointer()
 
     return builder.compile(checkpointer=checkpointer)
 
@@ -36,7 +38,7 @@ agent_graph = build_agent_graph()
 
 def invoke_agent(message: str, thread_id: str | None = None) -> AgentState:
     """
-    Invoke the compiled LangGraph with short-term memory.
+    Invoke the compiled LangGraph with persistent short-term memory.
 
     If thread_id is provided, the graph will continue the same conversation thread.
     If thread_id is None, a new thread_id will be generated.
