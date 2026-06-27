@@ -32,3 +32,20 @@ Day1 completed. The project has been initialized with FastAPI basic structure an
 
 ```bash
 curl http://localhost:8000/health
+```
+
+## Day2 - Minimal LangGraph Agent
+
+### Completed
+
+- Added `AgentState`
+- Added minimal `agent_node`
+- Added `build_agent_graph()`
+- Added compiled `agent_graph`
+- Added `invoke_agent()`
+- Updated `/agent/chat` to call LangGraph instead of returning mock response
+
+### Current Graph
+
+```text
+START -> agent -> END
