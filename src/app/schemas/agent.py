@@ -1,3 +1,4 @@
+from typing import Any
 from pydantic import BaseModel, Field
 
 class AgentChatRequest(BaseModel):
@@ -8,3 +9,22 @@ class AgentChatRequest(BaseModel):
 class AgentChatResponse(BaseModel):
     answer: str
     thread_id: str | None = None
+
+
+class DebugMessage(BaseModel):
+    type: str
+    content: str
+    tool_calls: list[dict[str, Any]] | None =None
+    name: str | None = None
+
+
+class DebugStep(BaseModel):
+    node:  str
+    messages: list[DebugMessage]
+
+
+class AgentDebugResponse(BaseModel):
+    thread_id: str
+    steps: list[DebugStep]
+    final_answer: str
+    messages_count: int

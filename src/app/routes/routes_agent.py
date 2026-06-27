@@ -1,7 +1,11 @@
 from fastapi import APIRouter
 
-from src.app.agent.graph import invoke_agent
-from src.app.schemas.agent import AgentChatRequest, AgentChatResponse
+from src.app.agent.graph import debug_agent, invoke_agent
+from src.app.schemas.agent import (
+    AgentChatRequest,
+    AgentChatResponse,
+    AgentDebugResponse
+)
 
 router = APIRouter()
 
@@ -19,3 +23,13 @@ def agent_chat(request: AgentChatRequest) -> AgentChatResponse:
         answer = str(final_message.content),
         thread_id = result.get("thread_id", request.thread_id)
     )
+
+
+@router.post("/debug", response_model=AgentDebugResponse)
+def agent_debug(request: AgentChatRequest) -> AgentDebugResponse:
+    result = debug_agent(
+        message=request.message,
+        thread_id=request.thread_id
+    )
+
+    return AgentDebugResponse(**result)
