@@ -1,7 +1,7 @@
 import re
 from uuid import uuid4
 
-from langchain_core.messages import AIMessage, ToolMessage
+from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 
 from src.app.agent.state import AgentState
 
@@ -27,16 +27,68 @@ def _build_tool_call(tool_name: str, args: dict) -> AIMessage:
         ],
     )
 
+def _is_memory_question(text: str) -> bool:
+    lowered = text.lower()
+
+    keywords = [
+        "刚才",
+        "上一轮",
+        "上一次",
+        "之前",
+        "历史",
+        "记得",
+        "remember",
+        "last time",
+    ]
+
+    return any(keyword in lowered for keyword in keywords)
+
+def _answer_from_memory(messages: list) -> AIMessage:
+    """
+    Build a simple answer from previous messages.
+
+    This is a deterministic mock memory reader for Day4.
+    Later, a real LLM will read the same messages and answer naturally.
+    """
+    previous_tool_messages = [
+        message for message in messages[:-1]
+        if isinstance(message, ToolMessage)
+    ]
+
+    previous_human_messages = [
+        message for message in messages[:-1]
+        if isinstance(message, HumanMessage)
+    ]
+
+    if previous_tool_messages:
+        last_tool_message = previous_tool_messages[-1]
+        tool_name = getattr(last_tool_message, "name", "tool")
+
+        return AIMessage(
+            content=(
+                f"我记得上一轮工具 `{tool_name}` 的执行结果是："
+                f"{last_tool_message.content}"
+            )
+        )
+
+    if previous_human_messages:
+        last_human_message = previous_human_messages[-1]
+
+        return AIMessage(
+            content=f"我记得你之前说过：{last_human_message.content}"
+        )
+
+    return AIMessage(content="当前 thread 中还没有可用的历史记忆。")
+
 
 def agent_node(state: AgentState) -> dict:
     """
-    Day3 minimal Tool Calling Agent node.
+    Day4 Tool Calling Agent node with short-term memory.
 
-    This node manually simulates what an LLM with tool-calling ability would do:
-    - read messages
-    - decide whether a tool is needed
-    - generate tool_calls if needed
-    - summarize ToolMessage after tool execution
+    It manually simulates:
+    - tool call decision
+    - tool result summarization
+    - memory-aware response based on previous messages
     """
     messages = state["messages"]
     last_message = messages[-1]
@@ -52,6 +104,14 @@ def agent_node(state: AgentState) -> dict:
         }
 
     user_text = str(last_message.content)
+
+    if _is_memory_question(user_text):
+        return {
+            "messages": [
+                _answer_from_memory(messages)
+            ]
+        }
+
     pair = _extract_two_ints(user_text)
 
     if pair is not None:
@@ -80,7 +140,7 @@ def agent_node(state: AgentState) -> dict:
     return {
         "messages": [
             AIMessage(
-                content=f"Day3 agent response: {user_text}"
+                content=f"Day4 agent response: {user_text}"
             )
         ]
     }

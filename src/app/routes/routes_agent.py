@@ -17,5 +17,5 @@ def agent_chat(request: AgentChatRequest) -> AgentChatResponse:
 
     return AgentChatResponse(
         answer = str(final_message.content),
-        thread_id = request.thread_id
+        thread_id = result.get("thread_id", request.thread_id)
     )
