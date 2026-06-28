@@ -18,3 +18,10 @@ __pycache__/
 *.sqlite
 *.db
 logs/
+
+# Runtime data
+data/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.sqlite-journal
