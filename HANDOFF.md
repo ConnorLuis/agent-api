@@ -13,11 +13,12 @@ Project 2 has officially started and is now the main development line.
 Current `agent-api` status:
 
 ```text
-Day1-Day8 completed.
-Day8 completed: request logging middleware with x-trace-id and latency.
-Local pytest: 12 passed, 1 warning.
+Day1-Day9 completed.
+Day9 completed: Ollama LLM provider abstraction.
+Local pytest: 14 passed, 1 warning.
 GitHub Actions CI: green.
-Next: Day9 Ollama LLM provider abstraction.
+Commit: 77cefb0 add ollama llm provider abstraction.
+Next: Day10 real LLM tool calling.
 ```
 
 ## Project Goal
@@ -41,7 +42,9 @@ pytest + README + CI
   ↓
 Request tracing
   ↓
-LLM integration
+LLM provider abstraction
+  ↓
+Real LLM tool calling
   ↓
 Streaming
   ↓
@@ -71,20 +74,22 @@ Current:
 - Pydantic
 - LangGraph
 - LangChain Core
+- LangChain Ollama
 - LangGraph prebuilt `ToolNode`
 - LangGraph prebuilt `tools_condition`
 - SQLite checkpoint saver
 - Request logging middleware
 - `ContextVar` based request trace context
+- LLM provider abstraction
+- Mock LLM provider
+- Ollama LLM provider
 - pytest
 - GitHub Actions CI
 
 Not yet implemented:
 
-- Real LLM integration
-- Ollama provider
 - OpenAI provider
-- Real LLM tool calling
+- Real LLM tool calling inside `/agent/chat`
 - Streaming response
 - RAG tool
 - Router Agent
@@ -101,6 +106,7 @@ agent-api/
 ├── HANDOFF.md
 ├── requirements.txt
 ├── pytest.ini
+├── .env.example
 ├── .gitignore
 ├── .github/
 │   └── workflows/
@@ -113,20 +119,29 @@ agent-api/
 │   ├── DAY05.md
 │   ├── DAY06.md
 │   ├── DAY07.md
-│   └── DAY08.md
+│   ├── DAY08.md
+│   └── DAY09.md
 ├── data/
 │   └── checkpoints.sqlite          # runtime only, ignored by Git
 ├── src/
 │   └── app/
 │       ├── main.py
 │       ├── core/
+│       │   ├── config.py
 │       │   ├── logging.py
 │       │   ├── middleware.py
 │       │   └── request_context.py
 │       ├── schemas/
-│       │   └── agent.py
+│       │   ├── agent.py
+│       │   └── llm.py
 │       ├── routes/
-│       │   └── routes_agent.py
+│       │   ├── routes_agent.py
+│       │   └── routes_llm.py
+│       ├── llm/
+│       │   ├── base.py
+│       │   ├── factory.py
+│       │   ├── mock.py
+│       │   └── ollama.py
 │       └── agent/
 │           ├── graph.py
 │           ├── state.py
@@ -139,7 +154,8 @@ agent-api/
     ├── test_agent_chat.py
     ├── test_agent_memory.py
     ├── test_agent_debug.py
-    └── test_trace.py
+    ├── test_trace.py
+    └── test_llm.py
 ```
 
 ---
@@ -334,6 +350,44 @@ Example log:
 
 ```text
 request_completed method=POST path=/agent/chat status_code=200 latency_ms=12.34 trace_id=chat-trace-001
+```
+
+---
+
+## Current LLM Provider Strategy
+
+Current LLM provider strategy:
+
+```text
+ChatProvider Protocol
+  ↓
+MockChatProvider / OllamaChatProvider
+  ↓
+get_chat_provider()
+  ↓
+/llm/chat
+```
+
+Current providers:
+
+```text
+mock
+ollama
+```
+
+Current endpoint:
+
+```text
+POST /llm/chat
+```
+
+Important:
+
+```text
+/agent/chat still uses deterministic Tool Calling Agent logic.
+Real LLM tool calling will be introduced in Day10.
+CI only tests mock provider.
+Ollama provider is verified manually in local WSL/Ollama environment.
 ```
 
 ---
@@ -825,6 +879,98 @@ GitHub Actions CI: green
 
 ---
 
+## Day9 - Ollama LLM Provider Abstraction
+
+### Completed
+
+- Installed and added `langchain-ollama`
+- Updated minimal `requirements.txt`
+- Updated LLM-related settings in `src/app/core/config.py`
+- Added `ChatProvider` protocol
+- Added `MockChatProvider`
+- Added `OllamaChatProvider`
+- Added `get_chat_provider()`
+- Added `LLMChatRequest`
+- Added `LLMChatResponse`
+- Added `/llm/chat`
+- Registered LLM router in `main.py`
+- Added `tests/test_llm.py`
+- Verified mock provider with curl
+- Verified Ollama provider with local `qwen2.5:7b`
+- Expanded pytest from 12 tests to 14 tests
+- Verified GitHub Actions CI
+
+### Current Providers
+
+```text
+mock
+ollama
+```
+
+### Verified Mock Provider
+
+```bash
+curl -i -X POST http://localhost:8000/llm/chat \
+  -H "Content-Type: application/json" \
+  -H "x-trace-id: llm-mock-trace-001" \
+  -d '{"message":"你好，这是 Day9 mock LLM 测试","provider":"mock"}'
+```
+
+Expected:
+
+```json
+{
+  "answer": "Mock LLM response: 你好，这是 Day9 mock LLM 测试",
+  "provider": "mock",
+  "model": "mock-echo",
+  "trace_id": "llm-mock-trace-001"
+}
+```
+
+### Verified Ollama Provider
+
+```bash
+curl -s -X POST http://localhost:8000/llm/chat \
+  -H "Content-Type: application/json" \
+  -H "x-trace-id: llm-ollama-trace-001" \
+  -d '{"message":"请用一句话解释什么是 Agent。","provider":"ollama"}'
+```
+
+Result:
+
+```json
+{
+  "answer": "Agent是一种软件程序，它可以自动执行任务或在特定条件下采取行动，通常用于自动化管理和监控系统等场景。",
+  "provider": "ollama",
+  "model": "qwen2.5:7b",
+  "trace_id": "llm-ollama-trace-001"
+}
+```
+
+### Test Result
+
+```text
+14 passed, 1 warning
+```
+
+### CI Result
+
+```text
+GitHub Actions CI: green
+```
+
+### Commit
+
+```text
+77cefb0 add ollama llm provider abstraction
+```
+
+### Note
+
+`/agent/chat` still uses deterministic tool-call logic. Real LLM tool calling is the Day10 target.
+
+---
+
 ## Known Issues / Notes
 
 ### SQLite runtime files
@@ -864,7 +1010,7 @@ Agent response
 Local pytest currently shows:
 
 ```text
-12 passed, 1 warning
+14 passed, 1 warning
 ```
 
 The warning is:
@@ -892,7 +1038,6 @@ It has a typo: `langraph` should be `langgraph`. This does not affect code and d
 Recommended next route:
 
 ```text
-Day9: Ollama LLM provider abstraction
 Day10: real LLM tool calling
 Day11: /agent/stream
 Day12: RAG tool
@@ -921,7 +1066,12 @@ Completed:
 - [x] Day8 latency logging
 - [x] Day8 trace tests
 - [x] Day8 GitHub Actions CI
+- [x] Day9 Ollama LLM provider abstraction
+- [x] Day9 mock provider
+- [x] Day9 Ollama provider
+- [x] Day9 LLM tests
+- [x] Day9 GitHub Actions CI
 
 Next:
 
-- [ ] Day9 Ollama LLM provider abstraction
+- [ ] Day10 real LLM tool calling

@@ -2,15 +2,16 @@
 
 `agent-api` is a FastAPI + LangGraph backend project for building an Agent service step by step.
 
-This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent with SQLite-based short-term memory, graph debug output, request tracing, pytest coverage, and GitHub Actions CI.
+This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent with SQLite-based short-term memory, graph debug output, request tracing, LLM provider abstraction, pytest coverage, and GitHub Actions CI.
 
 ## Current Status
 
 ```text
-Day1-Day8 completed.
-Current stage: engineering foundation completed before real LLM integration.
-CI status: green.
-Next milestone: Day9 Ollama LLM provider abstraction.
+Day1-Day9 completed.
+Current stage: LLM provider abstraction completed before real LLM tool calling.
+Local pytest: 14 passed, 1 warning.
+GitHub Actions CI: green.
+Next milestone: Day10 real LLM tool calling.
 ```
 
 ## Features
@@ -21,8 +22,9 @@ Current features:
 * `/health` health check endpoint
 * `/agent/chat` chat endpoint
 * `/agent/debug` graph execution debug endpoint
+* `/llm/chat` LLM chat test endpoint
 * LangGraph `StateGraph`
-* Tool Calling Agent loop
+* Deterministic Tool Calling Agent loop
 * Built-in deterministic tools:
   * `add`
   * `multiply`
@@ -32,17 +34,20 @@ Current features:
 * `x-trace-id` request tracing
 * Automatic trace id generation when client does not provide one
 * Trace id reuse when client provides `x-trace-id`
-* `trace_id` included in `/agent/chat` and `/agent/debug` response bodies
+* `trace_id` included in Agent and LLM response bodies
 * Latency logging with `latency_ms`
+* LLM provider abstraction
+* Mock LLM provider for deterministic tests and CI
+* Ollama LLM provider based on `langchain-ollama`
+* Environment-based LLM provider configuration
+* Request-level provider override for `/llm/chat`
 * Split pytest API tests
 * GitHub Actions CI
 
 Not implemented yet:
 
-* Real LLM integration
-* Ollama provider
 * OpenAI provider
-* Real LLM tool calling
+* Real LLM tool calling inside `/agent/chat`
 * Streaming response
 * RAG tool
 * Router Agent
@@ -55,8 +60,10 @@ Not implemented yet:
 * FastAPI
 * Uvicorn
 * Pydantic
+* Pydantic Settings
 * LangGraph
 * LangChain Core
+* LangChain Ollama
 * LangGraph prebuilt `ToolNode`
 * LangGraph prebuilt `tools_condition`
 * SQLite checkpoint saver
@@ -71,6 +78,7 @@ agent-api/
 ├── HANDOFF.md
 ├── requirements.txt
 ├── pytest.ini
+├── .env.example
 ├── .gitignore
 ├── .github/
 │   └── workflows/
@@ -83,20 +91,29 @@ agent-api/
 │   ├── DAY05.md
 │   ├── DAY06.md
 │   ├── DAY07.md
-│   └── DAY08.md
+│   ├── DAY08.md
+│   └── DAY09.md
 ├── data/
 │   └── checkpoints.sqlite          # runtime only, ignored by Git
 ├── src/
 │   └── app/
 │       ├── main.py
 │       ├── core/
+│       │   ├── config.py
 │       │   ├── logging.py
 │       │   ├── middleware.py
 │       │   └── request_context.py
 │       ├── schemas/
-│       │   └── agent.py
+│       │   ├── agent.py
+│       │   └── llm.py
 │       ├── routes/
-│       │   └── routes_agent.py
+│       │   ├── routes_agent.py
+│       │   └── routes_llm.py
+│       ├── llm/
+│       │   ├── base.py
+│       │   ├── factory.py
+│       │   ├── mock.py
+│       │   └── ollama.py
 │       └── agent/
 │           ├── graph.py
 │           ├── state.py
@@ -109,10 +126,11 @@ agent-api/
     ├── test_agent_chat.py
     ├── test_agent_memory.py
     ├── test_agent_debug.py
-    └── test_trace.py
+    ├── test_trace.py
+    └── test_llm.py
 ```
 
-## Current Graph
+## Current Agent Graph
 
 ```text
 START
@@ -126,7 +144,7 @@ tools_condition
       agent
 ```
 
-For a tool call, the message flow is:
+For a deterministic tool call, the message flow is:
 
 ```text
 HumanMessage
@@ -137,6 +155,40 @@ ToolMessage
   ↓
 AIMessage(final answer)
 ```
+
+## Current LLM Provider Architecture
+
+Day9 adds an independent LLM provider abstraction. The current `/agent/chat` endpoint still uses deterministic tool-call logic. Real LLM tool calling will be introduced later.
+
+```text
+FastAPI
+  ↓
+/llm/chat
+  ↓
+get_chat_provider()
+  ↓
+MockChatProvider / OllamaChatProvider
+  ↓
+AIMessage
+```
+
+Current providers:
+
+```text
+mock
+ollama
+```
+
+Provider configuration:
+
+```env
+LLM_PROVIDER=mock
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=qwen2.5:7b
+OLLAMA_TEMPERATURE=0
+```
+
+When WSL accesses Ollama running on the Windows host, `OLLAMA_BASE_URL` can be set to the Windows host IP exposed through WSL networking.
 
 ## Request Tracing
 
@@ -158,7 +210,7 @@ The trace id is returned in the response header:
 x-trace-id: trace-xxxxxxxxxxxx
 ```
 
-For Agent endpoints, the trace id is also returned in the response body:
+For Agent and LLM endpoints, the trace id is also returned in the response body:
 
 ```json
 {
@@ -230,7 +282,7 @@ x-trace-id: manual-trace-001
 
 ## API Usage
 
-### Chat
+### Agent Chat
 
 ```bash
 curl -i -X POST http://localhost:8000/agent/chat \
@@ -278,7 +330,7 @@ Expected response:
 }
 ```
 
-### Debug Endpoint
+### Agent Debug Endpoint
 
 The debug endpoint shows graph execution steps.
 
@@ -314,6 +366,46 @@ The full debug response includes:
 * `messages_count`
 * `trace_id`
 
+### LLM Chat - Mock Provider
+
+```bash
+curl -i -X POST http://localhost:8000/llm/chat \
+  -H "Content-Type: application/json" \
+  -H "x-trace-id: llm-mock-trace-001" \
+  -d '{"message":"你好，这是 Day9 mock LLM 测试","provider":"mock"}'
+```
+
+Expected response:
+
+```json
+{
+  "answer": "Mock LLM response: 你好，这是 Day9 mock LLM 测试",
+  "provider": "mock",
+  "model": "mock-echo",
+  "trace_id": "llm-mock-trace-001"
+}
+```
+
+### LLM Chat - Ollama Provider
+
+```bash
+curl -s -X POST http://localhost:8000/llm/chat \
+  -H "Content-Type: application/json" \
+  -H "x-trace-id: llm-ollama-trace-001" \
+  -d '{"message":"请用一句话解释什么是 Agent。","provider":"ollama"}'
+```
+
+Example response:
+
+```json
+{
+  "answer": "Agent是一种软件程序，它可以自动执行任务或在特定条件下采取行动，通常用于自动化管理和监控系统等场景。",
+  "provider": "ollama",
+  "model": "qwen2.5:7b",
+  "trace_id": "llm-ollama-trace-001"
+}
+```
+
 ## Tests
 
 Run tests:
@@ -325,7 +417,7 @@ pytest -q
 Current result:
 
 ```text
-12 passed, 1 warning
+14 passed, 1 warning
 ```
 
 Current test coverage includes:
@@ -342,6 +434,8 @@ Current test coverage includes:
 * `/agent/debug` normal path
 * `/agent/debug` tool-call path
 * `/agent/debug` trace id in header and body
+* `/llm/chat` mock provider
+* `/llm/chat` mock provider with trace id
 
 Current test organization:
 
@@ -352,8 +446,11 @@ tests/
 ├── test_agent_chat.py
 ├── test_agent_memory.py
 ├── test_agent_debug.py
-└── test_trace.py
+├── test_trace.py
+└── test_llm.py
 ```
+
+Ollama provider is manually tested locally and is not covered by CI, because CI should not depend on a local Ollama service.
 
 ## CI
 
@@ -413,7 +510,6 @@ This warning does not block local tests or CI and can be handled later.
 
 Next milestones:
 
-* Day9: Add Ollama LLM provider abstraction
 * Day10: Replace deterministic tool-call mock with real LLM tool calling
 * Day11: Add `/agent/stream`
 * Day12: Add RAG search tool
