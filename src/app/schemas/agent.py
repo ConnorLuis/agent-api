@@ -9,6 +9,7 @@ class AgentChatRequest(BaseModel):
 class AgentChatResponse(BaseModel):
     answer: str
     thread_id: str | None = None
+    trace_id: str | None = None
 
 
 class DebugMessage(BaseModel):
@@ -28,3 +29,4 @@ class AgentDebugResponse(BaseModel):
     steps: list[DebugStep]
     final_answer: str
     messages_count: int
+    trace_id: str | None = None
