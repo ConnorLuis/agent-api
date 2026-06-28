@@ -2,14 +2,15 @@
 
 `agent-api` is a FastAPI + LangGraph backend project for building an Agent service step by step.
 
-This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent with SQLite-based short-term memory, graph debug output, pytest coverage, and GitHub Actions CI.
+This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent with SQLite-based short-term memory, graph debug output, request tracing, pytest coverage, and GitHub Actions CI.
 
 ## Current Status
 
 ```text
-Day1-Day7 completed.
+Day1-Day8 completed.
 Current stage: engineering foundation completed before real LLM integration.
-Next milestone: Day8 request logging middleware with x-trace-id and latency.
+CI status: green.
+Next milestone: Day9 Ollama LLM provider abstraction.
 ```
 
 ## Features
@@ -19,6 +20,7 @@ Current features:
 * FastAPI backend service
 * `/health` health check endpoint
 * `/agent/chat` chat endpoint
+* `/agent/debug` graph execution debug endpoint
 * LangGraph `StateGraph`
 * Tool Calling Agent loop
 * Built-in deterministic tools:
@@ -26,7 +28,12 @@ Current features:
   * `multiply`
 * SQLite checkpoint-based short-term memory
 * `thread_id` based conversation state
-* `/agent/debug` endpoint for inspecting graph execution steps
+* Request logging middleware
+* `x-trace-id` request tracing
+* Automatic trace id generation when client does not provide one
+* Trace id reuse when client provides `x-trace-id`
+* `trace_id` included in `/agent/chat` and `/agent/debug` response bodies
+* Latency logging with `latency_ms`
 * Split pytest API tests
 * GitHub Actions CI
 
@@ -75,12 +82,17 @@ agent-api/
 │   ├── DAY04.md
 │   ├── DAY05.md
 │   ├── DAY06.md
-│   └── DAY07.md
+│   ├── DAY07.md
+│   └── DAY08.md
 ├── data/
 │   └── checkpoints.sqlite          # runtime only, ignored by Git
 ├── src/
 │   └── app/
 │       ├── main.py
+│       ├── core/
+│       │   ├── logging.py
+│       │   ├── middleware.py
+│       │   └── request_context.py
 │       ├── schemas/
 │       │   └── agent.py
 │       ├── routes/
@@ -96,7 +108,8 @@ agent-api/
     ├── test_health.py
     ├── test_agent_chat.py
     ├── test_agent_memory.py
-    └── test_agent_debug.py
+    ├── test_agent_debug.py
+    └── test_trace.py
 ```
 
 ## Current Graph
@@ -123,6 +136,50 @@ AIMessage(tool_calls)
 ToolMessage
   ↓
 AIMessage(final answer)
+```
+
+## Request Tracing
+
+Every request has a trace id.
+
+Rules:
+
+```text
+If the client provides x-trace-id:
+  reuse the client-provided trace id.
+
+If the client does not provide x-trace-id:
+  generate trace-xxxxxxxxxxxx.
+```
+
+The trace id is returned in the response header:
+
+```text
+x-trace-id: trace-xxxxxxxxxxxx
+```
+
+For Agent endpoints, the trace id is also returned in the response body:
+
+```json
+{
+  "trace_id": "chat-trace-001"
+}
+```
+
+Current request log includes:
+
+```text
+method
+path
+status_code
+latency_ms
+trace_id
+```
+
+Example log:
+
+```text
+request_completed method=POST path=/agent/chat status_code=200 latency_ms=12.34 trace_id=chat-trace-001
 ```
 
 ## Quick Start
@@ -158,13 +215,27 @@ Expected response:
 {"status":"ok"}
 ```
 
+Health check with manual trace id:
+
+```bash
+curl -i http://localhost:8000/health \
+  -H "x-trace-id: manual-trace-001"
+```
+
+Expected response header:
+
+```text
+x-trace-id: manual-trace-001
+```
+
 ## API Usage
 
 ### Chat
 
 ```bash
-curl -X POST http://localhost:8000/agent/chat \
+curl -i -X POST http://localhost:8000/agent/chat \
   -H "Content-Type: application/json" \
+  -H "x-trace-id: chat-trace-001" \
   -d '{"message":"请计算 3 加 5","thread_id":"demo-thread-001"}'
 ```
 
@@ -173,7 +244,8 @@ Expected response:
 ```json
 {
   "answer": "工具 `add` 执行结果：8",
-  "thread_id": "demo-thread-001"
+  "thread_id": "demo-thread-001",
+  "trace_id": "chat-trace-001"
 }
 ```
 
@@ -211,8 +283,9 @@ Expected response:
 The debug endpoint shows graph execution steps.
 
 ```bash
-curl -X POST http://localhost:8000/agent/debug \
+curl -i -X POST http://localhost:8000/agent/debug \
   -H "Content-Type: application/json" \
+  -H "x-trace-id: debug-trace-001" \
   -d '{"message":"请计算 8 乘 9","thread_id":"debug-demo-001"}'
 ```
 
@@ -222,12 +295,24 @@ Expected node path:
 agent -> tools -> agent
 ```
 
-The response includes:
+Expected response body includes:
+
+```json
+{
+  "thread_id": "debug-demo-001",
+  "final_answer": "工具 `multiply` 执行结果：72",
+  "messages_count": 4,
+  "trace_id": "debug-trace-001"
+}
+```
+
+The full debug response includes:
 
 * `thread_id`
 * `steps`
 * `final_answer`
 * `messages_count`
+* `trace_id`
 
 ## Tests
 
@@ -240,19 +325,23 @@ pytest -q
 Current result:
 
 ```text
-8 passed, 1 warning
+12 passed, 1 warning
 ```
 
 Current test coverage includes:
 
 * `/health`
+* `/health` generated `x-trace-id`
+* `/health` client-provided `x-trace-id`
 * `/agent/chat` normal response
+* `/agent/chat` trace id in header and body
 * `add` tool
 * `multiply` tool
 * same-thread short-term memory
 * different-thread memory isolation
 * `/agent/debug` normal path
 * `/agent/debug` tool-call path
+* `/agent/debug` trace id in header and body
 
 Current test organization:
 
@@ -262,7 +351,8 @@ tests/
 ├── test_health.py
 ├── test_agent_chat.py
 ├── test_agent_memory.py
-└── test_agent_debug.py
+├── test_agent_debug.py
+└── test_trace.py
 ```
 
 ## CI
@@ -311,14 +401,19 @@ data/
 
 `requirements.txt` is manually maintained as a minimal dependency file. Do not blindly overwrite it with `pip freeze > requirements.txt` from a conda environment, because conda build artifact paths may break GitHub Actions CI.
 
+Current local pytest warning:
+
+```text
+StarletteDeprecationWarning: Using httpx with starlette.testclient is deprecated; install httpx2 instead.
+```
+
+This warning does not block local tests or CI and can be handled later.
+
 ## Roadmap
 
 Next milestones:
 
-* Day8: Add request logging middleware with `x-trace-id`
-* Day8: Add latency logging
-* Day8: Connect trace id with Agent debug output
-* Day9: Add Ollama LLM provider
+* Day9: Add Ollama LLM provider abstraction
 * Day10: Replace deterministic tool-call mock with real LLM tool calling
 * Day11: Add `/agent/stream`
 * Day12: Add RAG search tool

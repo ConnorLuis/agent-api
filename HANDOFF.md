@@ -13,10 +13,11 @@ Project 2 has officially started and is now the main development line.
 Current `agent-api` status:
 
 ```text
-Day1-Day7 completed.
-Day7 completed: pytest + README.md initial version + GitHub Actions CI.
-CI status: green.
-Next: Day8 request logging middleware with x-trace-id and latency.
+Day1-Day8 completed.
+Day8 completed: request logging middleware with x-trace-id and latency.
+Local pytest: 12 passed, 1 warning.
+GitHub Actions CI: green.
+Next: Day9 Ollama LLM provider abstraction.
 ```
 
 ## Project Goal
@@ -37,6 +38,8 @@ Short-term memory
 Debug output
   ↓
 pytest + README + CI
+  ↓
+Request tracing
   ↓
 LLM integration
   ↓
@@ -71,6 +74,8 @@ Current:
 - LangGraph prebuilt `ToolNode`
 - LangGraph prebuilt `tools_condition`
 - SQLite checkpoint saver
+- Request logging middleware
+- `ContextVar` based request trace context
 - pytest
 - GitHub Actions CI
 
@@ -107,12 +112,17 @@ agent-api/
 │   ├── DAY04.md
 │   ├── DAY05.md
 │   ├── DAY06.md
-│   └── DAY07.md
+│   ├── DAY07.md
+│   └── DAY08.md
 ├── data/
 │   └── checkpoints.sqlite          # runtime only, ignored by Git
 ├── src/
 │   └── app/
 │       ├── main.py
+│       ├── core/
+│       │   ├── logging.py
+│       │   ├── middleware.py
+│       │   └── request_context.py
 │       ├── schemas/
 │       │   └── agent.py
 │       ├── routes/
@@ -128,7 +138,8 @@ agent-api/
     ├── test_health.py
     ├── test_agent_chat.py
     ├── test_agent_memory.py
-    └── test_agent_debug.py
+    ├── test_agent_debug.py
+    └── test_trace.py
 ```
 
 ---
@@ -145,6 +156,12 @@ Expected:
 
 ```json
 {"status":"ok"}
+```
+
+Response header includes:
+
+```text
+x-trace-id
 ```
 
 ### Agent Chat
@@ -167,7 +184,8 @@ Response:
 ```json
 {
   "answer": "工具 `add` 执行结果：8",
-  "thread_id": "demo-thread-001"
+  "thread_id": "demo-thread-001",
+  "trace_id": "trace-or-client-provided-id"
 }
 ```
 
@@ -199,6 +217,7 @@ thread_id
 steps
 final_answer
 messages_count
+trace_id
 ```
 
 ---
@@ -267,6 +286,54 @@ Important:
 thread_id is passed through config.configurable.thread_id.
 thread_id in State is only for application-level response tracking.
 The actual LangGraph checkpoint lookup depends on config.configurable.thread_id.
+```
+
+---
+
+## Current Observability Strategy
+
+Current request tracing strategy:
+
+```text
+TraceLoggingMiddleware + x-trace-id + ContextVar
+```
+
+Rules:
+
+```text
+Client provides x-trace-id:
+  reuse the client trace id.
+
+Client does not provide x-trace-id:
+  generate trace-xxxxxxxxxxxx.
+```
+
+Response header:
+
+```text
+x-trace-id
+```
+
+Agent response body:
+
+```text
+trace_id
+```
+
+Current log fields:
+
+```text
+method
+path
+status_code
+latency_ms
+trace_id
+```
+
+Example log:
+
+```text
+request_completed method=POST path=/agent/chat status_code=200 latency_ms=12.34 trace_id=chat-trace-001
 ```
 
 ---
@@ -651,6 +718,113 @@ Use a minimal hand-maintained `requirements.txt` instead.
 
 ---
 
+## Day8 - Request Logging Middleware + x-trace-id
+
+### Completed
+
+- Added `src/app/core/logging.py` logging setup
+- Added `src/app/core/middleware.py`
+- Added `TraceLoggingMiddleware`
+- Added `src/app/core/request_context.py`
+- Added request-scoped `trace_id` context
+- Registered middleware in `main.py`
+- Added `x-trace-id` response header
+- Reused client-provided `x-trace-id`
+- Auto-generated `trace-*` when request does not provide one
+- Added `trace_id` to `/agent/chat` response body
+- Added `trace_id` to `/agent/debug` response body
+- Added trace tests in `tests/test_trace.py`
+- Expanded pytest from 8 tests to 12 tests
+- Verified local pytest
+- Verified GitHub Actions CI
+
+### Current Observability
+
+```text
+method
+path
+status_code
+latency_ms
+trace_id
+```
+
+### Verified
+
+Auto-generated trace id:
+
+```bash
+curl -i http://localhost:8000/health
+```
+
+Result includes:
+
+```text
+x-trace-id: trace-183ab0ea9895
+```
+
+Client-provided trace id:
+
+```bash
+curl -i http://localhost:8000/health \
+  -H "x-trace-id: manual-trace-001"
+```
+
+Result:
+
+```text
+x-trace-id: manual-trace-001
+```
+
+Agent chat:
+
+```bash
+curl -i -X POST http://localhost:8000/agent/chat \
+  -H "Content-Type: application/json" \
+  -H "x-trace-id: chat-trace-001" \
+  -d '{"message":"请计算 3 加 5","thread_id":"day8-chat-001"}'
+```
+
+Expected response body:
+
+```json
+{
+  "answer": "工具 `add` 执行结果：8",
+  "thread_id": "day8-chat-001",
+  "trace_id": "chat-trace-001"
+}
+```
+
+Agent debug:
+
+```bash
+curl -i -X POST http://localhost:8000/agent/debug \
+  -H "Content-Type: application/json" \
+  -H "x-trace-id: debug-trace-001" \
+  -d '{"message":"请计算 8 乘 9","thread_id":"day8-debug-001"}'
+```
+
+Expected:
+
+```text
+x-trace-id: debug-trace-001
+final_answer: 工具 `multiply` 执行结果：72
+trace_id: debug-trace-001
+```
+
+### Test Result
+
+```text
+12 passed, 1 warning
+```
+
+### CI Result
+
+```text
+GitHub Actions CI: green
+```
+
+---
+
 ## Known Issues / Notes
 
 ### SQLite runtime files
@@ -690,7 +864,7 @@ Agent response
 Local pytest currently shows:
 
 ```text
-8 passed, 1 warning
+12 passed, 1 warning
 ```
 
 The warning is:
@@ -718,8 +892,7 @@ It has a typo: `langraph` should be `langgraph`. This does not affect code and d
 Recommended next route:
 
 ```text
-Day8: request logging middleware with x-trace-id and latency
-Day9: Ollama LLM provider
+Day9: Ollama LLM provider abstraction
 Day10: real LLM tool calling
 Day11: /agent/stream
 Day12: RAG tool
@@ -742,7 +915,13 @@ Completed:
 - [x] Day7 pytest
 - [x] Day7 README.md initial version
 - [x] Day7 GitHub Actions CI
+- [x] Day8 request logging middleware
+- [x] Day8 x-trace-id response header
+- [x] Day8 trace_id response body
+- [x] Day8 latency logging
+- [x] Day8 trace tests
+- [x] Day8 GitHub Actions CI
 
 Next:
 
-- [ ] Day8 request logging middleware with x-trace-id and latency
+- [ ] Day9 Ollama LLM provider abstraction
