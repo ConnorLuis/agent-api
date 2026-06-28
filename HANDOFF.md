@@ -13,8 +13,10 @@ Project 2 has officially started and is now the main development line.
 Current `agent-api` status:
 
 ```text
-Day1-Day6 completed.
-Day7 in progress: pytest + README.md initial version + GitHub Actions CI.
+Day1-Day7 completed.
+Day7 completed: pytest + README.md initial version + GitHub Actions CI.
+CI status: green.
+Next: Day8 request logging middleware with x-trace-id and latency.
 ```
 
 ## Project Goal
@@ -88,17 +90,24 @@ Not yet implemented:
 
 ## Current Project Structure
 
-Recommended current structure:
-
 ```text
 agent-api/
 ├── README.md
 ├── HANDOFF.md
 ├── requirements.txt
+├── pytest.ini
 ├── .gitignore
 ├── .github/
 │   └── workflows/
 │       └── ci.yml
+├── docs/
+│   ├── DAY01.md
+│   ├── DAY02.md
+│   ├── DAY03.md
+│   ├── DAY04.md
+│   ├── DAY05.md
+│   ├── DAY06.md
+│   └── DAY07.md
 ├── data/
 │   └── checkpoints.sqlite          # runtime only, ignored by Git
 ├── src/
@@ -121,8 +130,6 @@ agent-api/
     ├── test_agent_memory.py
     └── test_agent_debug.py
 ```
-
-If tests have not yet been split, a single `tests/test_agent_api.py` is acceptable temporarily. The recommended Day7 direction is to split tests by feature.
 
 ---
 
@@ -245,7 +252,7 @@ data/checkpoints.sqlite-shm
 data/checkpoints.sqlite-wal
 ```
 
-These files are runtime data and should be ignored by Git.
+These files are runtime data and are ignored by Git.
 
 Expected tables:
 
@@ -547,23 +554,23 @@ Commit:
 
 ## Day7 - pytest + README.md + CI
 
-### Status
+### Completed
 
-In progress.
+- Fixed SQLite runtime files being tracked by Git
+- Updated `.gitignore` for runtime SQLite files
+- Removed tracked `data/checkpoints.sqlite-shm` and `data/checkpoints.sqlite-wal` from Git
+- Added split pytest tests
+- Added `tests/conftest.py`
+- Added `pytest.ini`
+- Added README.md initial version
+- Added GitHub Actions CI
+- Fixed CI dependency installation issue by replacing `pip freeze` output with a minimal hand-maintained `requirements.txt`
+- Verified local pytest
+- Verified GitHub Actions CI
 
-### Goals
+### Test Organization
 
-- Fix SQLite runtime files being tracked by Git
-- Update `.gitignore`
-- Add pytest tests
-- Add README.md initial version
-- Add GitHub Actions CI
-- Run `pytest -q` locally
-- Push and verify GitHub Actions CI
-
-### Test Organization Recommendation
-
-Current stage recommendation:
+Current test structure:
 
 ```text
 tests/
@@ -573,8 +580,6 @@ tests/
 ├── test_agent_memory.py
 └── test_agent_debug.py
 ```
-
-A single `tests/test_agent_api.py` is acceptable temporarily, but it should be split once tests grow beyond the initial 8 deterministic cases.
 
 Later, after adding real LLM, RAG, and GraphRAG, expand to:
 
@@ -586,7 +591,9 @@ tests/
 └── conftest.py
 ```
 
-### Suggested Deterministic Tests
+### Deterministic Tests
+
+Current tests cover:
 
 - `/health`
 - `/agent/chat` normal response
@@ -597,13 +604,23 @@ tests/
 - `/agent/debug` normal path
 - `/agent/debug` tool path
 
-### CI
-
-Recommended workflow:
+### Local pytest Result
 
 ```text
-GitHub Actions
-  ↓
+8 passed, 1 warning
+```
+
+The warning is from `fastapi.testclient` / Starlette deprecation and currently does not affect tests.
+
+### CI Result
+
+```text
+GitHub Actions CI: green
+```
+
+Workflow:
+
+```text
 checkout
   ↓
 setup-python 3.10
@@ -612,6 +629,25 @@ pip install -r requirements.txt
   ↓
 pytest -q
 ```
+
+### Known CI Fix
+
+Do not blindly run:
+
+```bash
+pip freeze > requirements.txt
+```
+
+inside the conda environment.
+
+Reason:
+
+```text
+It may write conda build artifact paths such as /home/conda/feedstock_root/...
+Those paths do not exist on GitHub Actions runners and will break CI.
+```
+
+Use a minimal hand-maintained `requirements.txt` instead.
 
 ---
 
@@ -649,6 +685,22 @@ This is harmless but can be renamed later to a neutral label such as:
 Agent response
 ```
 
+### Test warning
+
+Local pytest currently shows:
+
+```text
+8 passed, 1 warning
+```
+
+The warning is:
+
+```text
+StarletteDeprecationWarning: Using httpx with starlette.testclient is deprecated; install httpx2 instead.
+```
+
+It does not block local tests or CI and can be handled later.
+
 ### Commit typo
 
 Day2 commit message was:
@@ -666,7 +718,6 @@ It has a typo: `langraph` should be `langgraph`. This does not affect code and d
 Recommended next route:
 
 ```text
-Day7: pytest + README.md initial version + CI
 Day8: request logging middleware with x-trace-id and latency
 Day9: Ollama LLM provider
 Day10: real LLM tool calling
@@ -688,9 +739,10 @@ Completed:
 - [x] Day4 InMemorySaver short-term memory
 - [x] Day5 SqliteSaver persistent memory
 - [x] Day6 debug endpoint
+- [x] Day7 pytest
+- [x] Day7 README.md initial version
+- [x] Day7 GitHub Actions CI
 
-In progress:
+Next:
 
-- [ ] Day7 pytest
-- [ ] Day7 README.md initial version
-- [ ] Day7 GitHub Actions CI
+- [ ] Day8 request logging middleware with x-trace-id and latency
