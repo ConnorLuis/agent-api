@@ -4,6 +4,7 @@ from src.app.core.logging import setup_logging
 from src.app.core.middleware import TraceLoggingMiddleware
 from src.app.routes.routes_agent import router as agent_router
 from src.app.routes.routes_llm import router as llm_router
+from src.app.routes.routes_rag import router as rag_router
 
 setup_logging()
 
@@ -21,3 +22,4 @@ def heath_check() -> dict:
 
 app.include_router(agent_router, prefix="/agent", tags=["agent"])
 app.include_router(llm_router, prefix="/llm", tags=["llm"])
+app.include_router(rag_router, prefix="/rag", tags=["rag"])

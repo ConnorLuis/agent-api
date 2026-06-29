@@ -23,6 +23,7 @@ def _build_tool_call(tool_name: str, args: dict) -> AIMessage:
                 "name": tool_name,
                 "args": args,
                 "id": f"call_{uuid4().hex[:8]}",
+                "type": "tool_call",
             }
         ],
     )
@@ -42,6 +43,22 @@ def _is_memory_question(text: str) -> bool:
     ]
 
     return any(keyword in lowered for keyword in keywords)
+
+
+def _should_search_knowledge(text: str) -> bool:
+    keywords = [
+        "rag",
+        "RAG",
+        "知识库",
+        "检索",
+        "搜索",
+        "agent是什么",
+        "Agent是什么",
+        "langgraph",
+        "LangGraph",
+    ]
+    return any(keyword in text for keyword in keywords)
+
 
 def _answer_from_memory(messages: list) -> AIMessage:
     """
@@ -95,6 +112,19 @@ def agent_node(state: AgentState) -> dict:
 
     if isinstance(last_message, ToolMessage):
         tool_name = getattr(last_message, "name", "tool")
+
+        if tool_name == "search_knowledge_base":
+            return {
+                "messages": [
+                    AIMessage(
+                        content=(
+                            "根据知识库检索结果：\n"
+                            f"{last_message.content}"
+                        )
+                    )
+                ]
+            }
+
         return {
             "messages": [
                 AIMessage(
@@ -109,6 +139,21 @@ def agent_node(state: AgentState) -> dict:
         return {
             "messages": [
                 _answer_from_memory(messages)
+            ]
+        }
+
+    # RAG 判断要放在数字计算判断之前或之外。
+    # 否则“RAG 是什么？”这种没有数字的问题不会触发知识库工具。
+    if _should_search_knowledge(user_text):
+        return {
+            "messages": [
+                _build_tool_call(
+                    tool_name="search_knowledge_base",
+                    args={
+                        "query": user_text,
+                        "k": 3,
+                    },
+                )
             ]
         }
 
@@ -137,6 +182,8 @@ def agent_node(state: AgentState) -> dict:
                 ]
             }
 
+
+
     return {
         "messages": [
             AIMessage(
@@ -144,3 +191,8 @@ def agent_node(state: AgentState) -> dict:
             )
         ]
     }
+
+
+
+
+
