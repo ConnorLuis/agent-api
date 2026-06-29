@@ -1,7 +1,9 @@
 from fastapi import APIRouter
+from fastapi.responses import StreamingResponse
 
 from src.app.agent.graph import debug_agent, invoke_agent
 from src.app.agent.llm_graph import debug_llm_agent, invoke_llm_agent
+from src.app.agent.streaming import stream_agent_events, stream_llm_agent_events
 from src.app.core.config import get_settings
 from src.app.core.request_context import get_trace_id
 from src.app.schemas.agent import (
@@ -65,5 +67,32 @@ def agent_llm_debug(request: AgentChatRequest) -> AgentDebugResponse:
         thread_id=request.thread_id
     )
 
-
     return AgentDebugResponse(**result, trace_id=get_trace_id())
+
+
+@router.post("/stream")
+def agent_stream(request: AgentChatRequest) -> StreamingResponse:
+    trace_id = get_trace_id()
+
+    return StreamingResponse(
+        stream_agent_events(
+            message=request.message,
+            thread_id=request.thread_id,
+            trace_id=trace_id,
+        ),
+        media_type="text/event-stream",
+    )
+
+
+@router.post("/llm-stream")
+def agent_llm_stream(request: AgentChatRequest) -> StreamingResponse:
+    trace_id = get_trace_id()
+
+    return StreamingResponse(
+        stream_llm_agent_events(
+            message=request.message,
+            thread_id=request.thread_id,
+            trace_id=trace_id,
+        ),
+        media_type="text/event-stream",
+    )
