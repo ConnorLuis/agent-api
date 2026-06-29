@@ -1,4 +1,7 @@
+from typing import Sequence
+
 from langchain_core.messages import AIMessage, BaseMessage
+from langchain_core.tools import BaseTool
 from langchain_ollama import ChatOllama
 
 class OllamaChatProvider:
@@ -22,3 +25,11 @@ class OllamaChatProvider:
             return response
 
         return AIMessage(content=str(response.content))
+
+    def bind_tools(self, tools: Sequence[BaseTool]):
+        """
+        Bind tools to the underlying chat model.
+
+        Used by Day10 real LLM Tool Calling Agent.
+        """
+        return self.clent.bind_tools(tools)

@@ -30,3 +30,11 @@ class AgentDebugResponse(BaseModel):
     final_answer: str
     messages_count: int
     trace_id: str | None = None
+
+
+class AgentLLMChatResponse(BaseModel):
+    answer: str
+    thread_id: str | None = None
+    provider: str = "ollama"
+    model: str | None = None
+    trace_id: str | None = None
