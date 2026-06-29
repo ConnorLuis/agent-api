@@ -2,16 +2,16 @@
 
 `agent-api` is a FastAPI + LangGraph backend project for building an Agent service step by step.
 
-This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent, SQLite-based short-term memory, graph debug output, request tracing, LLM provider abstraction, and a real Ollama-backed LLM Tool Calling Agent path.
+This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent, SQLite-based short-term memory, graph debug output, request tracing, LLM provider abstraction, a real Ollama-backed LLM Tool Calling Agent path, and SSE streaming endpoints.
 
 ## Current Status
 
 ```text
-Day1-Day10 completed.
-Current stage: real LLM tool calling path completed.
-Local pytest: 14 passed, 1 warning.
+Day1-Day11 completed.
+Current stage: SSE streaming endpoints completed.
+Local pytest: 16 passed, 1 warning.
 GitHub Actions CI: green.
-Next milestone: Day11 streaming response.
+Next milestone: Day12 RAG search tool.
 ```
 
 ## Features
@@ -25,6 +25,8 @@ Current features:
 * `/llm/chat` LLM chat test endpoint
 * `/agent/llm-chat` real LLM Tool Calling Agent endpoint
 * `/agent/llm-debug` real LLM Tool Calling Agent debug endpoint
+* `/agent/stream` deterministic Agent SSE streaming endpoint
+* `/agent/llm-stream` real LLM Tool Calling Agent SSE streaming endpoint
 * LangGraph `StateGraph`
 * Deterministic Tool Calling Agent loop
 * Real LLM Tool Calling Agent loop
@@ -43,6 +45,8 @@ Current features:
 * Mock LLM provider for deterministic tests and CI
 * Ollama LLM provider based on `langchain-ollama`
 * Ollama tool binding via `bind_tools()`
+* Server-Sent Events streaming response
+* SSE event helper with `ensure_ascii=False` for readable Chinese output
 * Environment-based LLM provider configuration
 * Request-level provider override for `/llm/chat`
 * Split pytest API tests
@@ -52,7 +56,6 @@ Not implemented yet:
 
 * OpenAI provider
 * Replacing `/agent/chat` with the real LLM Agent as the default main route
-* Streaming response
 * RAG tool
 * Router Agent
 * GraphRAG
@@ -73,6 +76,7 @@ Not implemented yet:
 * SQLite checkpoint saver
 * pytest
 * GitHub Actions
+* Server-Sent Events
 
 ## Project Structure
 
@@ -97,7 +101,8 @@ agent-api/
 │   ├── DAY07.md
 │   ├── DAY08.md
 │   ├── DAY09.md
-│   └── DAY10.md
+│   ├── DAY10.md
+│   └── DAY11.md
 ├── data/
 │   └── checkpoints.sqlite          # runtime only, ignored by Git
 ├── src/
@@ -107,7 +112,8 @@ agent-api/
 │       │   ├── config.py
 │       │   ├── logging.py
 │       │   ├── middleware.py
-│       │   └── request_context.py
+│       │   ├── request_context.py
+│       │   └── sse.py
 │       ├── schemas/
 │       │   ├── agent.py
 │       │   └── llm.py
@@ -121,6 +127,7 @@ agent-api/
 │       │   └── ollama.py
 │       └── agent/
 │           ├── graph.py
+│           ├── streaming.py
 │           ├── llm_graph.py
 │           ├── llm_nodes.py
 │           ├── state.py
@@ -134,7 +141,8 @@ agent-api/
     ├── test_agent_memory.py
     ├── test_agent_debug.py
     ├── test_trace.py
-    └── test_llm.py
+    ├── test_llm.py
+    └── test_stream.py
 ```
 
 ## Current Agent Graphs
@@ -232,6 +240,39 @@ OLLAMA_TEMPERATURE=0
 ```
 
 When WSL accesses Ollama running on the Windows host, `OLLAMA_BASE_URL` can be set to the Windows host IP exposed through WSL networking.
+
+
+## Current Streaming Architecture
+
+Day11 adds SSE streaming endpoints while keeping the deterministic and real LLM paths separate.
+
+```text
+/agent/stream
+  ↓
+stream_agent_events()
+  ↓
+invoke_agent()
+  ↓
+metadata -> answer_chunk -> final -> done
+```
+
+```text
+/agent/llm-stream
+  ↓
+stream_llm_agent_events()
+  ↓
+llm_agent_graph.stream(..., stream_mode="updates")
+  ↓
+metadata -> step(agent) -> step(tools) -> step(agent) -> final -> done
+```
+
+SSE payloads are serialized with:
+
+```text
+ensure_ascii=False
+```
+
+This keeps Chinese output readable in terminal responses instead of showing Unicode escape sequences.
 
 ## Request Tracing
 
@@ -535,6 +576,68 @@ Expected tool call:
 }
 ```
 
+
+### Agent Stream - Deterministic Route
+
+`/agent/stream` streams deterministic Agent output as Server-Sent Events.
+
+```bash
+curl -N -X POST http://localhost:8000/agent/stream \
+  -H "Content-Type: application/json" \
+  -H "x-trace-id: day11-stream-add-001" \
+  -d '{"message":"请计算 3 加 5","thread_id":"day11-stream-add-001"}'
+```
+
+Expected event sequence:
+
+```text
+event: metadata
+event: answer_chunk
+event: final
+event: done
+```
+
+Example final event:
+
+```text
+event: final
+data: {"answer": "工具 `add` 执行结果：8", "thread_id": "day11-stream-add-001", "trace_id": "day11-stream-add-001"}
+```
+
+### Agent Stream - Real LLM Tool Calling Route
+
+`/agent/llm-stream` streams real LLM Tool Calling Agent graph updates as SSE events.
+
+```bash
+curl -N -X POST http://localhost:8000/agent/llm-stream \
+  -H "Content-Type: application/json" \
+  -H "x-trace-id: day11-llm-stream-add-001" \
+  -d '{"message":"请计算 13 加 29，必须使用 add 工具。","thread_id":"day11-llm-stream-add-001"}'
+```
+
+Expected event sequence:
+
+```text
+event: metadata
+event: step      # node=agent, LLM-generated tool_calls
+event: step      # node=tools, ToolMessage result
+event: step      # node=agent, final AIMessage
+event: final
+event: done
+```
+
+Expected tool-call path:
+
+```text
+agent -> tools -> agent
+```
+
+Example final answer:
+
+```text
+计算结果是 42。
+```
+
 ## Tests
 
 Run tests:
@@ -546,7 +649,7 @@ pytest -q
 Current result:
 
 ```text
-14 passed, 1 warning
+16 passed, 1 warning
 ```
 
 Current test coverage includes:
@@ -565,6 +668,8 @@ Current test coverage includes:
 * `/agent/debug` trace id in header and body
 * `/llm/chat` mock provider
 * `/llm/chat` mock provider with trace id
+* `/agent/stream` deterministic add tool SSE response
+* `/agent/stream` deterministic multiply tool SSE response
 
 Current test organization:
 
@@ -576,10 +681,11 @@ tests/
 ├── test_agent_memory.py
 ├── test_agent_debug.py
 ├── test_trace.py
-└── test_llm.py
+├── test_llm.py
+└── test_stream.py
 ```
 
-Ollama provider and real LLM tool calling are manually tested locally and are not covered by CI, because CI should not depend on a local Ollama service.
+Ollama provider, real LLM tool calling, and `/agent/llm-stream` are manually tested locally and are not covered by CI, because CI should not depend on a local Ollama service. The deterministic `/agent/stream` endpoint is covered by CI.
 
 ## CI
 
@@ -653,7 +759,6 @@ Without this, `python -m json.tool` may display Chinese as Unicode escape sequen
 
 Next milestones:
 
-* Day11: Add `/agent/stream`
 * Day12: Add RAG search tool
 * Day13+: Add Router Agent
 * Later: Add GraphRAG and Neo4j integration

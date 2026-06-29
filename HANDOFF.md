@@ -13,11 +13,11 @@ Project 2 has officially started and is now the main development line.
 Current `agent-api` status:
 
 ```text
-Day1-Day10 completed.
-Day10 completed: real LLM tool calling path with Ollama.
-Local pytest: 14 passed, 1 warning.
+Day1-Day11 completed.
+Day11 completed: SSE streaming response endpoints.
+Local pytest: 16 passed, 1 warning.
 GitHub Actions CI: green.
-Next: Day11 streaming response.
+Next: Day12 RAG search tool.
 ```
 
 ## Project Goal
@@ -84,6 +84,7 @@ Current:
 - Mock LLM provider
 - Ollama LLM provider
 - Real LLM tool calling path
+- Server-Sent Events streaming endpoints
 - pytest
 - GitHub Actions CI
 
@@ -91,7 +92,6 @@ Not yet implemented:
 
 - OpenAI provider
 - Replacing `/agent/chat` with the real LLM Agent as the default route
-- Streaming response
 - RAG tool
 - Router Agent
 - GraphRAG
@@ -122,7 +122,8 @@ agent-api/
 │   ├── DAY07.md
 │   ├── DAY08.md
 │   ├── DAY09.md
-│   └── DAY10.md
+│   ├── DAY10.md
+│   └── DAY11.md
 ├── data/
 │   └── checkpoints.sqlite          # runtime only, ignored by Git
 ├── src/
@@ -132,7 +133,8 @@ agent-api/
 │       │   ├── config.py
 │       │   ├── logging.py
 │       │   ├── middleware.py
-│       │   └── request_context.py
+│       │   ├── request_context.py
+│       │   └── sse.py
 │       ├── schemas/
 │       │   ├── agent.py
 │       │   └── llm.py
@@ -146,6 +148,7 @@ agent-api/
 │       │   └── ollama.py
 │       └── agent/
 │           ├── graph.py
+│           ├── streaming.py
 │           ├── llm_graph.py
 │           ├── llm_nodes.py
 │           ├── state.py
@@ -159,7 +162,8 @@ agent-api/
     ├── test_agent_memory.py
     ├── test_agent_debug.py
     ├── test_trace.py
-    └── test_llm.py
+    ├── test_llm.py
+    └── test_stream.py
 ```
 
 ---
@@ -256,6 +260,8 @@ trace_id
 
 ```text
 POST /agent/llm-debug
+POST /agent/stream
+POST /agent/llm-stream
 ```
 
 This route is used to inspect whether the LLM really generated `tool_calls`.
@@ -437,6 +443,8 @@ Current LLM endpoints:
 POST /llm/chat
 POST /agent/llm-chat
 POST /agent/llm-debug
+POST /agent/stream
+POST /agent/llm-stream
 ```
 
 Important:
@@ -447,6 +455,53 @@ Important:
 /agent/llm-debug verifies tool_calls and node path.
 CI only tests mock provider and deterministic endpoints.
 Ollama provider and real tool calling are verified manually in local WSL/Ollama environment.
+```
+
+---
+
+
+---
+
+## Current Streaming Strategy
+
+Day11 added Server-Sent Events streaming while keeping stable and Ollama-dependent paths separate.
+
+Current streaming endpoints:
+
+```text
+POST /agent/stream
+POST /agent/llm-stream
+```
+
+`/agent/stream` uses the deterministic Agent path and is covered by pytest/CI.
+
+Expected deterministic SSE events:
+
+```text
+metadata
+answer_chunk
+final
+done
+```
+
+`/agent/llm-stream` uses the real Ollama-backed LLM Tool Calling Agent graph and is manually verified locally.
+
+Expected real LLM SSE events:
+
+```text
+metadata
+step(agent)
+step(tools)
+step(agent)
+final
+done
+```
+
+Important:
+
+```text
+SSE data is serialized with ensure_ascii=False, so Chinese text remains readable in terminal output.
+CI tests /agent/stream only; it does not depend on local Ollama.
 ```
 
 ---
@@ -705,6 +760,8 @@ GitHub Actions CI: green
 ```text
 POST /agent/llm-chat
 POST /agent/llm-debug
+POST /agent/stream
+POST /agent/llm-stream
 ```
 
 ### Verified Addition
@@ -811,6 +868,118 @@ python -m json.tool --no-ensure-ascii
 
 ---
 
+## Day11 - Streaming Response / SSE
+
+### Completed
+
+- Added `src/app/core/sse.py`
+- Added `sse_event()` helper
+- Added `src/app/agent/streaming.py`
+- Added deterministic stream generator `stream_agent_events()`
+- Added real LLM graph-step stream generator `stream_llm_agent_events()`
+- Added `/agent/stream`
+- Added `/agent/llm-stream`
+- Kept `x-trace-id` response header behavior
+- Kept `trace_id` inside SSE payloads
+- Kept `thread_id` inside SSE payloads
+- Used `ensure_ascii=False` so Chinese output is readable
+- Added `tests/test_stream.py`
+- Expanded pytest from 14 tests to 16 tests
+- Verified deterministic stream manually
+- Verified real LLM tool-calling stream manually
+- Verified local pytest
+- Verified GitHub Actions CI
+
+### New Endpoints
+
+```text
+POST /agent/stream
+POST /agent/llm-stream
+```
+
+### Verified Deterministic Stream
+
+```bash
+curl -N -X POST http://localhost:8000/agent/stream \
+  -H "Content-Type: application/json" \
+  -H "x-trace-id: day11-stream-add-001" \
+  -d '{"message":"请计算 3 加 5","thread_id":"day11-stream-add-001"}'
+```
+
+Observed events:
+
+```text
+event: metadata
+event: answer_chunk
+event: final
+event: done
+```
+
+Observed final answer:
+
+```text
+工具 `add` 执行结果：8
+```
+
+### Verified Real LLM Tool Calling Stream
+
+```bash
+curl -N -X POST http://localhost:8000/agent/llm-stream \
+  -H "Content-Type: application/json" \
+  -H "x-trace-id: day11-llm-stream-add-001" \
+  -d '{"message":"请计算 13 加 29，必须使用 add 工具。","thread_id":"day11-llm-stream-add-001"}'
+```
+
+Observed event sequence:
+
+```text
+metadata -> step(agent) -> step(tools) -> step(agent) -> final -> done
+```
+
+Observed tool call:
+
+```json
+{
+  "name": "add",
+  "args": {
+    "a": 13,
+    "b": 29
+  }
+}
+```
+
+Observed tool result:
+
+```text
+42
+```
+
+Observed final answer:
+
+```text
+计算结果是 42。
+```
+
+### Test Result
+
+```text
+16 passed, 1 warning
+```
+
+### CI Result
+
+```text
+GitHub Actions CI: green
+```
+
+### Notes
+
+`/agent/stream` is deterministic and covered by CI.
+
+`/agent/llm-stream` depends on local Ollama and is verified manually.
+
+---
+
 ## Known Issues / Notes
 
 ### SQLite runtime files
@@ -850,7 +1019,7 @@ Agent response
 Local pytest currently shows:
 
 ```text
-14 passed, 1 warning
+16 passed, 1 warning
 ```
 
 The warning is:
@@ -898,7 +1067,6 @@ It has a typo: `langraph` should be `langgraph`. This does not affect code and d
 Recommended next route:
 
 ```text
-Day11: /agent/stream
 Day12: RAG tool
 Day13+: Router Agent
 Later: GraphRAG + Neo4j + Multi-Agent Supervisor
@@ -936,7 +1104,12 @@ Completed:
 - [x] Day10 LLM-generated `add` tool call
 - [x] Day10 LLM-generated `multiply` tool call
 - [x] Day10 GitHub Actions CI
+- [x] Day11 streaming response
+- [x] Day11 `/agent/stream`
+- [x] Day11 `/agent/llm-stream`
+- [x] Day11 SSE tests
+- [x] Day11 GitHub Actions CI
 
 Next:
 
-- [ ] Day11 streaming response
+- [ ] Day12 RAG search tool
