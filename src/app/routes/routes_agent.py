@@ -5,6 +5,7 @@ from src.app.agent.graph import debug_agent, invoke_agent
 from src.app.agent.router_graph import debug_router_agent, invoke_router_agent
 from src.app.agent.llm_graph import debug_llm_agent, invoke_llm_agent
 from src.app.agent.llm_router import invoke_llm_router_agent
+from src.app.agent.smart_router import invoke_smart_agent
 from src.app.agent.streaming import stream_agent_events, stream_llm_agent_events
 from src.app.core.config import get_settings
 from src.app.agent.router_streaming import stream_router_agent_events
@@ -14,7 +15,7 @@ from src.app.schemas.agent import (
     AgentChatResponse,
     AgentDebugResponse,
     AgentLLMChatResponse, AgentRouterChatResponse, AgentRouterDebugResponse, AgentLLMRouterChatResponse,
-    AgentLLMRouterChatRequest,
+    AgentLLMRouterChatRequest, AgentSmartChatResponse, AgentSmartChatRequest,
 )
 
 router = APIRouter()
@@ -153,6 +154,23 @@ def agent_llm_router_chat(
     )
 
     return AgentLLMRouterChatResponse(
+        **result,
+        trace_id=get_trace_id(),
+    )
+
+
+@router.post("/smart-chat", response_model=AgentSmartChatResponse)
+def agent_smart_chat(
+    request: AgentSmartChatRequest,
+) -> AgentSmartChatResponse:
+    result = invoke_smart_agent(
+        message=request.message,
+        thread_id=request.thread_id,
+        router_mode=request.router_mode,
+        router_provider=request.router_provider,
+    )
+
+    return AgentSmartChatResponse(
         **result,
         trace_id=get_trace_id(),
     )

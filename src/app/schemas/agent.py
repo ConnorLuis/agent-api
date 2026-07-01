@@ -68,3 +68,19 @@ class AgentLLMRouterChatResponse(AgentChatResponse):
     router_model: str
     thread_id: str | None = None
     trace_id: str | None = None
+
+
+class AgentSmartChatRequest(AgentChatRequest):
+    router_mode: str = "deterministic"
+    router_provider: str = "mock"
+
+
+class AgentSmartChatResponse(BaseModel):
+    answer: str
+    route: str
+    route_reason: str
+    router_mode: str
+    router_provider: str
+    router_model: str
+    thread_id: str | None = None
+    trace_id: str | None = None
