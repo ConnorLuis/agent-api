@@ -13,11 +13,11 @@ Project 2 has officially started and is now the main development line.
 Current `agent-api` status:
 
 ```text
-Day1-Day16 completed.
-Day16 completed: initial LLM Router Agent endpoint.
-Local pytest: 31 passed, 1 warning.
+Day1-Day17 completed.
+Day17 completed: Smart Chat unified entry point preview.
+Local pytest: 34 passed, 1 warning.
 GitHub Actions CI: green.
-Next: Day17 Router default entry point or richer RAG integration.
+Next: Day18 richer RAG integration or vector DB preparation.
 ```
 
 ## Project Goal
@@ -93,6 +93,7 @@ Current:
 - Initial LLM Router Agent endpoint
 - Mock LLM Router for CI-safe routing
 - Ollama LLM Router for local manual routing
+- Smart Chat unified entry point preview
 - pytest
 - GitHub Actions CI
 
@@ -100,7 +101,7 @@ Not yet implemented:
 
 - OpenAI provider
 - Replacing `/agent/chat` with the real LLM Agent as the default route
-- LLM Router as the default unified entry point
+- Making Smart Chat the default production entry point
 - Vector database based RAG
 - Embedding-based retrieval
 - Document upload and parsing pipeline
@@ -138,7 +139,8 @@ agent-api/
 │   ├── DAY13.md
 │   ├── DAY14.md
 │   ├── DAY15.md
-│   └── DAY16.md
+│   ├── DAY16.md
+│   └── DAY17.md
 ├── knowledge/
 │   └── agent_basics.md
 ├── data/
@@ -174,6 +176,7 @@ agent-api/
 │           ├── router_streaming.py
 │           ├── streaming.py
 │           ├── llm_router.py
+│           ├── smart_router.py
 │           ├── llm_graph.py
 │           ├── llm_nodes.py
 │           ├── state.py
@@ -193,7 +196,8 @@ agent-api/
     ├── test_router_agent.py
     ├── test_router_delegation.py
     ├── test_router_stream.py
-    └── test_llm_router.py
+    ├── test_llm_router.py
+    └── test_smart_chat.py
 ```
 
 ---
@@ -315,6 +319,7 @@ POST /agent/router-chat
 POST /agent/router-debug
 POST /agent/router-stream
 POST /agent/llm-router-chat
+POST /agent/smart-chat
 ```
 
 Routes:
@@ -865,6 +870,70 @@ New Day16 test file:
 
 ```text
 tests/test_llm_router.py
+```
+
+---
+
+## Current Smart Chat Strategy
+
+Day17 added Smart Chat as a future unified Agent entry point preview.
+
+Current Smart Chat file:
+
+```text
+src/app/agent/smart_router.py
+```
+
+Current Smart Chat endpoint:
+
+```text
+POST /agent/smart-chat
+```
+
+Router mode strategy:
+
+```text
+router_mode="deterministic"
+  ↓
+invoke_router_agent()
+  ↓
+deterministic Router Agent
+```
+
+```text
+router_mode="llm"
+  ↓
+invoke_llm_router_agent()
+  ↓
+mock or Ollama LLM Router
+```
+
+Unified response fields:
+
+```text
+answer
+route
+route_reason
+router_mode
+router_provider
+router_model
+thread_id
+trace_id
+```
+
+Important:
+
+```text
+/agent/smart-chat does not replace /agent/chat yet.
+It is a compatibility-safe preview of the future unified entry point.
+deterministic and llm+mock modes are covered by pytest and CI.
+llm+ollama mode is manually verified locally.
+```
+
+New Day17 test file:
+
+```text
+tests/test_smart_chat.py
 ```
 
 ---
@@ -1444,7 +1513,7 @@ Observed tool call:
 ### Test Result
 
 ```text
-31 passed, 1 warning
+34 passed, 1 warning
 ```
 
 ### CI Result
@@ -1503,7 +1572,7 @@ POST /agent/router-debug
 ### Test Result
 
 ```text
-31 passed, 1 warning
+34 passed, 1 warning
 ```
 
 ### CI Result
@@ -1572,7 +1641,7 @@ Response:
 ### Test Result
 
 ```text
-31 passed, 1 warning
+34 passed, 1 warning
 ```
 
 ### CI Result
@@ -1630,7 +1699,7 @@ metadata -> route -> answer_chunk -> final -> done
 ### Test Result
 
 ```text
-31 passed, 1 warning
+34 passed, 1 warning
 ```
 
 ### CI Result
@@ -1692,7 +1761,7 @@ tests/test_llm_router.py
 ### Test Result
 
 ```text
-31 passed, 1 warning
+34 passed, 1 warning
 ```
 
 ### CI Result
@@ -1711,6 +1780,70 @@ The Ollama router is available for local manual verification through:
 
 ```text
 router_provider="ollama"
+```
+
+---
+
+## Day17 - Smart Chat Unified Entry Point Preview
+
+### Completed
+
+- Added `src/app/agent/smart_router.py`
+- Added `invoke_smart_agent()`
+- Added router mode normalization
+- Added `/agent/smart-chat`
+- Added `AgentSmartChatRequest`
+- Added `AgentSmartChatResponse`
+- Supported `router_mode="deterministic"`
+- Supported `router_mode="llm"`
+- Reused `invoke_router_agent()` for deterministic mode
+- Reused `invoke_llm_router_agent()` for LLM mode
+- Preserved mock provider for CI-safe LLM Router tests
+- Manually verified Ollama provider through Smart Chat
+- Added unified response fields: `route`, `route_reason`, `router_mode`, `router_provider`, `router_model`
+- Added `tests/test_smart_chat.py`
+- Expanded pytest from 31 tests to 34 tests
+- Verified local pytest
+- Verified GitHub Actions CI
+
+### New Endpoint
+
+```text
+POST /agent/smart-chat
+```
+
+### New Files
+
+```text
+src/app/agent/smart_router.py
+tests/test_smart_chat.py
+```
+
+### Test Result
+
+```text
+34 passed, 1 warning
+```
+
+### CI Result
+
+```text
+GitHub Actions CI: green
+```
+
+### Notes
+
+Day17 does not replace existing endpoints.
+
+It adds a stable compatibility layer for a future default Agent entry point.
+
+Current interface family:
+
+```text
+/agent/chat
+/agent/router-chat
+/agent/llm-router-chat
+/agent/smart-chat
 ```
 
 ---
@@ -1771,7 +1904,7 @@ Agent response
 Local pytest currently shows:
 
 ```text
-31 passed, 1 warning
+34 passed, 1 warning
 ```
 
 The warning is:
@@ -1819,8 +1952,8 @@ It has a typo: `langraph` should be `langgraph`. This does not affect code and d
 Recommended next route:
 
 ```text
-Day17: Router default entry point or richer RAG integration
-Day18+: vector DB based RAG preparation
+Day18: richer RAG integration or vector DB preparation
+Day19+: LLM Router streaming or route confidence / validation fallback
 Later: vector DB based RAG
 Later: GraphRAG + Neo4j + Multi-Agent Supervisor
 ```
@@ -1897,7 +2030,15 @@ Completed:
 - [x] Day16 Ollama LLM Router manual verification
 - [x] Day16 LLM Router tests
 - [x] Day16 GitHub Actions CI
+- [x] Day17 Smart Chat unified entry point preview
+- [x] Day17 `/agent/smart-chat`
+- [x] Day17 deterministic Smart Chat route
+- [x] Day17 LLM mock Smart Chat RAG route
+- [x] Day17 LLM mock Smart Chat chat route
+- [x] Day17 Ollama Smart Chat manual verification
+- [x] Day17 Smart Chat tests
+- [x] Day17 GitHub Actions CI
 
 Next:
 
-- [ ] Day17 Router default entry point or richer RAG integration
+- [ ] Day18 richer RAG integration or vector DB preparation

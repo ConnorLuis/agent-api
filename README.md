@@ -2,16 +2,16 @@
 
 `agent-api` is a FastAPI + LangGraph backend project for building an Agent service step by step.
 
-This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent, SQLite-based short-term memory, graph debug output, request tracing, LLM provider abstraction, a real Ollama-backed LLM Tool Calling Agent path, SSE streaming endpoints, a lightweight local RAG search tool, a deterministic Router Agent that delegates calculator and RAG routes to the existing Agent graph, a Router Agent SSE streaming endpoint, and an initial LLM Router Agent endpoint with mock and Ollama router providers.
+This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent, SQLite-based short-term memory, graph debug output, request tracing, LLM provider abstraction, a real Ollama-backed LLM Tool Calling Agent path, SSE streaming endpoints, a lightweight local RAG search tool, a deterministic Router Agent that delegates calculator and RAG routes to the existing Agent graph, a Router Agent SSE streaming endpoint, an initial LLM Router Agent endpoint with mock and Ollama router providers, and a Smart Chat endpoint as a future unified Agent entry point preview.
 
 ## Current Status
 
 ```text
-Day1-Day16 completed.
-Current stage: initial LLM Router Agent completed.
-Local pytest: 31 passed, 1 warning.
+Day1-Day17 completed.
+Current stage: Smart Chat unified entry point preview completed.
+Local pytest: 34 passed, 1 warning.
 GitHub Actions CI: green.
-Next milestone: Day17 Router default entry point or richer RAG integration.
+Next milestone: Day18 richer RAG integration or vector DB preparation.
 ```
 
 ## Features
@@ -32,6 +32,7 @@ Current features:
 * `/agent/router-debug` deterministic Router Agent debug endpoint
 * `/agent/router-stream` deterministic Router Agent SSE streaming endpoint
 * `/agent/llm-router-chat` initial LLM Router Agent chat endpoint
+* `/agent/smart-chat` Smart Chat unified entry point preview
 * LangGraph `StateGraph`
 * Deterministic Tool Calling Agent loop
 * Real LLM Tool Calling Agent loop
@@ -49,6 +50,8 @@ Current features:
 * Router SSE stream events: `metadata`, `route`, `answer_chunk`, `final`, `done`
 * LLM Router provider switch: `mock` for CI and `ollama` for local manual verification
 * LLM Router response metadata: `route_reason`, `router_provider`, and `router_model`
+* Smart Chat router mode switch: `deterministic` or `llm`
+* Smart Chat unified response metadata: `route`, `route_reason`, `router_mode`, `router_provider`, and `router_model`
 * SQLite checkpoint-based short-term memory
 * `thread_id` based conversation state
 * Request logging middleware
@@ -72,7 +75,7 @@ Not implemented yet:
 
 * OpenAI provider
 * Replacing `/agent/chat` with the real LLM Agent as the default main route
-* LLM Router as the default unified entry point
+* Making Smart Chat the default production entry point
 * Vector database based RAG
 * Embedding-based retrieval
 * Document upload and parsing pipeline
@@ -96,6 +99,7 @@ Not implemented yet:
 * Lightweight keyword retriever
 * Deterministic Router Agent
 * Initial LLM Router Agent
+* Smart Chat unified entry point preview
 * pytest
 * GitHub Actions
 * Server-Sent Events
@@ -129,7 +133,8 @@ agent-api/
 │   ├── DAY13.md
 │   ├── DAY14.md
 │   ├── DAY15.md
-│   └── DAY16.md
+│   ├── DAY16.md
+│   └── DAY17.md
 ├── knowledge/
 │   └── agent_basics.md
 ├── data/
@@ -165,6 +170,7 @@ agent-api/
 │           ├── router_streaming.py
 │           ├── streaming.py
 │           ├── llm_router.py
+│           ├── smart_router.py
 │           ├── llm_graph.py
 │           ├── llm_nodes.py
 │           ├── state.py
@@ -184,7 +190,8 @@ agent-api/
     ├── test_router_agent.py
     ├── test_router_delegation.py
     ├── test_router_stream.py
-    └── test_llm_router.py
+    ├── test_llm_router.py
+    └── test_smart_chat.py
 ```
 
 ## Current Agent Graphs
@@ -517,6 +524,64 @@ router_provider="ollama" -> uses local Ollama and is manually verified
 ```
 
 This keeps CI independent from a local Ollama service while still allowing local experiments with real LLM-based routing.
+
+## Current Smart Chat Architecture
+
+Day17 added `/agent/smart-chat` as a future unified Agent entry point preview.
+
+```text
+/agent/smart-chat
+  ↓
+invoke_smart_agent()
+  ↓
+router_mode
+  ├── deterministic -> invoke_router_agent()
+  └── llm           -> invoke_llm_router_agent()
+```
+
+The endpoint supports two router modes:
+
+```text
+deterministic
+llm
+```
+
+In deterministic mode, Smart Chat reuses the deterministic Router Agent:
+
+```text
+router_mode="deterministic"
+  ↓
+invoke_router_agent()
+  ↓
+router_provider = deterministic
+router_model = rule-based-router
+```
+
+In LLM mode, Smart Chat reuses the Day16 LLM Router Agent:
+
+```text
+router_mode="llm"
+  ↓
+invoke_llm_router_agent()
+  ↓
+router_provider = mock | ollama
+router_model = mock-router | qwen2.5:7b
+```
+
+Smart Chat returns a unified response shape:
+
+```text
+answer
+route
+route_reason
+router_mode
+router_provider
+router_model
+thread_id
+trace_id
+```
+
+This endpoint does not replace `/agent/chat` yet. It is a compatibility-safe preview of a future main Agent entry point.
 
 ## Request Tracing
 
@@ -1242,6 +1307,94 @@ Expected local response includes:
 "answer": "工具 `multiply` 执行结果：81"
 ```
 
+### Smart Chat
+
+`/agent/smart-chat` is the future unified Agent entry point preview.
+
+It can use the deterministic Router or the LLM Router through `router_mode`.
+
+Deterministic calculator route:
+
+```bash
+curl -s -X POST http://localhost:8000/agent/smart-chat \
+  -H "Content-Type: application/json" \
+  -H "x-trace-id: day17-smart-deterministic-calc-001" \
+  -d '{"message":"请计算 3 加 5","thread_id":"day17-smart-deterministic-calc-001","router_mode":"deterministic"}' \
+  | python -m json.tool --no-ensure-ascii
+```
+
+Expected response:
+
+```json
+{
+  "answer": "工具 `add` 执行结果：8",
+  "route": "calculator",
+  "route_reason": "Deterministic router selected calculator by rule-based classification.",
+  "router_mode": "deterministic",
+  "router_provider": "deterministic",
+  "router_model": "rule-based-router",
+  "thread_id": "day17-smart-deterministic-calc-001",
+  "trace_id": "day17-smart-deterministic-calc-001"
+}
+```
+
+LLM mock RAG route:
+
+```bash
+curl -s -X POST http://localhost:8000/agent/smart-chat \
+  -H "Content-Type: application/json" \
+  -H "x-trace-id: day17-smart-llm-rag-001" \
+  -d '{"message":"请搜索知识库：RAG 是什么？","thread_id":"day17-smart-llm-rag-001","router_mode":"llm","router_provider":"mock"}' \
+  | python -m json.tool --no-ensure-ascii
+```
+
+Expected response includes:
+
+```text
+"route": "rag"
+"router_mode": "llm"
+"router_provider": "mock"
+"router_model": "mock-router"
+"根据知识库检索结果"
+```
+
+LLM mock chat route:
+
+```bash
+curl -s -X POST http://localhost:8000/agent/smart-chat \
+  -H "Content-Type: application/json" \
+  -H "x-trace-id: day17-smart-llm-chat-001" \
+  -d '{"message":"你好，介绍一下你自己","thread_id":"day17-smart-llm-chat-001","router_mode":"llm","router_provider":"mock"}' \
+  | python -m json.tool --no-ensure-ascii
+```
+
+Expected response includes:
+
+```text
+"route": "chat"
+"answer": "Router chat response: 你好，介绍一下你自己"
+```
+
+Ollama Smart Chat can be manually verified locally:
+
+```bash
+curl -s -X POST http://localhost:8000/agent/smart-chat \
+  -H "Content-Type: application/json" \
+  -H "x-trace-id: day17-smart-ollama-calc-001" \
+  -d '{"message":"请计算 9 乘 9","thread_id":"day17-smart-ollama-calc-001","router_mode":"llm","router_provider":"ollama"}' \
+  | python -m json.tool --no-ensure-ascii
+```
+
+Expected local response includes:
+
+```text
+"router_mode": "llm"
+"router_provider": "ollama"
+"router_model": "qwen2.5:7b"
+"route": "calculator"
+"answer": "工具 `multiply` 执行结果：81"
+```
+
 ## Tests
 
 Run tests:
@@ -1253,7 +1406,7 @@ pytest -q
 Current result:
 
 ```text
-31 passed, 1 warning
+34 passed, 1 warning
 ```
 
 Current test coverage includes:
@@ -1289,6 +1442,9 @@ Current test coverage includes:
 * `/agent/llm-router-chat` mock calculator route
 * `/agent/llm-router-chat` mock RAG route
 * `/agent/llm-router-chat` mock chat route
+* `/agent/smart-chat` deterministic calculator route
+* `/agent/smart-chat` LLM mock RAG route
+* `/agent/smart-chat` LLM mock chat route
 
 Current test organization:
 
@@ -1306,10 +1462,11 @@ tests/
 ├── test_router_agent.py
 ├── test_router_delegation.py
 ├── test_router_stream.py
-└── test_llm_router.py
+├── test_llm_router.py
+└── test_smart_chat.py
 ```
 
-Ollama provider, real LLM tool calling, `/agent/llm-stream`, and `/agent/llm-router-chat` with `router_provider="ollama"` are manually tested locally and are not covered by CI, because CI should not depend on a local Ollama service. The deterministic `/agent/stream`, `/rag/search`, deterministic RAG tool path, Router Agent path, Router delegation memory path, Router stream path, and `/agent/llm-router-chat` mock path are covered by CI.
+Ollama provider, real LLM tool calling, `/agent/llm-stream`, `/agent/llm-router-chat` with `router_provider="ollama"`, and `/agent/smart-chat` with `router_provider="ollama"` are manually tested locally and are not covered by CI, because CI should not depend on a local Ollama service. The deterministic `/agent/stream`, `/rag/search`, deterministic RAG tool path, Router Agent path, Router delegation memory path, Router stream path, `/agent/llm-router-chat` mock path, and `/agent/smart-chat` deterministic/mock paths are covered by CI.
 
 ## CI
 
@@ -1398,8 +1555,8 @@ mv /tmp/agent_basics.md knowledge/agent_basics.md
 
 Next milestones:
 
-* Day17: Prepare Router Agent as default entry point or add richer RAG integration
-* Day18+: Add vector database based RAG preparation
+* Day18: Add richer RAG integration or vector DB preparation
+* Day19+: Add LLM Router streaming or route confidence / validation fallback
 * Later: Add vector database based RAG
 * Later: Add GraphRAG and Neo4j integration
 * Later: Add Multi-Agent Supervisor workflow
