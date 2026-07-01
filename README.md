@@ -2,16 +2,16 @@
 
 `agent-api` is a FastAPI + LangGraph backend project for building an Agent service step by step.
 
-This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent, SQLite-based short-term memory, graph debug output, request tracing, LLM provider abstraction, a real Ollama-backed LLM Tool Calling Agent path, SSE streaming endpoints, a lightweight local RAG search tool, a deterministic Router Agent that delegates calculator and RAG routes to the existing Agent graph, and a Router Agent SSE streaming endpoint.
+This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent, SQLite-based short-term memory, graph debug output, request tracing, LLM provider abstraction, a real Ollama-backed LLM Tool Calling Agent path, SSE streaming endpoints, a lightweight local RAG search tool, a deterministic Router Agent that delegates calculator and RAG routes to the existing Agent graph, a Router Agent SSE streaming endpoint, and an initial LLM Router Agent endpoint with mock and Ollama router providers.
 
 ## Current Status
 
 ```text
-Day1-Day15 completed.
-Current stage: Router Agent streaming completed.
-Local pytest: 28 passed, 1 warning.
+Day1-Day16 completed.
+Current stage: initial LLM Router Agent completed.
+Local pytest: 31 passed, 1 warning.
 GitHub Actions CI: green.
-Next milestone: Day16 LLM-based routing or richer RAG integration.
+Next milestone: Day17 Router default entry point or richer RAG integration.
 ```
 
 ## Features
@@ -31,6 +31,7 @@ Current features:
 * `/agent/router-chat` deterministic Router Agent chat endpoint
 * `/agent/router-debug` deterministic Router Agent debug endpoint
 * `/agent/router-stream` deterministic Router Agent SSE streaming endpoint
+* `/agent/llm-router-chat` initial LLM Router Agent chat endpoint
 * LangGraph `StateGraph`
 * Deterministic Tool Calling Agent loop
 * Real LLM Tool Calling Agent loop
@@ -46,6 +47,8 @@ Current features:
 * Router `calculator` and `rag` routes delegated to existing deterministic Agent graph
 * Router delegation shares `thread_id` with Agent memory
 * Router SSE stream events: `metadata`, `route`, `answer_chunk`, `final`, `done`
+* LLM Router provider switch: `mock` for CI and `ollama` for local manual verification
+* LLM Router response metadata: `route_reason`, `router_provider`, and `router_model`
 * SQLite checkpoint-based short-term memory
 * `thread_id` based conversation state
 * Request logging middleware
@@ -69,7 +72,7 @@ Not implemented yet:
 
 * OpenAI provider
 * Replacing `/agent/chat` with the real LLM Agent as the default main route
-* LLM-based Router Agent
+* LLM Router as the default unified entry point
 * Vector database based RAG
 * Embedding-based retrieval
 * Document upload and parsing pipeline
@@ -92,6 +95,7 @@ Not implemented yet:
 * Local Markdown knowledge base
 * Lightweight keyword retriever
 * Deterministic Router Agent
+* Initial LLM Router Agent
 * pytest
 * GitHub Actions
 * Server-Sent Events
@@ -124,7 +128,8 @@ agent-api/
 │   ├── DAY12.md
 │   ├── DAY13.md
 │   ├── DAY14.md
-│   └── DAY15.md
+│   ├── DAY15.md
+│   └── DAY16.md
 ├── knowledge/
 │   └── agent_basics.md
 ├── data/
@@ -159,6 +164,7 @@ agent-api/
 │           ├── router_graph.py
 │           ├── router_streaming.py
 │           ├── streaming.py
+│           ├── llm_router.py
 │           ├── llm_graph.py
 │           ├── llm_nodes.py
 │           ├── state.py
@@ -177,7 +183,8 @@ agent-api/
     ├── test_rag.py
     ├── test_router_agent.py
     ├── test_router_delegation.py
-    └── test_router_stream.py
+    ├── test_router_stream.py
+    └── test_llm_router.py
 ```
 
 ## Current Agent Graphs
@@ -467,6 +474,49 @@ event: done          # stream completion marker
 ```
 
 Day15 intentionally keeps `answer_chunk` as one complete chunk because the deterministic Router does not generate token-level output. This design keeps the SSE contract stable and prepares the endpoint for future token-level LLM streaming.
+
+## Current LLM Router Architecture
+
+Day16 added an initial LLM Router Agent endpoint while keeping the deterministic Router Agent unchanged.
+
+```text
+/agent/llm-router-chat
+  ↓
+invoke_llm_router_agent()
+  ↓
+classify_route_with_llm()
+  ├── mock   -> CI-safe deterministic router decision
+  └── ollama -> local manual LLM router decision
+  ↓
+calculator -> invoke_agent() -> add / multiply tool
+rag        -> invoke_agent() -> search_knowledge_base tool
+chat       -> Router chat response
+```
+
+The LLM Router returns route decision metadata:
+
+```text
+route
+route_reason
+router_provider
+router_model
+```
+
+Current router providers:
+
+```text
+mock
+ollama
+```
+
+Important Day16 behavior:
+
+```text
+router_provider="mock"   -> always uses mock-router and is covered by CI
+router_provider="ollama" -> uses local Ollama and is manually verified
+```
+
+This keeps CI independent from a local Ollama service while still allowing local experiments with real LLM-based routing.
 
 ## Request Tracing
 
@@ -1107,6 +1157,91 @@ Expected route and answer:
 "Router chat response: 你好，介绍一下你自己"
 ```
 
+### LLM Router Agent Chat
+
+`/agent/llm-router-chat` selects a route through a router provider and then executes the selected route.
+
+The CI-safe provider is `mock`; the local manual provider is `ollama`.
+
+Mock calculator route:
+
+```bash
+curl -s -X POST http://localhost:8000/agent/llm-router-chat \
+  -H "Content-Type: application/json" \
+  -H "x-trace-id: day16-llm-router-calc-001" \
+  -d '{"message":"请计算 3 加 5","thread_id":"day16-llm-router-calc-001","router_provider":"mock"}' \
+  | python -m json.tool --no-ensure-ascii
+```
+
+Expected response:
+
+```json
+{
+  "answer": "工具 `add` 执行结果：8",
+  "route": "calculator",
+  "route_reason": "Mock LLM router selected calculator because the message contains arithmetic intent.",
+  "router_provider": "mock",
+  "router_model": "mock-router",
+  "thread_id": "day16-llm-router-calc-001",
+  "trace_id": "day16-llm-router-calc-001"
+}
+```
+
+Mock RAG route:
+
+```bash
+curl -s -X POST http://localhost:8000/agent/llm-router-chat \
+  -H "Content-Type: application/json" \
+  -H "x-trace-id: day16-llm-router-rag-001" \
+  -d '{"message":"请搜索知识库：RAG 是什么？","thread_id":"day16-llm-router-rag-001","router_provider":"mock"}' \
+  | python -m json.tool --no-ensure-ascii
+```
+
+Expected response includes:
+
+```text
+"route": "rag"
+"router_provider": "mock"
+"router_model": "mock-router"
+"根据知识库检索结果"
+```
+
+Mock chat route:
+
+```bash
+curl -s -X POST http://localhost:8000/agent/llm-router-chat \
+  -H "Content-Type: application/json" \
+  -H "x-trace-id: day16-llm-router-chat-001" \
+  -d '{"message":"你好，介绍一下你自己","thread_id":"day16-llm-router-chat-001","router_provider":"mock"}' \
+  | python -m json.tool --no-ensure-ascii
+```
+
+Expected response includes:
+
+```text
+"route": "chat"
+"answer": "Router chat response: 你好，介绍一下你自己"
+```
+
+Ollama router can be manually verified locally:
+
+```bash
+curl -s -X POST http://localhost:8000/agent/llm-router-chat \
+  -H "Content-Type: application/json" \
+  -H "x-trace-id: day16-llm-router-ollama-001" \
+  -d '{"message":"请计算 9 乘 9","thread_id":"day16-llm-router-ollama-001","router_provider":"ollama"}' \
+  | python -m json.tool --no-ensure-ascii
+```
+
+Expected local response includes:
+
+```text
+"router_provider": "ollama"
+"router_model": "qwen2.5:7b"
+"route": "calculator"
+"answer": "工具 `multiply` 执行结果：81"
+```
+
 ## Tests
 
 Run tests:
@@ -1118,7 +1253,7 @@ pytest -q
 Current result:
 
 ```text
-28 passed, 1 warning
+31 passed, 1 warning
 ```
 
 Current test coverage includes:
@@ -1151,6 +1286,9 @@ Current test coverage includes:
 * `/agent/router-stream` calculator route SSE response
 * `/agent/router-stream` RAG route SSE response
 * `/agent/router-stream` chat route SSE response
+* `/agent/llm-router-chat` mock calculator route
+* `/agent/llm-router-chat` mock RAG route
+* `/agent/llm-router-chat` mock chat route
 
 Current test organization:
 
@@ -1167,10 +1305,11 @@ tests/
 ├── test_rag.py
 ├── test_router_agent.py
 ├── test_router_delegation.py
-└── test_router_stream.py
+├── test_router_stream.py
+└── test_llm_router.py
 ```
 
-Ollama provider, real LLM tool calling, and `/agent/llm-stream` are manually tested locally and are not covered by CI, because CI should not depend on a local Ollama service. The deterministic `/agent/stream`, `/rag/search`, deterministic RAG tool path, Router Agent path, Router delegation memory path, and Router stream path are covered by CI.
+Ollama provider, real LLM tool calling, `/agent/llm-stream`, and `/agent/llm-router-chat` with `router_provider="ollama"` are manually tested locally and are not covered by CI, because CI should not depend on a local Ollama service. The deterministic `/agent/stream`, `/rag/search`, deterministic RAG tool path, Router Agent path, Router delegation memory path, Router stream path, and `/agent/llm-router-chat` mock path are covered by CI.
 
 ## CI
 
@@ -1259,8 +1398,8 @@ mv /tmp/agent_basics.md knowledge/agent_basics.md
 
 Next milestones:
 
-* Day16: Add LLM-based routing or richer RAG integration
-* Day17+: Prepare Router Agent as default entry point or add richer RAG integration
+* Day17: Prepare Router Agent as default entry point or add richer RAG integration
+* Day18+: Add vector database based RAG preparation
 * Later: Add vector database based RAG
 * Later: Add GraphRAG and Neo4j integration
 * Later: Add Multi-Agent Supervisor workflow

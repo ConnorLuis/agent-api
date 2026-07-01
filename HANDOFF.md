@@ -13,11 +13,11 @@ Project 2 has officially started and is now the main development line.
 Current `agent-api` status:
 
 ```text
-Day1-Day15 completed.
-Day15 completed: Router Agent SSE streaming endpoint.
-Local pytest: 28 passed, 1 warning.
+Day1-Day16 completed.
+Day16 completed: initial LLM Router Agent endpoint.
+Local pytest: 31 passed, 1 warning.
 GitHub Actions CI: green.
-Next: Day16 LLM-based routing or richer RAG integration.
+Next: Day17 Router default entry point or richer RAG integration.
 ```
 
 ## Project Goal
@@ -90,6 +90,9 @@ Current:
 - Deterministic Router Agent
 - Router delegation to existing deterministic Agent graph
 - Router Agent SSE streaming endpoint
+- Initial LLM Router Agent endpoint
+- Mock LLM Router for CI-safe routing
+- Ollama LLM Router for local manual routing
 - pytest
 - GitHub Actions CI
 
@@ -97,7 +100,7 @@ Not yet implemented:
 
 - OpenAI provider
 - Replacing `/agent/chat` with the real LLM Agent as the default route
-- LLM-based Router Agent
+- LLM Router as the default unified entry point
 - Vector database based RAG
 - Embedding-based retrieval
 - Document upload and parsing pipeline
@@ -134,7 +137,8 @@ agent-api/
 │   ├── DAY12.md
 │   ├── DAY13.md
 │   ├── DAY14.md
-│   └── DAY15.md
+│   ├── DAY15.md
+│   └── DAY16.md
 ├── knowledge/
 │   └── agent_basics.md
 ├── data/
@@ -169,6 +173,7 @@ agent-api/
 │           ├── router_graph.py
 │           ├── router_streaming.py
 │           ├── streaming.py
+│           ├── llm_router.py
 │           ├── llm_graph.py
 │           ├── llm_nodes.py
 │           ├── state.py
@@ -187,7 +192,8 @@ agent-api/
     ├── test_rag.py
     ├── test_router_agent.py
     ├── test_router_delegation.py
-    └── test_router_stream.py
+    ├── test_router_stream.py
+    └── test_llm_router.py
 ```
 
 ---
@@ -308,6 +314,7 @@ POST /rag/search
 POST /agent/router-chat
 POST /agent/router-debug
 POST /agent/router-stream
+POST /agent/llm-router-chat
 ```
 
 Routes:
@@ -793,6 +800,71 @@ New Day15 test file:
 
 ```text
 tests/test_router_stream.py
+```
+
+---
+
+## Current LLM Router Strategy
+
+Day16 added an initial LLM Router Agent.
+
+Current LLM Router file:
+
+```text
+src/app/agent/llm_router.py
+```
+
+Current LLM Router endpoint:
+
+```text
+POST /agent/llm-router-chat
+```
+
+Current router providers:
+
+```text
+mock
+ollama
+```
+
+Provider strategy:
+
+```text
+router_provider="mock"
+  ↓
+CI-safe deterministic route decision
+  ↓
+mock-router
+```
+
+```text
+router_provider="ollama"
+  ↓
+local Ollama route decision
+  ↓
+qwen2.5:7b
+```
+
+Execution strategy after route decision:
+
+```text
+calculator -> invoke_agent()
+rag        -> invoke_agent()
+chat       -> Router chat response
+```
+
+Important:
+
+```text
+mock provider is covered by pytest and CI.
+ollama provider is manually verified locally.
+The LLM Router does not replace /agent/router-chat yet.
+```
+
+New Day16 test file:
+
+```text
+tests/test_llm_router.py
 ```
 
 ---
@@ -1372,7 +1444,7 @@ Observed tool call:
 ### Test Result
 
 ```text
-28 passed, 1 warning
+31 passed, 1 warning
 ```
 
 ### CI Result
@@ -1431,7 +1503,7 @@ POST /agent/router-debug
 ### Test Result
 
 ```text
-28 passed, 1 warning
+31 passed, 1 warning
 ```
 
 ### CI Result
@@ -1500,7 +1572,7 @@ Response:
 ### Test Result
 
 ```text
-28 passed, 1 warning
+31 passed, 1 warning
 ```
 
 ### CI Result
@@ -1558,7 +1630,7 @@ metadata -> route -> answer_chunk -> final -> done
 ### Test Result
 
 ```text
-28 passed, 1 warning
+31 passed, 1 warning
 ```
 
 ### CI Result
@@ -1578,6 +1650,68 @@ Day15 gives the Router Agent a complete API surface:
 ```
 
 The stream currently emits the full answer as a single `answer_chunk`, because the deterministic Router does not generate token-level output.
+
+---
+
+## Day16 - Initial LLM Router Agent
+
+### Completed
+
+- Added `src/app/agent/llm_router.py`
+- Added `RouterDecision`
+- Added mock LLM Router classification
+- Added Ollama LLM Router classification for local manual verification
+- Added route output parsing for JSON and fallback text
+- Added `/agent/llm-router-chat`
+- Added `AgentLLMRouterChatRequest`
+- Added `AgentLLMRouterChatResponse`
+- Preserved calculator route delegation to `invoke_agent()`
+- Preserved RAG route delegation to `invoke_agent()`
+- Kept chat route deterministic
+- Added `route_reason`, `router_provider`, and `router_model` response fields
+- Fixed provider selection so `router_provider="mock"` always uses mock-router
+- Manually verified `router_provider="ollama"` with local `qwen2.5:7b`
+- Added `tests/test_llm_router.py`
+- Expanded pytest from 28 tests to 31 tests
+- Verified local pytest
+- Verified GitHub Actions CI
+
+### New Endpoint
+
+```text
+POST /agent/llm-router-chat
+```
+
+### New Files
+
+```text
+src/app/agent/llm_router.py
+tests/test_llm_router.py
+```
+
+### Test Result
+
+```text
+31 passed, 1 warning
+```
+
+### CI Result
+
+```text
+GitHub Actions CI: green
+```
+
+### Notes
+
+Day16 introduces LLM-based routing without making CI depend on local Ollama.
+
+The mock router is used for deterministic tests and CI.
+
+The Ollama router is available for local manual verification through:
+
+```text
+router_provider="ollama"
+```
 
 ---
 
@@ -1637,7 +1771,7 @@ Agent response
 Local pytest currently shows:
 
 ```text
-28 passed, 1 warning
+31 passed, 1 warning
 ```
 
 The warning is:
@@ -1685,8 +1819,8 @@ It has a typo: `langraph` should be `langgraph`. This does not affect code and d
 Recommended next route:
 
 ```text
-Day16: LLM-based routing or richer RAG integration
-Day17+: Router default entry point or richer RAG integration
+Day17: Router default entry point or richer RAG integration
+Day18+: vector DB based RAG preparation
 Later: vector DB based RAG
 Later: GraphRAG + Neo4j + Multi-Agent Supervisor
 ```
@@ -1755,7 +1889,15 @@ Completed:
 - [x] Day15 Router stream chat route
 - [x] Day15 Router stream tests
 - [x] Day15 GitHub Actions CI
+- [x] Day16 initial LLM Router Agent
+- [x] Day16 `/agent/llm-router-chat`
+- [x] Day16 mock LLM Router calculator route
+- [x] Day16 mock LLM Router RAG route
+- [x] Day16 mock LLM Router chat route
+- [x] Day16 Ollama LLM Router manual verification
+- [x] Day16 LLM Router tests
+- [x] Day16 GitHub Actions CI
 
 Next:
 
-- [ ] Day16 LLM-based routing or richer RAG integration
+- [ ] Day17 Router default entry point or richer RAG integration
