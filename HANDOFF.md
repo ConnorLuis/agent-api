@@ -13,11 +13,11 @@ Project 2 has officially started and is now the main development line.
 Current `agent-api` status:
 
 ```text
-Day1-Day17 completed.
-Day17 completed: Smart Chat unified entry point preview.
-Local pytest: 34 passed, 1 warning.
+Day1-Day18 completed.
+Day18 completed: RAG Search Debug and retrieval explainability endpoint.
+Local pytest: 37 passed, 1 warning.
 GitHub Actions CI: green.
-Next: Day18 richer RAG integration or vector DB preparation.
+Next: Day19 LLM Router streaming or route confidence / validation fallback.
 ```
 
 ## Project Goal
@@ -86,6 +86,8 @@ Current:
 - Real LLM tool calling path
 - Server-Sent Events streaming endpoints
 - Lightweight keyword-based RAG retriever
+- RAG Search Debug endpoint
+- Retrieval explainability metadata
 - Local Markdown knowledge base
 - Deterministic Router Agent
 - Router delegation to existing deterministic Agent graph
@@ -140,7 +142,8 @@ agent-api/
 │   ├── DAY14.md
 │   ├── DAY15.md
 │   ├── DAY16.md
-│   └── DAY17.md
+│   ├── DAY17.md
+│   └── DAY18.md
 ├── knowledge/
 │   └── agent_basics.md
 ├── data/
@@ -164,6 +167,7 @@ agent-api/
 │       │   └── routes_rag.py
 │       ├── rag/
 │       │   ├── __init__.py
+│       │   ├── explain.py
 │       │   └── retriever.py
 │       ├── llm/
 │       │   ├── base.py
@@ -193,6 +197,7 @@ agent-api/
     ├── test_llm.py
     ├── test_stream.py
     ├── test_rag.py
+    ├── test_rag_debug.py
     ├── test_router_agent.py
     ├── test_router_delegation.py
     ├── test_router_stream.py
@@ -310,6 +315,7 @@ POST /agent/llm-stream
 
 ```text
 POST /rag/search
+POST /rag/search-debug
 ```
 
 ### Router Agent
@@ -938,6 +944,61 @@ tests/test_smart_chat.py
 
 ---
 
+## Current RAG Search Debug Strategy
+
+Day18 added a RAG search-debug endpoint for retrieval explainability.
+
+Current RAG debug file:
+
+```text
+src/app/rag/explain.py
+```
+
+Current RAG debug endpoint:
+
+```text
+POST /rag/search-debug
+```
+
+Current debug function:
+
+```text
+explain_search_knowledge(query, k)
+```
+
+Returned debug fields:
+
+```text
+query
+normalized_query
+k
+rank
+source
+score
+content
+preview
+matched_terms
+content_length
+trace_id
+```
+
+Important:
+
+```text
+/rag/search-debug does not replace /rag/search.
+It exposes retrieval-level observability.
+It helps distinguish retrieval failures from answer-generation failures.
+It still uses the existing keyword retriever, so CI remains deterministic.
+```
+
+New Day18 test file:
+
+```text
+tests/test_rag_debug.py
+```
+
+---
+
 ## Day1 - Project Initialization
 
 ### Completed
@@ -1513,7 +1574,7 @@ Observed tool call:
 ### Test Result
 
 ```text
-34 passed, 1 warning
+37 passed, 1 warning
 ```
 
 ### CI Result
@@ -1572,7 +1633,7 @@ POST /agent/router-debug
 ### Test Result
 
 ```text
-34 passed, 1 warning
+37 passed, 1 warning
 ```
 
 ### CI Result
@@ -1641,7 +1702,7 @@ Response:
 ### Test Result
 
 ```text
-34 passed, 1 warning
+37 passed, 1 warning
 ```
 
 ### CI Result
@@ -1699,7 +1760,7 @@ metadata -> route -> answer_chunk -> final -> done
 ### Test Result
 
 ```text
-34 passed, 1 warning
+37 passed, 1 warning
 ```
 
 ### CI Result
@@ -1761,7 +1822,7 @@ tests/test_llm_router.py
 ### Test Result
 
 ```text
-34 passed, 1 warning
+37 passed, 1 warning
 ```
 
 ### CI Result
@@ -1822,7 +1883,7 @@ tests/test_smart_chat.py
 ### Test Result
 
 ```text
-34 passed, 1 warning
+37 passed, 1 warning
 ```
 
 ### CI Result
@@ -1845,6 +1906,65 @@ Current interface family:
 /agent/llm-router-chat
 /agent/smart-chat
 ```
+
+---
+
+## Day18 - RAG Search Debug / Retrieval Explainability
+
+### Completed
+
+- Added `src/app/rag/explain.py`
+- Added `explain_search_knowledge()`
+- Added `/rag/search-debug`
+- Added `RagSearchDebugRequest`
+- Added `RagSearchDebugResult`
+- Added `RagSearchDebugResponse`
+- Returned `normalized_query`
+- Returned ranked results
+- Returned `source`
+- Returned `score`
+- Returned `content`
+- Returned `preview`
+- Returned `matched_terms`
+- Returned `content_length`
+- Preserved `trace_id`
+- Added `tests/test_rag_debug.py`
+- Expanded pytest from 34 tests to 37 tests
+- Verified local pytest
+- Verified GitHub Actions CI
+
+### New Endpoint
+
+```text
+POST /rag/search-debug
+```
+
+### New Files
+
+```text
+src/app/rag/explain.py
+tests/test_rag_debug.py
+```
+
+### Test Result
+
+```text
+37 passed, 1 warning
+```
+
+### CI Result
+
+```text
+GitHub Actions CI: green
+```
+
+### Notes
+
+Day18 improves RAG observability without introducing a vector database or embedding dependency.
+
+This keeps the project deterministic and CI-safe.
+
+The debug endpoint helps inspect which chunks were retrieved and which query terms matched each chunk.
 
 ---
 
@@ -1904,7 +2024,7 @@ Agent response
 Local pytest currently shows:
 
 ```text
-34 passed, 1 warning
+37 passed, 1 warning
 ```
 
 The warning is:
@@ -1952,8 +2072,8 @@ It has a typo: `langraph` should be `langgraph`. This does not affect code and d
 Recommended next route:
 
 ```text
-Day18: richer RAG integration or vector DB preparation
-Day19+: LLM Router streaming or route confidence / validation fallback
+Day19: LLM Router streaming or route confidence / validation fallback
+Day20+: vector DB based RAG preparation
 Later: vector DB based RAG
 Later: GraphRAG + Neo4j + Multi-Agent Supervisor
 ```
@@ -2038,7 +2158,13 @@ Completed:
 - [x] Day17 Ollama Smart Chat manual verification
 - [x] Day17 Smart Chat tests
 - [x] Day17 GitHub Actions CI
+- [x] Day18 RAG Search Debug endpoint
+- [x] Day18 `/rag/search-debug`
+- [x] Day18 retrieval explainability metadata
+- [x] Day18 matched terms
+- [x] Day18 RAG debug tests
+- [x] Day18 GitHub Actions CI
 
 Next:
 
-- [ ] Day18 richer RAG integration or vector DB preparation
+- [ ] Day19 LLM Router streaming or route confidence / validation fallback

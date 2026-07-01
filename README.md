@@ -2,16 +2,16 @@
 
 `agent-api` is a FastAPI + LangGraph backend project for building an Agent service step by step.
 
-This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent, SQLite-based short-term memory, graph debug output, request tracing, LLM provider abstraction, a real Ollama-backed LLM Tool Calling Agent path, SSE streaming endpoints, a lightweight local RAG search tool, a deterministic Router Agent that delegates calculator and RAG routes to the existing Agent graph, a Router Agent SSE streaming endpoint, an initial LLM Router Agent endpoint with mock and Ollama router providers, and a Smart Chat endpoint as a future unified Agent entry point preview.
+This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent, SQLite-based short-term memory, graph debug output, request tracing, LLM provider abstraction, a real Ollama-backed LLM Tool Calling Agent path, SSE streaming endpoints, a lightweight local RAG search tool, a RAG search-debug endpoint with explainability metadata, a deterministic Router Agent that delegates calculator and RAG routes to the existing Agent graph, a Router Agent SSE streaming endpoint, an initial LLM Router Agent endpoint with mock and Ollama router providers, and a Smart Chat endpoint as a future unified Agent entry point preview.
 
 ## Current Status
 
 ```text
-Day1-Day17 completed.
-Current stage: Smart Chat unified entry point preview completed.
-Local pytest: 34 passed, 1 warning.
+Day1-Day18 completed.
+Current stage: RAG Search Debug and retrieval explainability completed.
+Local pytest: 37 passed, 1 warning.
 GitHub Actions CI: green.
-Next milestone: Day18 richer RAG integration or vector DB preparation.
+Next milestone: Day19 LLM Router streaming or route confidence / validation fallback.
 ```
 
 ## Features
@@ -28,6 +28,7 @@ Current features:
 * `/agent/stream` deterministic Agent SSE streaming endpoint
 * `/agent/llm-stream` real LLM Tool Calling Agent SSE streaming endpoint
 * `/rag/search` lightweight local RAG search endpoint
+* `/rag/search-debug` RAG search explainability endpoint
 * `/agent/router-chat` deterministic Router Agent chat endpoint
 * `/agent/router-debug` deterministic Router Agent debug endpoint
 * `/agent/router-stream` deterministic Router Agent SSE streaming endpoint
@@ -41,6 +42,7 @@ Current features:
   * `multiply`
   * `search_knowledge_base`
 * Lightweight keyword-based retriever
+* RAG debug metadata: `normalized_query`, `rank`, `source`, `score`, `preview`, `matched_terms`, and `content_length`
 * Local Markdown knowledge base under `knowledge/`
 * UTF-8 encoded knowledge base files for CI compatibility
 * Deterministic Router Agent route classification
@@ -134,7 +136,8 @@ agent-api/
 │   ├── DAY14.md
 │   ├── DAY15.md
 │   ├── DAY16.md
-│   └── DAY17.md
+│   ├── DAY17.md
+│   └── DAY18.md
 ├── knowledge/
 │   └── agent_basics.md
 ├── data/
@@ -158,6 +161,7 @@ agent-api/
 │       │   └── routes_rag.py
 │       ├── rag/
 │       │   ├── __init__.py
+│       │   ├── explain.py
 │       │   └── retriever.py
 │       ├── llm/
 │       │   ├── base.py
@@ -582,6 +586,42 @@ trace_id
 ```
 
 This endpoint does not replace `/agent/chat` yet. It is a compatibility-safe preview of a future main Agent entry point.
+
+## Current RAG Debug Architecture
+
+Day18 added a RAG search-debug endpoint for retrieval explainability.
+
+```text
+/rag/search-debug
+  ↓
+explain_search_knowledge()
+  ↓
+search_knowledge()
+  ↓
+ranked results + debug metadata
+```
+
+The debug endpoint does not replace `/rag/search`. It adds retrieval-level observability.
+
+Returned debug fields include:
+
+```text
+query
+normalized_query
+k
+rank
+source
+score
+content
+preview
+matched_terms
+content_length
+trace_id
+```
+
+This helps diagnose whether a RAG failure comes from retrieval not finding the right context or from answer generation not using the retrieved context.
+
+Day18 intentionally still uses the existing keyword retriever instead of adding embeddings or a vector database. This keeps the feature deterministic and CI-safe.
 
 ## Request Tracing
 
@@ -1395,6 +1435,58 @@ Expected local response includes:
 "answer": "工具 `multiply` 执行结果：81"
 ```
 
+### RAG Search Debug
+
+`/rag/search-debug` exposes retrieval explainability metadata for the lightweight local RAG retriever.
+
+```bash
+curl -s -X POST http://localhost:8000/rag/search-debug \
+  -H "Content-Type: application/json" \
+  -H "x-trace-id: day18-rag-search-debug-001" \
+  -d '{"query":"RAG 是什么？","k":2}' \
+  | python -m json.tool --no-ensure-ascii
+```
+
+Expected response structure:
+
+```json
+{
+  "query": "RAG 是什么？",
+  "normalized_query": "rag 是什么？",
+  "k": 2,
+  "results": [
+    {
+      "rank": 1,
+      "source": "knowledge/agent_basics.md",
+      "score": 1,
+      "content": "...",
+      "preview": "...",
+      "matched_terms": ["rag"],
+      "content_length": 234
+    }
+  ],
+  "trace_id": "day18-rag-search-debug-001"
+}
+```
+
+LangGraph debug example:
+
+```bash
+curl -s -X POST http://localhost:8000/rag/search-debug \
+  -H "Content-Type: application/json" \
+  -H "x-trace-id: day18-rag-search-debug-langgraph-001" \
+  -d '{"query":"LangGraph 是什么？","k":2}' \
+  | python -m json.tool --no-ensure-ascii
+```
+
+Expected response includes:
+
+```text
+"source": "knowledge/agent_basics.md"
+"matched_terms": ["langgraph"]
+"trace_id": "day18-rag-search-debug-langgraph-001"
+```
+
 ## Tests
 
 Run tests:
@@ -1406,7 +1498,7 @@ pytest -q
 Current result:
 
 ```text
-34 passed, 1 warning
+37 passed, 1 warning
 ```
 
 Current test coverage includes:
@@ -1430,6 +1522,7 @@ Current test coverage includes:
 * `/agent/stream` deterministic add tool SSE response
 * `/agent/stream` deterministic multiply tool SSE response
 * `/rag/search` lightweight local RAG endpoint
+* `/rag/search-debug` explainable RAG search endpoint
 * `/agent/router-chat` calculator route
 * `/agent/router-chat` RAG route
 * `/agent/router-chat` chat route
@@ -1445,6 +1538,9 @@ Current test coverage includes:
 * `/agent/smart-chat` deterministic calculator route
 * `/agent/smart-chat` LLM mock RAG route
 * `/agent/smart-chat` LLM mock chat route
+* `/rag/search-debug` explainable RAG result fields
+* `/rag/search-debug` `k` limit behavior
+* `/rag/search-debug` matched terms for LangGraph query
 
 Current test organization:
 
@@ -1459,6 +1555,7 @@ tests/
 ├── test_llm.py
 ├── test_stream.py
 ├── test_rag.py
+├── test_rag_debug.py
 ├── test_router_agent.py
 ├── test_router_delegation.py
 ├── test_router_stream.py
@@ -1466,7 +1563,7 @@ tests/
 └── test_smart_chat.py
 ```
 
-Ollama provider, real LLM tool calling, `/agent/llm-stream`, `/agent/llm-router-chat` with `router_provider="ollama"`, and `/agent/smart-chat` with `router_provider="ollama"` are manually tested locally and are not covered by CI, because CI should not depend on a local Ollama service. The deterministic `/agent/stream`, `/rag/search`, deterministic RAG tool path, Router Agent path, Router delegation memory path, Router stream path, `/agent/llm-router-chat` mock path, and `/agent/smart-chat` deterministic/mock paths are covered by CI.
+Ollama provider, real LLM tool calling, `/agent/llm-stream`, `/agent/llm-router-chat` with `router_provider="ollama"`, and `/agent/smart-chat` with `router_provider="ollama"` are manually tested locally and are not covered by CI, because CI should not depend on a local Ollama service. The deterministic `/agent/stream`, `/rag/search`, `/rag/search-debug`, deterministic RAG tool path, Router Agent path, Router delegation memory path, Router stream path, `/agent/llm-router-chat` mock path, and `/agent/smart-chat` deterministic/mock paths are covered by CI.
 
 ## CI
 
@@ -1555,8 +1652,8 @@ mv /tmp/agent_basics.md knowledge/agent_basics.md
 
 Next milestones:
 
-* Day18: Add richer RAG integration or vector DB preparation
-* Day19+: Add LLM Router streaming or route confidence / validation fallback
+* Day19: Add LLM Router streaming or route confidence / validation fallback
+* Day20+: Prepare vector database based RAG
 * Later: Add vector database based RAG
 * Later: Add GraphRAG and Neo4j integration
 * Later: Add Multi-Agent Supervisor workflow
