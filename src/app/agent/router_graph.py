@@ -5,6 +5,7 @@ from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from langgraph.graph import END, START, MessagesState, StateGraph
 from typing_extensions import NotRequired
 
+from src.app.agent.graph import invoke_agent
 from src.app.rag.retriever import search_knowledge
 
 class RouterState(MessagesState):
@@ -22,23 +23,57 @@ def _extract_two_ints(text: str) -> tuple[int, int] | None:
 def _classify_route(text: str) -> str:
     lowered = text.lower()
 
-    if _extract_two_ints(text) is not None and any(keyword in lowered for keyword in ["加", "+", "add", "*", "multiply"]):
+    has_two_ints = _extract_two_ints(text) is not None
+
+    calculator_keywords = [
+        "计算",
+        "加",
+        "+",
+        "add",
+        "乘",
+        "*",
+        "multiply",
+    ]
+
+    rag_keywords = [
+        "rag",
+        "知识库",
+        "检索",
+        "搜索",
+        "langgraph",
+        "agent是什么",
+        "agent 是什么",
+    ]
+
+    if has_two_ints and any(keyword in lowered for keyword in calculator_keywords):
         return "calculator"
 
-    if any(keyword in lowered for keyword in [
-            "rag",
-            "知识库",
-            "检索",
-            "搜索",
-            "langgraph",
-            "agent是什么",
-            "agent 是什么",
-        ]
-    ):
+    if any(keyword in lowered for keyword in rag_keywords):
         return "rag"
 
     return "chat"
 
+
+def _delegate_to_deterministic_agent(state: RouterState) -> str:
+    last_message = state["messages"][-1]
+    user_text = str(last_message.content)
+
+    thread_id = state.get("thread_id") or f"router-child-{uuid4().hex[:8]}"
+
+    result = invoke_agent(
+        message=user_text,
+        thread_id=thread_id,
+    )
+
+    return _get_final_answer_from_agent_result(result)
+
+def _get_final_answer_from_agent_result(result: dict) -> str:
+    messages = result.get("messages", [])
+
+    if not messages:
+        return ""
+
+    return str(messages[-1].content)
 
 def router_node(state: RouterState) -> dict:
     last_message = state["messages"][-1]
@@ -57,30 +92,8 @@ def route_condition(state: RouterState) -> str:
     return _classify_route(user_text)
 
 
-def calcalator_node(state: RouterState) -> dict:
-    last_message = state["messages"][-1]
-    user_text = str(last_message.content)
-    pair = _extract_two_ints(user_text)
-
-
-    if pair is None:
-        return {
-            "messages": [
-                AIMessage(
-                        content="没有找到两个可用于计算的整数。",
-                )
-            ]
-        }
-
-    a, b = pair
-    lowered = user_text.lower()
-
-    if any(keyword in lowered for keyword in ["加", "+", "add"]):
-        answer = f"工具 `add` 执行结果：{a + b}"
-    elif any(keyword in lowered for keyword in ["乘", "*", "multiply"]):
-        answer = f"工具 `multiply` 执行结果：{a * b}"
-    else:
-        answer = "当前router只支持加法和乘法计算。"
+def calculator_node(state: RouterState) -> dict:
+    answer = _delegate_to_deterministic_agent(state)
 
     return {
         "messages": [
@@ -92,21 +105,7 @@ def calcalator_node(state: RouterState) -> dict:
 
 
 def rag_node(state: RouterState) -> dict:
-    last_message = state["messages"][-1]
-    user_text = str(last_message.content)
-
-    results = search_knowledge(user_text, k=3)
-
-    if not results:
-        answer = "知识库中没有找到相关内容。"
-    else:
-        lines = []
-
-        for index, item in enumerate(results, start=1):
-            lines.append(f"[{index}] source={item.source}, score={item.score}\n{item.content}")
-
-        answer = "根据知识库检索结果：\n" + "\n\n".join(lines)
-
+    answer = _delegate_to_deterministic_agent(state)
 
     return {
         "messages": [
@@ -134,7 +133,7 @@ def builder_router_agent_graph():
     builder = StateGraph(RouterState)
 
     builder.add_node("router", router_node)
-    builder.add_node("calculator", calcalator_node)
+    builder.add_node("calculator", calculator_node)
     builder.add_node("rag", rag_node)
     builder.add_node("chat", chat_node)
 
