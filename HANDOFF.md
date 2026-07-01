@@ -13,11 +13,11 @@ Project 2 has officially started and is now the main development line.
 Current `agent-api` status:
 
 ```text
-Day1-Day12 completed.
-Day12 completed: lightweight local RAG search tool.
-Local pytest: 19 passed, 1 warning.
+Day1-Day13 completed.
+Day13 completed: deterministic Router Agent.
+Local pytest: 23 passed, 1 warning.
 GitHub Actions CI: green.
-Next: Day13 Router Agent.
+Next: Day14 connect Router Agent with existing Agent capabilities.
 ```
 
 ## Project Goal
@@ -87,6 +87,7 @@ Current:
 - Server-Sent Events streaming endpoints
 - Lightweight keyword-based RAG retriever
 - Local Markdown knowledge base
+- Deterministic Router Agent
 - pytest
 - GitHub Actions CI
 
@@ -94,7 +95,7 @@ Not yet implemented:
 
 - OpenAI provider
 - Replacing `/agent/chat` with the real LLM Agent as the default route
-- Router Agent
+- LLM-based Router Agent
 - Vector database based RAG
 - Embedding-based retrieval
 - Document upload and parsing pipeline
@@ -128,7 +129,8 @@ agent-api/
 │   ├── DAY09.md
 │   ├── DAY10.md
 │   ├── DAY11.md
-│   └── DAY12.md
+│   ├── DAY12.md
+│   └── DAY13.md
 ├── knowledge/
 │   └── agent_basics.md
 ├── data/
@@ -160,6 +162,7 @@ agent-api/
 │       │   └── ollama.py
 │       └── agent/
 │           ├── graph.py
+│           ├── router_graph.py
 │           ├── streaming.py
 │           ├── llm_graph.py
 │           ├── llm_nodes.py
@@ -176,7 +179,8 @@ agent-api/
     ├── test_trace.py
     ├── test_llm.py
     ├── test_stream.py
-    └── test_rag.py
+    ├── test_rag.py
+    └── test_router_agent.py
 ```
 
 ---
@@ -284,6 +288,31 @@ POST /agent/llm-stream
 `/agent/stream` is deterministic and covered by CI.
 
 `/agent/llm-stream` depends on local Ollama and is manually verified.
+
+### RAG Search
+
+```text
+POST /rag/search
+```
+
+### Router Agent
+
+```text
+POST /agent/router-chat
+POST /agent/router-debug
+```
+
+Routes:
+
+```text
+calculator
+rag
+chat
+```
+
+`/agent/router-chat` returns `answer`, `route`, `thread_id`, and `trace_id`.
+
+`/agent/router-debug` returns the selected route and node-level path, such as `router -> rag`.
 
 ### RAG Search
 
@@ -609,6 +638,54 @@ Day12 intentionally uses keyword retrieval instead of embeddings/vector DB.
 This keeps CI deterministic and avoids external services.
 Knowledge files are stored under knowledge/ and should be UTF-8 encoded.
 Do not put source-controlled knowledge files under data/, because data/ is runtime-only and ignored by Git.
+```
+
+---
+
+## Current Router Agent Strategy
+
+Day13 added a separate deterministic Router Agent graph.
+
+Current Router files:
+
+```text
+src/app/agent/router_graph.py
+tests/test_router_agent.py
+```
+
+Current Router endpoints:
+
+```text
+POST /agent/router-chat
+POST /agent/router-debug
+```
+
+Current routes:
+
+```text
+calculator
+rag
+chat
+```
+
+Router graph:
+
+```text
+START
+  ↓
+router
+  ├── calculator
+  ├── rag
+  └── chat
+```
+
+Important:
+
+```text
+Router Agent is deterministic and CI-safe.
+It does not depend on Ollama.
+It does not replace /agent/chat yet.
+It prepares the project for Day14+ integration with existing Agent capabilities.
 ```
 
 ---
@@ -1188,7 +1265,7 @@ Observed tool call:
 ### Test Result
 
 ```text
-19 passed, 1 warning
+23 passed, 1 warning
 ```
 
 ### CI Result
@@ -1210,6 +1287,51 @@ knowledge/
 ```
 
 and must be UTF-8 encoded.
+
+---
+
+## Day13 - Deterministic Router Agent
+
+### Completed
+
+- Added `src/app/agent/router_graph.py`
+- Added deterministic route classification
+- Added `calculator` route
+- Added `rag` route
+- Added `chat` route
+- Added `/agent/router-chat`
+- Added `/agent/router-debug`
+- Added `AgentRouterChatResponse`
+- Added `AgentRouterDebugResponse`
+- Added `tests/test_router_agent.py`
+- Verified calculator route
+- Verified RAG route
+- Verified chat route
+- Verified debug route path `router -> rag`
+- Fixed router condition behavior by classifying from the input message instead of depending on unstable graph state propagation
+- Fixed `debug_router_agent()` handling for `None` node updates from LangGraph stream
+- Expanded pytest from 19 tests to 23 tests
+- Verified local pytest
+- Verified GitHub Actions CI
+
+### New Endpoints
+
+```text
+POST /agent/router-chat
+POST /agent/router-debug
+```
+
+### Test Result
+
+```text
+23 passed, 1 warning
+```
+
+### CI Result
+
+```text
+GitHub Actions CI: green
+```
 
 ---
 
@@ -1269,7 +1391,7 @@ Agent response
 Local pytest currently shows:
 
 ```text
-19 passed, 1 warning
+23 passed, 1 warning
 ```
 
 The warning is:
@@ -1317,8 +1439,8 @@ It has a typo: `langraph` should be `langgraph`. This does not affect code and d
 Recommended next route:
 
 ```text
-Day13: Router Agent
-Day14+: Connect Router Agent with existing Agent capabilities
+Day14: Connect Router Agent with existing Agent capabilities
+Day15+: LLM-based routing or richer RAG integration
 Later: vector DB based RAG
 Later: GraphRAG + Neo4j + Multi-Agent Supervisor
 ```
@@ -1366,7 +1488,15 @@ Completed:
 - [x] Day12 Agent RAG tool path
 - [x] Day12 RAG tests
 - [x] Day12 GitHub Actions CI
+- [x] Day13 Router Agent
+- [x] Day13 `/agent/router-chat`
+- [x] Day13 `/agent/router-debug`
+- [x] Day13 calculator route
+- [x] Day13 RAG route
+- [x] Day13 chat route
+- [x] Day13 Router Agent tests
+- [x] Day13 GitHub Actions CI
 
 Next:
 
-- [ ] Day13 Router Agent
+- [ ] Day14 connect Router Agent with existing Agent capabilities

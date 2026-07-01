@@ -2,16 +2,16 @@
 
 `agent-api` is a FastAPI + LangGraph backend project for building an Agent service step by step.
 
-This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent, SQLite-based short-term memory, graph debug output, request tracing, LLM provider abstraction, a real Ollama-backed LLM Tool Calling Agent path, SSE streaming endpoints, and a lightweight local RAG search tool.
+This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent, SQLite-based short-term memory, graph debug output, request tracing, LLM provider abstraction, a real Ollama-backed LLM Tool Calling Agent path, SSE streaming endpoints, a lightweight local RAG search tool, and a deterministic Router Agent.
 
 ## Current Status
 
 ```text
-Day1-Day12 completed.
-Current stage: lightweight RAG search tool completed.
-Local pytest: 19 passed, 1 warning.
+Day1-Day13 completed.
+Current stage: deterministic Router Agent completed.
+Local pytest: 23 passed, 1 warning.
 GitHub Actions CI: green.
-Next milestone: Day13 Router Agent.
+Next milestone: Day14 connect Router Agent with existing Agent capabilities.
 ```
 
 ## Features
@@ -28,6 +28,8 @@ Current features:
 * `/agent/stream` deterministic Agent SSE streaming endpoint
 * `/agent/llm-stream` real LLM Tool Calling Agent SSE streaming endpoint
 * `/rag/search` lightweight local RAG search endpoint
+* `/agent/router-chat` deterministic Router Agent chat endpoint
+* `/agent/router-debug` deterministic Router Agent debug endpoint
 * LangGraph `StateGraph`
 * Deterministic Tool Calling Agent loop
 * Real LLM Tool Calling Agent loop
@@ -38,6 +40,8 @@ Current features:
 * Lightweight keyword-based retriever
 * Local Markdown knowledge base under `knowledge/`
 * UTF-8 encoded knowledge base files for CI compatibility
+* Deterministic Router Agent route classification
+* Router branches: `calculator`, `rag`, and `chat`
 * SQLite checkpoint-based short-term memory
 * `thread_id` based conversation state
 * Request logging middleware
@@ -61,7 +65,7 @@ Not implemented yet:
 
 * OpenAI provider
 * Replacing `/agent/chat` with the real LLM Agent as the default main route
-* Router Agent
+* LLM-based Router Agent
 * Vector database based RAG
 * Embedding-based retrieval
 * Document upload and parsing pipeline
@@ -83,6 +87,7 @@ Not implemented yet:
 * SQLite checkpoint saver
 * Local Markdown knowledge base
 * Lightweight keyword retriever
+* Deterministic Router Agent
 * pytest
 * GitHub Actions
 * Server-Sent Events
@@ -112,7 +117,8 @@ agent-api/
 │   ├── DAY09.md
 │   ├── DAY10.md
 │   ├── DAY11.md
-│   └── DAY12.md
+│   ├── DAY12.md
+│   └── DAY13.md
 ├── knowledge/
 │   └── agent_basics.md
 ├── data/
@@ -144,6 +150,7 @@ agent-api/
 │       │   └── ollama.py
 │       └── agent/
 │           ├── graph.py
+│           ├── router_graph.py
 │           ├── streaming.py
 │           ├── llm_graph.py
 │           ├── llm_nodes.py
@@ -160,7 +167,8 @@ agent-api/
     ├── test_trace.py
     ├── test_llm.py
     ├── test_stream.py
-    └── test_rag.py
+    ├── test_rag.py
+    └── test_router_agent.py
 ```
 
 ## Current Agent Graphs
@@ -341,6 +349,46 @@ Knowledge files must be UTF-8 encoded.
 Runtime files remain under data/ and are ignored by Git.
 The initial vector DB / embedding pipeline is intentionally deferred.
 ```
+
+## Current Router Agent Architecture
+
+Day13 added a deterministic Router Agent while keeping the existing deterministic Agent and real LLM Agent paths separate.
+
+```text
+/agent/router-chat or /agent/router-debug
+  ↓
+router_agent_graph
+  ↓
+router
+  ├── calculator
+  ├── rag
+  └── chat
+```
+
+The Router Agent classifies each user message into one route:
+
+```text
+calculator  # arithmetic requests such as 请计算 3 加 5
+rag         # knowledge-base / RAG / LangGraph search requests
+chat        # ordinary chat requests
+```
+
+Current Router Agent endpoints:
+
+```text
+POST /agent/router-chat
+POST /agent/router-debug
+```
+
+`/agent/router-chat` returns the selected `route` and final answer.
+
+`/agent/router-debug` exposes node-level routing steps such as:
+
+```text
+router -> rag
+```
+
+Day13 intentionally uses deterministic rule-based routing instead of an LLM router. This keeps CI stable and prepares the project for later LLM-based routing.
 
 ## Request Tracing
 
@@ -781,6 +829,98 @@ Expected tool call:
 }
 ```
 
+### Router Agent Chat
+
+`/agent/router-chat` selects one of three routes: `calculator`, `rag`, or `chat`.
+
+Calculator route:
+
+```bash
+curl -s -X POST http://localhost:8000/agent/router-chat \
+  -H "Content-Type: application/json" \
+  -H "x-trace-id: day13-router-calc-001" \
+  -d '{"message":"请计算 3 加 5","thread_id":"day13-router-calc-001"}' \
+  | python -m json.tool --no-ensure-ascii
+```
+
+Expected response:
+
+```json
+{
+  "answer": "工具 `add` 执行结果：8",
+  "route": "calculator",
+  "thread_id": "day13-router-calc-001",
+  "trace_id": "day13-router-calc-001"
+}
+```
+
+RAG route:
+
+```bash
+curl -s -X POST http://localhost:8000/agent/router-chat \
+  -H "Content-Type: application/json" \
+  -H "x-trace-id: day13-router-rag-001" \
+  -d '{"message":"请搜索知识库：RAG 是什么？","thread_id":"day13-router-rag-001"}' \
+  | python -m json.tool --no-ensure-ascii
+```
+
+Expected response includes:
+
+```json
+{
+  "route": "rag",
+  "answer": "根据知识库检索结果：..."
+}
+```
+
+Chat route:
+
+```bash
+curl -s -X POST http://localhost:8000/agent/router-chat \
+  -H "Content-Type: application/json" \
+  -H "x-trace-id: day13-router-chat-001" \
+  -d '{"message":"你好，介绍一下你自己","thread_id":"day13-router-chat-001"}' \
+  | python -m json.tool --no-ensure-ascii
+```
+
+Expected response:
+
+```json
+{
+  "answer": "Router chat response: 你好，介绍一下你自己",
+  "route": "chat",
+  "thread_id": "day13-router-chat-001",
+  "trace_id": "day13-router-chat-001"
+}
+```
+
+### Router Agent Debug
+
+`/agent/router-debug` shows the selected route and node-level router execution path.
+
+```bash
+curl -s -X POST http://localhost:8000/agent/router-debug \
+  -H "Content-Type: application/json" \
+  -H "x-trace-id: day13-router-debug-rag-001" \
+  -d '{"message":"请搜索知识库：LangGraph 是什么？","thread_id":"day13-router-debug-rag-001"}' \
+  | python -m json.tool --no-ensure-ascii
+```
+
+Expected node path:
+
+```text
+router -> rag
+```
+
+Expected response includes:
+
+```json
+{
+  "route": "rag",
+  "final_answer": "根据知识库检索结果：..."
+}
+```
+
 ## Tests
 
 Run tests:
@@ -792,7 +932,7 @@ pytest -q
 Current result:
 
 ```text
-19 passed, 1 warning
+23 passed, 1 warning
 ```
 
 Current test coverage includes:
@@ -816,6 +956,10 @@ Current test coverage includes:
 * `/agent/stream` deterministic add tool SSE response
 * `/agent/stream` deterministic multiply tool SSE response
 * `/rag/search` lightweight local RAG endpoint
+* `/agent/router-chat` calculator route
+* `/agent/router-chat` RAG route
+* `/agent/router-chat` chat route
+* `/agent/router-debug` RAG route path
 
 Current test organization:
 
@@ -829,10 +973,11 @@ tests/
 ├── test_trace.py
 ├── test_llm.py
 ├── test_stream.py
-└── test_rag.py
+├── test_rag.py
+└── test_router_agent.py
 ```
 
-Ollama provider, real LLM tool calling, and `/agent/llm-stream` are manually tested locally and are not covered by CI, because CI should not depend on a local Ollama service. The deterministic `/agent/stream`, `/rag/search`, and deterministic RAG tool path are covered by CI.
+Ollama provider, real LLM tool calling, and `/agent/llm-stream` are manually tested locally and are not covered by CI, because CI should not depend on a local Ollama service. The deterministic `/agent/stream`, `/rag/search`, deterministic RAG tool path, and Router Agent path are covered by CI.
 
 ## CI
 
@@ -921,8 +1066,8 @@ mv /tmp/agent_basics.md knowledge/agent_basics.md
 
 Next milestones:
 
-* Day13: Add Router Agent
-* Day14+: Connect Router Agent with existing Agent capabilities
+* Day14: Connect Router Agent with existing Agent capabilities
+* Day15+: Add LLM-based routing or richer RAG integration
 * Later: Add vector database based RAG
 * Later: Add GraphRAG and Neo4j integration
 * Later: Add Multi-Agent Supervisor workflow
