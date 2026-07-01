@@ -2,16 +2,16 @@
 
 `agent-api` is a FastAPI + LangGraph backend project for building an Agent service step by step.
 
-This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent, SQLite-based short-term memory, graph debug output, request tracing, LLM provider abstraction, a real Ollama-backed LLM Tool Calling Agent path, and SSE streaming endpoints.
+This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent, SQLite-based short-term memory, graph debug output, request tracing, LLM provider abstraction, a real Ollama-backed LLM Tool Calling Agent path, SSE streaming endpoints, and a lightweight local RAG search tool.
 
 ## Current Status
 
 ```text
-Day1-Day11 completed.
-Current stage: SSE streaming endpoints completed.
-Local pytest: 16 passed, 1 warning.
+Day1-Day12 completed.
+Current stage: lightweight RAG search tool completed.
+Local pytest: 19 passed, 1 warning.
 GitHub Actions CI: green.
-Next milestone: Day12 RAG search tool.
+Next milestone: Day13 Router Agent.
 ```
 
 ## Features
@@ -27,19 +27,24 @@ Current features:
 * `/agent/llm-debug` real LLM Tool Calling Agent debug endpoint
 * `/agent/stream` deterministic Agent SSE streaming endpoint
 * `/agent/llm-stream` real LLM Tool Calling Agent SSE streaming endpoint
+* `/rag/search` lightweight local RAG search endpoint
 * LangGraph `StateGraph`
 * Deterministic Tool Calling Agent loop
 * Real LLM Tool Calling Agent loop
 * Built-in tools:
   * `add`
   * `multiply`
+  * `search_knowledge_base`
+* Lightweight keyword-based retriever
+* Local Markdown knowledge base under `knowledge/`
+* UTF-8 encoded knowledge base files for CI compatibility
 * SQLite checkpoint-based short-term memory
 * `thread_id` based conversation state
 * Request logging middleware
 * `x-trace-id` request tracing
 * Automatic trace id generation when client does not provide one
 * Trace id reuse when client provides `x-trace-id`
-* `trace_id` included in Agent and LLM response bodies
+* `trace_id` included in Agent, LLM, RAG, and streaming responses
 * Latency logging with `latency_ms`
 * LLM provider abstraction
 * Mock LLM provider for deterministic tests and CI
@@ -56,8 +61,10 @@ Not implemented yet:
 
 * OpenAI provider
 * Replacing `/agent/chat` with the real LLM Agent as the default main route
-* RAG tool
 * Router Agent
+* Vector database based RAG
+* Embedding-based retrieval
+* Document upload and parsing pipeline
 * GraphRAG
 * Multi-Agent workflow
 
@@ -74,6 +81,8 @@ Not implemented yet:
 * LangGraph prebuilt `ToolNode`
 * LangGraph prebuilt `tools_condition`
 * SQLite checkpoint saver
+* Local Markdown knowledge base
+* Lightweight keyword retriever
 * pytest
 * GitHub Actions
 * Server-Sent Events
@@ -102,7 +111,10 @@ agent-api/
 │   ├── DAY08.md
 │   ├── DAY09.md
 │   ├── DAY10.md
-│   └── DAY11.md
+│   ├── DAY11.md
+│   └── DAY12.md
+├── knowledge/
+│   └── agent_basics.md
 ├── data/
 │   └── checkpoints.sqlite          # runtime only, ignored by Git
 ├── src/
@@ -116,10 +128,15 @@ agent-api/
 │       │   └── sse.py
 │       ├── schemas/
 │       │   ├── agent.py
-│       │   └── llm.py
+│       │   ├── llm.py
+│       │   └── rag.py
 │       ├── routes/
 │       │   ├── routes_agent.py
-│       │   └── routes_llm.py
+│       │   ├── routes_llm.py
+│       │   └── routes_rag.py
+│       ├── rag/
+│       │   ├── __init__.py
+│       │   └── retriever.py
 │       ├── llm/
 │       │   ├── base.py
 │       │   ├── factory.py
@@ -142,14 +159,15 @@ agent-api/
     ├── test_agent_debug.py
     ├── test_trace.py
     ├── test_llm.py
-    └── test_stream.py
+    ├── test_stream.py
+    └── test_rag.py
 ```
 
 ## Current Agent Graphs
 
 ### Deterministic Agent Graph
 
-`/agent/chat` and `/agent/debug` still use the deterministic graph from the previous stages.
+`/agent/chat`, `/agent/debug`, and `/agent/stream` use the deterministic graph.
 
 ```text
 START
@@ -175,9 +193,19 @@ ToolMessage
 AIMessage(final answer)
 ```
 
+The deterministic graph currently supports:
+
+```text
+add
+multiply
+search_knowledge_base
+```
+
+RAG-related questions such as `请搜索知识库：RAG 是什么？` are routed to the `search_knowledge_base` tool by deterministic keyword rules.
+
 ### Real LLM Tool Calling Agent Graph
 
-`/agent/llm-chat` and `/agent/llm-debug` use the Day10 real LLM Tool Calling Agent graph.
+`/agent/llm-chat`, `/agent/llm-debug`, and `/agent/llm-stream` use the real LLM Tool Calling Agent graph.
 
 ```text
 START
@@ -241,10 +269,9 @@ OLLAMA_TEMPERATURE=0
 
 When WSL accesses Ollama running on the Windows host, `OLLAMA_BASE_URL` can be set to the Windows host IP exposed through WSL networking.
 
-
 ## Current Streaming Architecture
 
-Day11 adds SSE streaming endpoints while keeping the deterministic and real LLM paths separate.
+Day11 added SSE streaming endpoints while keeping deterministic and real LLM paths separate.
 
 ```text
 /agent/stream
@@ -274,6 +301,47 @@ ensure_ascii=False
 
 This keeps Chinese output readable in terminal responses instead of showing Unicode escape sequences.
 
+## Current RAG Architecture
+
+Day12 added a lightweight deterministic RAG search path.
+
+```text
+knowledge/agent_basics.md
+  ↓
+search_knowledge()
+  ↓
+/rag/search
+```
+
+The same retriever is also exposed to the deterministic Agent as a tool:
+
+```text
+/agent/chat or /agent/debug
+  ↓
+agent_node
+  ↓
+AIMessage(tool_calls=[search_knowledge_base])
+  ↓
+ToolNode(tools)
+  ↓
+search_knowledge_base()
+  ↓
+search_knowledge()
+  ↓
+AIMessage(final answer)
+```
+
+Day12 intentionally uses a simple keyword retriever instead of embeddings or a vector database. This keeps pytest and GitHub Actions deterministic and avoids external services.
+
+Important Day12 notes:
+
+```text
+Knowledge files are stored under knowledge/.
+Knowledge files must be UTF-8 encoded.
+Runtime files remain under data/ and are ignored by Git.
+The initial vector DB / embedding pipeline is intentionally deferred.
+```
+
 ## Request Tracing
 
 Every request has a trace id.
@@ -294,7 +362,7 @@ The trace id is returned in the response header:
 x-trace-id: trace-xxxxxxxxxxxx
 ```
 
-For Agent and LLM endpoints, the trace id is also returned in the response body:
+For Agent, LLM, and RAG endpoints, the trace id is also returned in the response body:
 
 ```json
 {
@@ -315,7 +383,7 @@ trace_id
 Example log:
 
 ```text
-request_completed method=POST path=/agent/llm-chat status_code=200 latency_ms=1234.56 trace_id=day10-llm-add-001
+request_completed method=POST path=/rag/search status_code=200 latency_ms=12.34 trace_id=day12-rag-search-001
 ```
 
 ## Quick Start
@@ -576,7 +644,6 @@ Expected tool call:
 }
 ```
 
-
 ### Agent Stream - Deterministic Route
 
 `/agent/stream` streams deterministic Agent output as Server-Sent Events.
@@ -638,6 +705,82 @@ Example final answer:
 计算结果是 42。
 ```
 
+### RAG Search
+
+`/rag/search` uses the lightweight local keyword retriever.
+
+```bash
+curl -s -X POST http://localhost:8000/rag/search \
+  -H "Content-Type: application/json" \
+  -H "x-trace-id: day12-rag-search-001" \
+  -d '{"query":"RAG 是什么？","k":2}' \
+  | python -m json.tool --no-ensure-ascii
+```
+
+Expected response includes:
+
+```json
+{
+  "query": "RAG 是什么？",
+  "results": [
+    {
+      "source": "knowledge/agent_basics.md",
+      "content": "...RAG 是 Retrieval-Augmented Generation...",
+      "score": 1
+    }
+  ],
+  "trace_id": "day12-rag-search-001"
+}
+```
+
+### Agent Chat with RAG Tool
+
+`/agent/chat` can trigger the deterministic `search_knowledge_base` tool.
+
+```bash
+curl -s -X POST http://localhost:8000/agent/chat \
+  -H "Content-Type: application/json" \
+  -H "x-trace-id: day12-agent-rag-001" \
+  -d '{"message":"请搜索知识库：RAG 是什么？","thread_id":"day12-agent-rag-001"}' \
+  | python -m json.tool --no-ensure-ascii
+```
+
+Expected answer starts with:
+
+```text
+根据知识库检索结果：
+```
+
+### Agent Debug with RAG Tool
+
+`/agent/debug` can show the deterministic RAG tool-call path.
+
+```bash
+curl -s -X POST http://localhost:8000/agent/debug \
+  -H "Content-Type: application/json" \
+  -H "x-trace-id: day12-debug-rag-001" \
+  -d '{"message":"请搜索知识库：LangGraph 是什么？","thread_id":"day12-debug-rag-001"}' \
+  | python -m json.tool --no-ensure-ascii
+```
+
+Expected node path:
+
+```text
+agent -> tools -> agent
+```
+
+Expected tool call:
+
+```json
+{
+  "name": "search_knowledge_base",
+  "args": {
+    "query": "请搜索知识库：LangGraph 是什么？",
+    "k": 3
+  }
+}
+```
+
 ## Tests
 
 Run tests:
@@ -649,7 +792,7 @@ pytest -q
 Current result:
 
 ```text
-16 passed, 1 warning
+19 passed, 1 warning
 ```
 
 Current test coverage includes:
@@ -661,15 +804,18 @@ Current test coverage includes:
 * `/agent/chat` trace id in header and body
 * `add` tool
 * `multiply` tool
+* `search_knowledge_base` tool through `/agent/chat`
 * same-thread short-term memory
 * different-thread memory isolation
 * `/agent/debug` normal path
 * `/agent/debug` tool-call path
+* `/agent/debug` RAG tool-call path
 * `/agent/debug` trace id in header and body
 * `/llm/chat` mock provider
 * `/llm/chat` mock provider with trace id
 * `/agent/stream` deterministic add tool SSE response
 * `/agent/stream` deterministic multiply tool SSE response
+* `/rag/search` lightweight local RAG endpoint
 
 Current test organization:
 
@@ -682,10 +828,11 @@ tests/
 ├── test_agent_debug.py
 ├── test_trace.py
 ├── test_llm.py
-└── test_stream.py
+├── test_stream.py
+└── test_rag.py
 ```
 
-Ollama provider, real LLM tool calling, and `/agent/llm-stream` are manually tested locally and are not covered by CI, because CI should not depend on a local Ollama service. The deterministic `/agent/stream` endpoint is covered by CI.
+Ollama provider, real LLM tool calling, and `/agent/llm-stream` are manually tested locally and are not covered by CI, because CI should not depend on a local Ollama service. The deterministic `/agent/stream`, `/rag/search`, and deterministic RAG tool path are covered by CI.
 
 ## CI
 
@@ -729,6 +876,14 @@ data/
 *.sqlite-journal
 ```
 
+Knowledge base files are stored separately under:
+
+```text
+knowledge/
+```
+
+These files are source-controlled project files, not runtime data.
+
 ## Development Notes
 
 `requirements.txt` is manually maintained as a minimal dependency file. Do not blindly overwrite it with `pip freeze > requirements.txt` from a conda environment, because conda build artifact paths may break GitHub Actions CI.
@@ -755,11 +910,19 @@ python -c "import sys,json; print(json.dumps(json.load(sys.stdin), ensure_ascii=
 
 Without this, `python -m json.tool` may display Chinese as Unicode escape sequences such as `\u8ba1\u7b97\u7ed3\u679c\u662f 42\u3002`.
 
+For knowledge base files, use UTF-8 encoding. If a Markdown file was created or edited through Windows tools and pytest raises a `UnicodeDecodeError`, convert it:
+
+```bash
+iconv -f gbk -t utf-8 knowledge/agent_basics.md -o /tmp/agent_basics.md
+mv /tmp/agent_basics.md knowledge/agent_basics.md
+```
+
 ## Roadmap
 
 Next milestones:
 
-* Day12: Add RAG search tool
-* Day13+: Add Router Agent
+* Day13: Add Router Agent
+* Day14+: Connect Router Agent with existing Agent capabilities
+* Later: Add vector database based RAG
 * Later: Add GraphRAG and Neo4j integration
 * Later: Add Multi-Agent Supervisor workflow

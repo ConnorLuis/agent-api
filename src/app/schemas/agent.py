@@ -38,3 +38,19 @@ class AgentLLMChatResponse(BaseModel):
     provider: str = "ollama"
     model: str | None = None
     trace_id: str | None = None
+
+
+class AgentRouterChatResponse(BaseModel):
+    answer: str
+    route:  str
+    thread_id: str | None = None
+    trace_id: str | None = None
+
+
+class AgentRouterDebugResponse(BaseModel):
+    thread_id: str
+    route: str
+    steps: list[DebugStep]
+    final_answer: str
+    messages_count: int
+    trace_id: str | None = None
