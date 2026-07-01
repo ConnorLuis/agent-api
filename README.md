@@ -2,16 +2,16 @@
 
 `agent-api` is a FastAPI + LangGraph backend project for building an Agent service step by step.
 
-This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent, SQLite-based short-term memory, graph debug output, request tracing, LLM provider abstraction, a real Ollama-backed LLM Tool Calling Agent path, SSE streaming endpoints, a lightweight local RAG search tool, and a deterministic Router Agent that delegates calculator and RAG routes to the existing Agent graph.
+This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent, SQLite-based short-term memory, graph debug output, request tracing, LLM provider abstraction, a real Ollama-backed LLM Tool Calling Agent path, SSE streaming endpoints, a lightweight local RAG search tool, a deterministic Router Agent that delegates calculator and RAG routes to the existing Agent graph, and a Router Agent SSE streaming endpoint.
 
 ## Current Status
 
 ```text
-Day1-Day14 completed.
-Current stage: Router Agent delegation completed.
-Local pytest: 25 passed, 1 warning.
+Day1-Day15 completed.
+Current stage: Router Agent streaming completed.
+Local pytest: 28 passed, 1 warning.
 GitHub Actions CI: green.
-Next milestone: Day15 LLM-based routing or richer RAG integration.
+Next milestone: Day16 LLM-based routing or richer RAG integration.
 ```
 
 ## Features
@@ -30,6 +30,7 @@ Current features:
 * `/rag/search` lightweight local RAG search endpoint
 * `/agent/router-chat` deterministic Router Agent chat endpoint
 * `/agent/router-debug` deterministic Router Agent debug endpoint
+* `/agent/router-stream` deterministic Router Agent SSE streaming endpoint
 * LangGraph `StateGraph`
 * Deterministic Tool Calling Agent loop
 * Real LLM Tool Calling Agent loop
@@ -44,6 +45,7 @@ Current features:
 * Router branches: `calculator`, `rag`, and `chat`
 * Router `calculator` and `rag` routes delegated to existing deterministic Agent graph
 * Router delegation shares `thread_id` with Agent memory
+* Router SSE stream events: `metadata`, `route`, `answer_chunk`, `final`, `done`
 * SQLite checkpoint-based short-term memory
 * `thread_id` based conversation state
 * Request logging middleware
@@ -121,7 +123,8 @@ agent-api/
 │   ├── DAY11.md
 │   ├── DAY12.md
 │   ├── DAY13.md
-│   └── DAY14.md
+│   ├── DAY14.md
+│   └── DAY15.md
 ├── knowledge/
 │   └── agent_basics.md
 ├── data/
@@ -154,6 +157,7 @@ agent-api/
 │       └── agent/
 │           ├── graph.py
 │           ├── router_graph.py
+│           ├── router_streaming.py
 │           ├── streaming.py
 │           ├── llm_graph.py
 │           ├── llm_nodes.py
@@ -172,7 +176,8 @@ agent-api/
     ├── test_stream.py
     ├── test_rag.py
     ├── test_router_agent.py
-    └── test_router_delegation.py
+    ├── test_router_delegation.py
+    └── test_router_stream.py
 ```
 
 ## Current Agent Graphs
@@ -428,6 +433,40 @@ ToolMessage(name=multiply, content=36)
   ↓
 我记得上一轮工具 `multiply` 的执行结果是：36
 ```
+
+## Current Router Streaming Architecture
+
+Day15 added a Router Agent SSE streaming endpoint.
+
+```text
+/agent/router-stream
+  ↓
+stream_router_agent_events()
+  ↓
+invoke_router_agent()
+  ↓
+metadata -> route -> answer_chunk -> final -> done
+```
+
+The Router stream supports all three deterministic Router routes:
+
+```text
+calculator
+rag
+chat
+```
+
+Current event sequence:
+
+```text
+event: metadata      # thread_id and trace_id
+event: route         # selected route
+event: answer_chunk  # current implementation emits the full answer as one chunk
+event: final         # final answer payload
+event: done          # stream completion marker
+```
+
+Day15 intentionally keeps `answer_chunk` as one complete chunk because the deterministic Router does not generate token-level output. This design keeps the SSE contract stable and prepares the endpoint for future token-level LLM streaming.
 
 ## Request Tracing
 
@@ -1005,6 +1044,69 @@ Expected response:
 }
 ```
 
+### Router Agent Stream
+
+`/agent/router-stream` streams Router Agent output as Server-Sent Events.
+
+Calculator route:
+
+```bash
+curl -N -X POST http://localhost:8000/agent/router-stream \
+  -H "Content-Type: application/json" \
+  -H "x-trace-id: day15-router-stream-calc-001" \
+  -d '{"message":"请计算 3 加 5","thread_id":"day15-router-stream-calc-001"}'
+```
+
+Expected event sequence:
+
+```text
+event: metadata
+event: route
+event: answer_chunk
+event: final
+event: done
+```
+
+Expected route and answer:
+
+```text
+"route": "calculator"
+"answer": "工具 `add` 执行结果：8"
+```
+
+RAG route:
+
+```bash
+curl -N -X POST http://localhost:8000/agent/router-stream \
+  -H "Content-Type: application/json" \
+  -H "x-trace-id: day15-router-stream-rag-001" \
+  -d '{"message":"请搜索知识库：RAG 是什么？","thread_id":"day15-router-stream-rag-001"}'
+```
+
+Expected route and answer content:
+
+```text
+"route": "rag"
+"根据知识库检索结果"
+"knowledge/agent_basics.md"
+```
+
+Chat route:
+
+```bash
+curl -N -X POST http://localhost:8000/agent/router-stream \
+  -H "Content-Type: application/json" \
+  -H "x-trace-id: day15-router-stream-chat-001" \
+  -d '{"message":"你好，介绍一下你自己","thread_id":"day15-router-stream-chat-001"}'
+```
+
+Expected route and answer:
+
+```text
+"route": "chat"
+"Router chat response: 你好，介绍一下你自己"
+```
+
 ## Tests
 
 Run tests:
@@ -1016,7 +1118,7 @@ pytest -q
 Current result:
 
 ```text
-25 passed, 1 warning
+28 passed, 1 warning
 ```
 
 Current test coverage includes:
@@ -1046,6 +1148,9 @@ Current test coverage includes:
 * `/agent/router-debug` RAG route path
 * Router calculator route delegates to existing Agent memory
 * Router RAG route delegates to existing Agent memory
+* `/agent/router-stream` calculator route SSE response
+* `/agent/router-stream` RAG route SSE response
+* `/agent/router-stream` chat route SSE response
 
 Current test organization:
 
@@ -1061,10 +1166,11 @@ tests/
 ├── test_stream.py
 ├── test_rag.py
 ├── test_router_agent.py
-└── test_router_delegation.py
+├── test_router_delegation.py
+└── test_router_stream.py
 ```
 
-Ollama provider, real LLM tool calling, and `/agent/llm-stream` are manually tested locally and are not covered by CI, because CI should not depend on a local Ollama service. The deterministic `/agent/stream`, `/rag/search`, deterministic RAG tool path, Router Agent path, and Router delegation memory path are covered by CI.
+Ollama provider, real LLM tool calling, and `/agent/llm-stream` are manually tested locally and are not covered by CI, because CI should not depend on a local Ollama service. The deterministic `/agent/stream`, `/rag/search`, deterministic RAG tool path, Router Agent path, Router delegation memory path, and Router stream path are covered by CI.
 
 ## CI
 
@@ -1153,8 +1259,8 @@ mv /tmp/agent_basics.md knowledge/agent_basics.md
 
 Next milestones:
 
-* Day15: Add LLM-based routing or richer RAG integration
-* Day16+: Add router streaming or prepare Router Agent as default entry point
+* Day16: Add LLM-based routing or richer RAG integration
+* Day17+: Prepare Router Agent as default entry point or add richer RAG integration
 * Later: Add vector database based RAG
 * Later: Add GraphRAG and Neo4j integration
 * Later: Add Multi-Agent Supervisor workflow

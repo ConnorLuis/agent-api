@@ -13,11 +13,11 @@ Project 2 has officially started and is now the main development line.
 Current `agent-api` status:
 
 ```text
-Day1-Day14 completed.
-Day14 completed: Router Agent delegation to existing Agent capabilities.
-Local pytest: 25 passed, 1 warning.
+Day1-Day15 completed.
+Day15 completed: Router Agent SSE streaming endpoint.
+Local pytest: 28 passed, 1 warning.
 GitHub Actions CI: green.
-Next: Day15 LLM-based routing or richer RAG integration.
+Next: Day16 LLM-based routing or richer RAG integration.
 ```
 
 ## Project Goal
@@ -89,6 +89,7 @@ Current:
 - Local Markdown knowledge base
 - Deterministic Router Agent
 - Router delegation to existing deterministic Agent graph
+- Router Agent SSE streaming endpoint
 - pytest
 - GitHub Actions CI
 
@@ -132,7 +133,8 @@ agent-api/
 │   ├── DAY11.md
 │   ├── DAY12.md
 │   ├── DAY13.md
-│   └── DAY14.md
+│   ├── DAY14.md
+│   └── DAY15.md
 ├── knowledge/
 │   └── agent_basics.md
 ├── data/
@@ -165,6 +167,7 @@ agent-api/
 │       └── agent/
 │           ├── graph.py
 │           ├── router_graph.py
+│           ├── router_streaming.py
 │           ├── streaming.py
 │           ├── llm_graph.py
 │           ├── llm_nodes.py
@@ -183,7 +186,8 @@ agent-api/
     ├── test_stream.py
     ├── test_rag.py
     ├── test_router_agent.py
-    └── test_router_delegation.py
+    ├── test_router_delegation.py
+    └── test_router_stream.py
 ```
 
 ---
@@ -303,6 +307,7 @@ POST /rag/search
 ```text
 POST /agent/router-chat
 POST /agent/router-debug
+POST /agent/router-stream
 ```
 
 Routes:
@@ -737,6 +742,57 @@ New Day14 test file:
 
 ```text
 tests/test_router_delegation.py
+```
+
+---
+
+## Current Router Streaming Strategy
+
+Day15 added SSE streaming for the deterministic Router Agent.
+
+Current Router streaming file:
+
+```text
+src/app/agent/router_streaming.py
+```
+
+Current Router streaming endpoint:
+
+```text
+POST /agent/router-stream
+```
+
+Current event sequence:
+
+```text
+metadata
+route
+answer_chunk
+final
+done
+```
+
+Supported routes:
+
+```text
+calculator
+rag
+chat
+```
+
+Important:
+
+```text
+/agent/router-stream is deterministic and CI-safe.
+It reuses invoke_router_agent().
+answer_chunk currently emits the complete answer as one chunk.
+The event contract prepares the project for future token-level LLM streaming.
+```
+
+New Day15 test file:
+
+```text
+tests/test_router_stream.py
 ```
 
 ---
@@ -1316,7 +1372,7 @@ Observed tool call:
 ### Test Result
 
 ```text
-25 passed, 1 warning
+28 passed, 1 warning
 ```
 
 ### CI Result
@@ -1375,7 +1431,7 @@ POST /agent/router-debug
 ### Test Result
 
 ```text
-25 passed, 1 warning
+28 passed, 1 warning
 ```
 
 ### CI Result
@@ -1444,7 +1500,7 @@ Response:
 ### Test Result
 
 ```text
-25 passed, 1 warning
+28 passed, 1 warning
 ```
 
 ### CI Result
@@ -1458,6 +1514,70 @@ GitHub Actions CI: green
 Day14 proves that Router Agent can reuse existing Agent capabilities instead of duplicating calculator and RAG logic.
 
 This makes Router Agent closer to a future unified entry point.
+
+---
+
+## Day15 - Router Agent SSE Streaming
+
+### Completed
+
+- Added `src/app/agent/router_streaming.py`
+- Added `stream_router_agent_events()`
+- Added `/agent/router-stream`
+- Reused existing `invoke_router_agent()`
+- Added SSE event sequence: `metadata -> route -> answer_chunk -> final -> done`
+- Verified calculator route streaming
+- Verified RAG route streaming
+- Verified chat route streaming
+- Fixed early stream event naming from `final_answer` to `answer_chunk`
+- Fixed stream completion so `final` and `done` are emitted
+- Added `tests/test_router_stream.py`
+- Expanded pytest from 25 tests to 28 tests
+- Verified local pytest
+- Verified GitHub Actions CI
+
+### New Endpoint
+
+```text
+POST /agent/router-stream
+```
+
+### New Files
+
+```text
+src/app/agent/router_streaming.py
+tests/test_router_stream.py
+```
+
+### Verified Event Sequence
+
+```text
+metadata -> route -> answer_chunk -> final -> done
+```
+
+### Test Result
+
+```text
+28 passed, 1 warning
+```
+
+### CI Result
+
+```text
+GitHub Actions CI: green
+```
+
+### Notes
+
+Day15 gives the Router Agent a complete API surface:
+
+```text
+/agent/router-chat
+/agent/router-debug
+/agent/router-stream
+```
+
+The stream currently emits the full answer as a single `answer_chunk`, because the deterministic Router does not generate token-level output.
 
 ---
 
@@ -1517,7 +1637,7 @@ Agent response
 Local pytest currently shows:
 
 ```text
-25 passed, 1 warning
+28 passed, 1 warning
 ```
 
 The warning is:
@@ -1565,8 +1685,8 @@ It has a typo: `langraph` should be `langgraph`. This does not affect code and d
 Recommended next route:
 
 ```text
-Day15: LLM-based routing or richer RAG integration
-Day16+: Router streaming or default Router entry point
+Day16: LLM-based routing or richer RAG integration
+Day17+: Router default entry point or richer RAG integration
 Later: vector DB based RAG
 Later: GraphRAG + Neo4j + Multi-Agent Supervisor
 ```
@@ -1628,7 +1748,14 @@ Completed:
 - [x] Day14 Router-triggered calculation can be recalled by `/agent/chat`
 - [x] Day14 Router delegation tests
 - [x] Day14 GitHub Actions CI
+- [x] Day15 Router streaming endpoint
+- [x] Day15 `/agent/router-stream`
+- [x] Day15 Router stream calculator route
+- [x] Day15 Router stream RAG route
+- [x] Day15 Router stream chat route
+- [x] Day15 Router stream tests
+- [x] Day15 GitHub Actions CI
 
 Next:
 
-- [ ] Day15 LLM-based routing or richer RAG integration
+- [ ] Day16 LLM-based routing or richer RAG integration
