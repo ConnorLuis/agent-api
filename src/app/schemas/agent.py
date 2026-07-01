@@ -54,3 +54,17 @@ class AgentRouterDebugResponse(BaseModel):
     final_answer: str
     messages_count: int
     trace_id: str | None = None
+
+
+class AgentLLMRouterChatRequest(AgentChatRequest):
+    router_provider: str = "mock"
+
+
+class AgentLLMRouterChatResponse(AgentChatResponse):
+    answer: str
+    route: str
+    route_reason: str
+    router_provider: str
+    router_model: str
+    thread_id: str | None = None
+    trace_id: str | None = None

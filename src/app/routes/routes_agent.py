@@ -4,6 +4,7 @@ from fastapi.responses import StreamingResponse
 from src.app.agent.graph import debug_agent, invoke_agent
 from src.app.agent.router_graph import debug_router_agent, invoke_router_agent
 from src.app.agent.llm_graph import debug_llm_agent, invoke_llm_agent
+from src.app.agent.llm_router import invoke_llm_router_agent
 from src.app.agent.streaming import stream_agent_events, stream_llm_agent_events
 from src.app.core.config import get_settings
 from src.app.agent.router_streaming import stream_router_agent_events
@@ -12,7 +13,8 @@ from src.app.schemas.agent import (
     AgentChatRequest,
     AgentChatResponse,
     AgentDebugResponse,
-    AgentLLMChatResponse, AgentRouterChatResponse, AgentRouterDebugResponse,
+    AgentLLMChatResponse, AgentRouterChatResponse, AgentRouterDebugResponse, AgentLLMRouterChatResponse,
+    AgentLLMRouterChatRequest,
 )
 
 router = APIRouter()
@@ -137,4 +139,20 @@ def agent_router_stream(request: AgentChatRequest) -> StreamingResponse:
             trace_id=get_trace_id(),
         ),
         media_type="text/event-stream",
+    )
+
+
+@router.post("/llm-router-chat", response_model=AgentLLMRouterChatResponse)
+def agent_llm_router_chat(
+    request: AgentLLMRouterChatRequest,
+) -> AgentLLMRouterChatResponse:
+    result = invoke_llm_router_agent(
+        message=request.message,
+        thread_id=request.thread_id,
+        router_provider=request.router_provider,
+    )
+
+    return AgentLLMRouterChatResponse(
+        **result,
+        trace_id=get_trace_id(),
     )
