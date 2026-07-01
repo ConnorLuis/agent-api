@@ -13,11 +13,11 @@ Project 2 has officially started and is now the main development line.
 Current `agent-api` status:
 
 ```text
-Day1-Day13 completed.
-Day13 completed: deterministic Router Agent.
-Local pytest: 23 passed, 1 warning.
+Day1-Day14 completed.
+Day14 completed: Router Agent delegation to existing Agent capabilities.
+Local pytest: 25 passed, 1 warning.
 GitHub Actions CI: green.
-Next: Day14 connect Router Agent with existing Agent capabilities.
+Next: Day15 LLM-based routing or richer RAG integration.
 ```
 
 ## Project Goal
@@ -88,6 +88,7 @@ Current:
 - Lightweight keyword-based RAG retriever
 - Local Markdown knowledge base
 - Deterministic Router Agent
+- Router delegation to existing deterministic Agent graph
 - pytest
 - GitHub Actions CI
 
@@ -130,7 +131,8 @@ agent-api/
 │   ├── DAY10.md
 │   ├── DAY11.md
 │   ├── DAY12.md
-│   └── DAY13.md
+│   ├── DAY13.md
+│   └── DAY14.md
 ├── knowledge/
 │   └── agent_basics.md
 ├── data/
@@ -180,7 +182,8 @@ agent-api/
     ├── test_llm.py
     ├── test_stream.py
     ├── test_rag.py
-    └── test_router_agent.py
+    ├── test_router_agent.py
+    └── test_router_delegation.py
 ```
 
 ---
@@ -685,7 +688,55 @@ Important:
 Router Agent is deterministic and CI-safe.
 It does not depend on Ollama.
 It does not replace /agent/chat yet.
-It prepares the project for Day14+ integration with existing Agent capabilities.
+Day14 connects `calculator` and `rag` routes to the existing deterministic Agent graph through `invoke_agent()`, so the Router now reuses existing tools and SQLite short-term memory for delegated routes.
+```
+
+---
+
+## Current Router Delegation Strategy
+
+Day14 upgraded the Router Agent from simple branch handling to delegation.
+
+Current behavior:
+
+```text
+calculator route
+  ↓
+invoke_agent()
+  ↓
+existing add / multiply tools
+  ↓
+existing SQLite short-term memory
+```
+
+```text
+rag route
+  ↓
+invoke_agent()
+  ↓
+existing search_knowledge_base tool
+  ↓
+existing SQLite short-term memory
+```
+
+```text
+chat route
+  ↓
+Router chat response
+```
+
+Important:
+
+```text
+Router calculator and RAG routes now share the same thread_id with invoke_agent().
+This means Router-triggered tool calls can be remembered by /agent/chat.
+Router does not duplicate calculator or RAG implementation logic anymore.
+```
+
+New Day14 test file:
+
+```text
+tests/test_router_delegation.py
 ```
 
 ---
@@ -1265,7 +1316,7 @@ Observed tool call:
 ### Test Result
 
 ```text
-23 passed, 1 warning
+25 passed, 1 warning
 ```
 
 ### CI Result
@@ -1324,7 +1375,7 @@ POST /agent/router-debug
 ### Test Result
 
 ```text
-23 passed, 1 warning
+25 passed, 1 warning
 ```
 
 ### CI Result
@@ -1332,6 +1383,81 @@ POST /agent/router-debug
 ```text
 GitHub Actions CI: green
 ```
+
+---
+
+## Day14 - Router Agent Delegation
+
+### Completed
+
+- Updated `src/app/agent/router_graph.py`
+- Added delegation helper for Router branches
+- Changed `calculator_node` to call existing `invoke_agent()`
+- Changed `rag_node` to call existing `invoke_agent()`
+- Kept `chat_node` deterministic and local to the Router Agent
+- Preserved same `thread_id` when delegating to `invoke_agent()`
+- Verified Router calculator route still returns `工具 `multiply` 执行结果：36`
+- Verified Router RAG route still returns `根据知识库检索结果：`
+- Verified Router calculator route writes into existing Agent memory
+- Verified `/agent/chat` can recall a Router-triggered calculation with the same `thread_id`
+- Added `tests/test_router_delegation.py`
+- Expanded pytest from 23 tests to 25 tests
+- Verified local pytest
+- Verified GitHub Actions CI
+
+### New Test File
+
+```text
+tests/test_router_delegation.py
+```
+
+### Verified Memory Delegation
+
+Router call:
+
+```text
+POST /agent/router-chat
+message: 请计算 4 乘 9
+thread_id: day14-router-memory-001
+```
+
+Response:
+
+```text
+工具 `multiply` 执行结果：36
+```
+
+Follow-up normal Agent call:
+
+```text
+POST /agent/chat
+message: 我刚才计算了什么？
+thread_id: day14-router-memory-001
+```
+
+Response:
+
+```text
+我记得上一轮工具 `multiply` 的执行结果是：36
+```
+
+### Test Result
+
+```text
+25 passed, 1 warning
+```
+
+### CI Result
+
+```text
+GitHub Actions CI: green
+```
+
+### Notes
+
+Day14 proves that Router Agent can reuse existing Agent capabilities instead of duplicating calculator and RAG logic.
+
+This makes Router Agent closer to a future unified entry point.
 
 ---
 
@@ -1391,7 +1517,7 @@ Agent response
 Local pytest currently shows:
 
 ```text
-23 passed, 1 warning
+25 passed, 1 warning
 ```
 
 The warning is:
@@ -1439,8 +1565,8 @@ It has a typo: `langraph` should be `langgraph`. This does not affect code and d
 Recommended next route:
 
 ```text
-Day14: Connect Router Agent with existing Agent capabilities
-Day15+: LLM-based routing or richer RAG integration
+Day15: LLM-based routing or richer RAG integration
+Day16+: Router streaming or default Router entry point
 Later: vector DB based RAG
 Later: GraphRAG + Neo4j + Multi-Agent Supervisor
 ```
@@ -1496,7 +1622,13 @@ Completed:
 - [x] Day13 chat route
 - [x] Day13 Router Agent tests
 - [x] Day13 GitHub Actions CI
+- [x] Day14 Router delegation
+- [x] Day14 calculator route delegates to existing Agent
+- [x] Day14 RAG route delegates to existing Agent
+- [x] Day14 Router-triggered calculation can be recalled by `/agent/chat`
+- [x] Day14 Router delegation tests
+- [x] Day14 GitHub Actions CI
 
 Next:
 
-- [ ] Day14 connect Router Agent with existing Agent capabilities
+- [ ] Day15 LLM-based routing or richer RAG integration

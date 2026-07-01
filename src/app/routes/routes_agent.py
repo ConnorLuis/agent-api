@@ -6,6 +6,7 @@ from src.app.agent.router_graph import debug_router_agent, invoke_router_agent
 from src.app.agent.llm_graph import debug_llm_agent, invoke_llm_agent
 from src.app.agent.streaming import stream_agent_events, stream_llm_agent_events
 from src.app.core.config import get_settings
+from src.app.agent.router_streaming import stream_router_agent_events
 from src.app.core.request_context import get_trace_id
 from src.app.schemas.agent import (
     AgentChatRequest,
@@ -124,4 +125,16 @@ def agent_router_debug(request: AgentChatRequest) -> AgentRouterDebugResponse:
     return AgentRouterDebugResponse(
         **result,
         trace_id=get_trace_id(),
+    )
+
+
+@router.post("/router-stream")
+def agent_router_stream(request: AgentChatRequest) -> StreamingResponse:
+    return StreamingResponse(
+        stream_router_agent_events(
+            message=request.message,
+            thread_id=request.thread_id,
+            trace_id=get_trace_id(),
+        ),
+        media_type="text/event-stream",
     )

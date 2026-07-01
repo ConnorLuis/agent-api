@@ -2,16 +2,16 @@
 
 `agent-api` is a FastAPI + LangGraph backend project for building an Agent service step by step.
 
-This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent, SQLite-based short-term memory, graph debug output, request tracing, LLM provider abstraction, a real Ollama-backed LLM Tool Calling Agent path, SSE streaming endpoints, a lightweight local RAG search tool, and a deterministic Router Agent.
+This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent, SQLite-based short-term memory, graph debug output, request tracing, LLM provider abstraction, a real Ollama-backed LLM Tool Calling Agent path, SSE streaming endpoints, a lightweight local RAG search tool, and a deterministic Router Agent that delegates calculator and RAG routes to the existing Agent graph.
 
 ## Current Status
 
 ```text
-Day1-Day13 completed.
-Current stage: deterministic Router Agent completed.
-Local pytest: 23 passed, 1 warning.
+Day1-Day14 completed.
+Current stage: Router Agent delegation completed.
+Local pytest: 25 passed, 1 warning.
 GitHub Actions CI: green.
-Next milestone: Day14 connect Router Agent with existing Agent capabilities.
+Next milestone: Day15 LLM-based routing or richer RAG integration.
 ```
 
 ## Features
@@ -42,6 +42,8 @@ Current features:
 * UTF-8 encoded knowledge base files for CI compatibility
 * Deterministic Router Agent route classification
 * Router branches: `calculator`, `rag`, and `chat`
+* Router `calculator` and `rag` routes delegated to existing deterministic Agent graph
+* Router delegation shares `thread_id` with Agent memory
 * SQLite checkpoint-based short-term memory
 * `thread_id` based conversation state
 * Request logging middleware
@@ -118,7 +120,8 @@ agent-api/
 │   ├── DAY10.md
 │   ├── DAY11.md
 │   ├── DAY12.md
-│   └── DAY13.md
+│   ├── DAY13.md
+│   └── DAY14.md
 ├── knowledge/
 │   └── agent_basics.md
 ├── data/
@@ -168,7 +171,8 @@ agent-api/
     ├── test_llm.py
     ├── test_stream.py
     ├── test_rag.py
-    └── test_router_agent.py
+    ├── test_router_agent.py
+    └── test_router_delegation.py
 ```
 
 ## Current Agent Graphs
@@ -388,7 +392,42 @@ POST /agent/router-debug
 router -> rag
 ```
 
-Day13 intentionally uses deterministic rule-based routing instead of an LLM router. This keeps CI stable and prepares the project for later LLM-based routing.
+Day13 introduced deterministic rule-based routing. Day14 keeps that routing layer but delegates `calculator` and `rag` execution to the existing deterministic Agent graph through `invoke_agent()`. This reuses the existing tools, graph behavior, and SQLite short-term memory instead of duplicating logic inside the router.
+
+## Current Router Delegation Architecture
+
+Day14 connects the Router Agent to existing Agent capabilities.
+
+```text
+/agent/router-chat
+  ↓
+router_agent_graph
+  ↓
+router
+  ├── calculator -> invoke_agent() -> add / multiply tool
+  ├── rag        -> invoke_agent() -> search_knowledge_base tool
+  └── chat       -> Router chat response
+```
+
+The important Day14 behavior is that delegated routes reuse the same `thread_id` when calling `invoke_agent()`.
+
+This means a Router call can write to the existing Agent short-term memory, and a later `/agent/chat` request with the same `thread_id` can recall that interaction.
+
+Example:
+
+```text
+/agent/router-chat: 请计算 4 乘 9
+  ↓
+calculator route
+  ↓
+invoke_agent(thread_id=same_thread_id)
+  ↓
+ToolMessage(name=multiply, content=36)
+  ↓
+/agent/chat: 我刚才计算了什么？
+  ↓
+我记得上一轮工具 `multiply` 的执行结果是：36
+```
 
 ## Request Tracing
 
@@ -921,6 +960,51 @@ Expected response includes:
 }
 ```
 
+### Router Delegation Memory Check
+
+Day14 verifies that Router delegated routes use the existing Agent graph and memory.
+
+First call the Router Agent calculator route:
+
+```bash
+curl -s -X POST http://localhost:8000/agent/router-chat \
+  -H "Content-Type: application/json" \
+  -H "x-trace-id: day14-router-memory-001" \
+  -d '{"message":"请计算 4 乘 9","thread_id":"day14-router-memory-001"}' \
+  | python -m json.tool --no-ensure-ascii
+```
+
+Expected response:
+
+```json
+{
+  "answer": "工具 `multiply` 执行结果：36",
+  "route": "calculator",
+  "thread_id": "day14-router-memory-001",
+  "trace_id": "day14-router-memory-001"
+}
+```
+
+Then ask the existing deterministic Agent route with the same `thread_id`:
+
+```bash
+curl -s -X POST http://localhost:8000/agent/chat \
+  -H "Content-Type: application/json" \
+  -H "x-trace-id: day14-router-memory-002" \
+  -d '{"message":"我刚才计算了什么？","thread_id":"day14-router-memory-001"}' \
+  | python -m json.tool --no-ensure-ascii
+```
+
+Expected response:
+
+```json
+{
+  "answer": "我记得上一轮工具 `multiply` 的执行结果是：36",
+  "thread_id": "day14-router-memory-001",
+  "trace_id": "day14-router-memory-002"
+}
+```
+
 ## Tests
 
 Run tests:
@@ -932,7 +1016,7 @@ pytest -q
 Current result:
 
 ```text
-23 passed, 1 warning
+25 passed, 1 warning
 ```
 
 Current test coverage includes:
@@ -960,6 +1044,8 @@ Current test coverage includes:
 * `/agent/router-chat` RAG route
 * `/agent/router-chat` chat route
 * `/agent/router-debug` RAG route path
+* Router calculator route delegates to existing Agent memory
+* Router RAG route delegates to existing Agent memory
 
 Current test organization:
 
@@ -974,10 +1060,11 @@ tests/
 ├── test_llm.py
 ├── test_stream.py
 ├── test_rag.py
-└── test_router_agent.py
+├── test_router_agent.py
+└── test_router_delegation.py
 ```
 
-Ollama provider, real LLM tool calling, and `/agent/llm-stream` are manually tested locally and are not covered by CI, because CI should not depend on a local Ollama service. The deterministic `/agent/stream`, `/rag/search`, deterministic RAG tool path, and Router Agent path are covered by CI.
+Ollama provider, real LLM tool calling, and `/agent/llm-stream` are manually tested locally and are not covered by CI, because CI should not depend on a local Ollama service. The deterministic `/agent/stream`, `/rag/search`, deterministic RAG tool path, Router Agent path, and Router delegation memory path are covered by CI.
 
 ## CI
 
@@ -1066,8 +1153,8 @@ mv /tmp/agent_basics.md knowledge/agent_basics.md
 
 Next milestones:
 
-* Day14: Connect Router Agent with existing Agent capabilities
-* Day15+: Add LLM-based routing or richer RAG integration
+* Day15: Add LLM-based routing or richer RAG integration
+* Day16+: Add router streaming or prepare Router Agent as default entry point
 * Later: Add vector database based RAG
 * Later: Add GraphRAG and Neo4j integration
 * Later: Add Multi-Agent Supervisor workflow
