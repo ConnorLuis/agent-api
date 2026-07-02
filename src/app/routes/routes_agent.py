@@ -6,6 +6,7 @@ from src.app.agent.router_graph import debug_router_agent, invoke_router_agent
 from src.app.agent.llm_graph import debug_llm_agent, invoke_llm_agent
 from src.app.agent.llm_router import invoke_llm_router_agent
 from src.app.agent.smart_router import invoke_smart_agent
+from src.app.agent.smart_streaming import stream_smart_agent_events
 from src.app.agent.streaming import stream_agent_events, stream_llm_agent_events
 from src.app.core.config import get_settings
 from src.app.agent.router_streaming import stream_router_agent_events
@@ -173,4 +174,18 @@ def agent_smart_chat(
     return AgentSmartChatResponse(
         **result,
         trace_id=get_trace_id(),
+    )
+
+
+@router.post("/smart-stream")
+def agent_smart_stream(request: AgentSmartChatRequest) -> StreamingResponse:
+    return StreamingResponse(
+        stream_smart_agent_events(
+            message=request.message,
+            thread_id=request.thread_id,
+            router_mode=request.router_mode,
+            router_provider=request.router_provider,
+            trace_id=get_trace_id(),
+        ),
+        media_type="text/event-stream",
     )
