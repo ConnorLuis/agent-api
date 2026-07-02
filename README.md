@@ -2,16 +2,16 @@
 
 `agent-api` is a FastAPI + LangGraph backend project for building an Agent service step by step.
 
-This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent, SQLite-based short-term memory, graph debug output, request tracing, LLM provider abstraction, a real Ollama-backed LLM Tool Calling Agent path, SSE streaming endpoints, a lightweight local RAG search tool, a RAG search-debug endpoint with explainability metadata, a deterministic Router Agent that delegates calculator and RAG routes to the existing Agent graph, a Router Agent SSE streaming endpoint, an initial LLM Router Agent endpoint with mock and Ollama router providers, a Smart Chat endpoint as a future unified Agent entry point preview, and a Smart Chat SSE streaming endpoint.
+This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent, SQLite-based short-term memory, graph debug output, request tracing, LLM provider abstraction, a real Ollama-backed LLM Tool Calling Agent path, SSE streaming endpoints, a lightweight local RAG search tool, a RAG search-debug endpoint with explainability metadata, a deterministic Router Agent that delegates calculator and RAG routes to the existing Agent graph, a Router Agent SSE streaming endpoint, an initial LLM Router Agent endpoint with mock and Ollama router providers, a Smart Chat endpoint as a future unified Agent entry point preview, a Smart Chat SSE streaming endpoint, and route validation metadata for Router and Smart Chat paths.
 
 ## Current Status
 
 ```text
-Day1-Day19 completed.
-Current stage: Smart Chat SSE streaming completed.
-Local pytest: 40 passed, 1 warning.
+Day1-Day20 completed.
+Current stage: Route validation metadata completed.
+Local pytest: 45 passed, 1 warning.
 GitHub Actions CI: green.
-Next milestone: Day20 route confidence / validation fallback or vector DB preparation.
+Next milestone: Day21 vector DB preparation or richer route evaluation tests.
 ```
 
 ## Features
@@ -57,6 +57,8 @@ Current features:
 * Smart Chat unified response metadata: `route`, `route_reason`, `router_mode`, `router_provider`, and `router_model`
 * Smart Stream SSE events: `metadata`, `route`, `answer_chunk`, `final`, `done`
 * Smart Stream SSE payload metadata: `route_reason`, `router_mode`, `router_provider`, and `router_model`
+* Route validation metadata: `route_confidence`, `route_valid`, `fallback_used`, and `validation_reason`
+* Invalid route fallback support through `validate_route_decision()`
 * SQLite checkpoint-based short-term memory
 * `thread_id` based conversation state
 * Request logging middleware
@@ -105,6 +107,7 @@ Not implemented yet:
 * Deterministic Router Agent
 * Initial LLM Router Agent
 * Smart Chat unified entry point preview
+* Route validation metadata layer
 * pytest
 * GitHub Actions
 * Server-Sent Events
@@ -141,7 +144,8 @@ agent-api/
 │   ├── DAY16.md
 │   ├── DAY17.md
 │   ├── DAY18.md
-│   └── DAY19.md
+│   ├── DAY19.md
+│   └── DAY20.md
 ├── knowledge/
 │   └── agent_basics.md
 ├── data/
@@ -180,6 +184,7 @@ agent-api/
 │           ├── llm_router.py
 │           ├── smart_router.py
 │           ├── smart_streaming.py
+│           ├── route_validation.py
 │           ├── llm_graph.py
 │           ├── llm_nodes.py
 │           ├── state.py
@@ -675,6 +680,53 @@ trace_id
 ```
 
 Current `answer_chunk` is still a single full-answer chunk because the deterministic and mock router paths are not token-level generators.
+
+## Current Route Validation Architecture
+
+Day20 added a route validation layer for Router and Smart Chat paths.
+
+```text
+route decision
+  ↓
+validate_route_decision()
+  ↓
+validated route + validation metadata
+  ↓
+selected route execution
+```
+
+Current validation file:
+
+```text
+src/app/agent/route_validation.py
+```
+
+Returned validation metadata:
+
+```text
+route_confidence
+route_valid
+fallback_used
+validation_reason
+```
+
+Current confidence strategy:
+
+```text
+deterministic -> 1.0
+mock          -> 1.0
+ollama        -> 0.85
+unknown       -> 0.5
+invalid route -> 0.0 and fallback to chat
+```
+
+Day20 applies this metadata to:
+
+```text
+POST /agent/llm-router-chat
+POST /agent/smart-chat
+POST /agent/smart-stream
+```
 
 ## Request Tracing
 
@@ -1613,6 +1665,33 @@ Expected content:
 
 Ollama Smart Stream can be manually verified locally with `router_provider="ollama"`.
 
+### Route Validation Metadata
+
+Day20 adds route validation metadata to Router and Smart Chat responses.
+
+LLM Router validation example:
+
+```bash
+curl -s -X POST http://localhost:8000/agent/llm-router-chat \
+  -H "Content-Type: application/json" \
+  -H "x-trace-id: day20-llm-router-validation-001" \
+  -d '{"message":"请计算 3 加 5","thread_id":"day20-llm-router-validation-001","router_provider":"mock"}' \
+  | python -m json.tool --no-ensure-ascii
+```
+
+Expected response includes:
+
+```json
+{
+  "route_confidence": 1.0,
+  "route_valid": true,
+  "fallback_used": false,
+  "validation_reason": "Route is valid."
+}
+```
+
+Smart Stream validation payload should include the same metadata in `route` and `final` SSE events.
+
 ## Tests
 
 Run tests:
@@ -1624,7 +1703,7 @@ pytest -q
 Current result:
 
 ```text
-40 passed, 1 warning
+45 passed, 1 warning
 ```
 
 Current test coverage includes:
@@ -1667,6 +1746,11 @@ Current test coverage includes:
 * `/agent/smart-stream` deterministic calculator route SSE response
 * `/agent/smart-stream` LLM mock RAG route SSE response
 * `/agent/smart-stream` LLM mock chat route SSE response
+* `validate_route_decision()` valid route behavior
+* `validate_route_decision()` invalid route fallback behavior
+* `/agent/llm-router-chat` route validation metadata
+* `/agent/smart-chat` route validation metadata
+* `/agent/smart-stream` route validation metadata
 * `/rag/search-debug` explainable RAG result fields
 * `/rag/search-debug` `k` limit behavior
 * `/rag/search-debug` matched terms for LangGraph query
@@ -1690,10 +1774,11 @@ tests/
 ├── test_router_stream.py
 ├── test_llm_router.py
 ├── test_smart_chat.py
-└── test_smart_stream.py
+├── test_smart_stream.py
+└── test_route_validation.py
 ```
 
-Ollama provider, real LLM tool calling, `/agent/llm-stream`, `/agent/llm-router-chat` with `router_provider="ollama"`, `/agent/smart-chat` with `router_provider="ollama"`, and `/agent/smart-stream` with `router_provider="ollama"` are manually tested locally and are not covered by CI, because CI should not depend on a local Ollama service. The deterministic `/agent/stream`, `/rag/search`, `/rag/search-debug`, deterministic RAG tool path, Router Agent path, Router delegation memory path, Router stream path, `/agent/llm-router-chat` mock path, `/agent/smart-chat` deterministic/mock paths, and `/agent/smart-stream` deterministic/mock paths are covered by CI.
+Ollama provider, real LLM tool calling, `/agent/llm-stream`, `/agent/llm-router-chat` with `router_provider="ollama"`, `/agent/smart-chat` with `router_provider="ollama"`, and `/agent/smart-stream` with `router_provider="ollama"` are manually tested locally and are not covered by CI, because CI should not depend on a local Ollama service. The deterministic `/agent/stream`, `/rag/search`, `/rag/search-debug`, deterministic RAG tool path, Router Agent path, Router delegation memory path, Router stream path, `/agent/llm-router-chat` mock path, `/agent/smart-chat` deterministic/mock paths, `/agent/smart-stream` deterministic/mock paths, and route validation paths are covered by CI.
 
 ## CI
 
@@ -1782,8 +1867,8 @@ mv /tmp/agent_basics.md knowledge/agent_basics.md
 
 Next milestones:
 
-* Day20: Add route confidence / validation fallback or vector DB preparation
-* Day21+: Prepare vector database based RAG
+* Day21: Prepare vector database based RAG or add richer route decision evaluation tests
+* Day22+: Add embedding-based retrieval
 * Later: Add vector database based RAG
 * Later: Add GraphRAG and Neo4j integration
 * Later: Add Multi-Agent Supervisor workflow

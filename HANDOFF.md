@@ -13,11 +13,11 @@ Project 2 has officially started and is now the main development line.
 Current `agent-api` status:
 
 ```text
-Day1-Day19 completed.
-Day19 completed: Smart Chat SSE streaming endpoint.
-Local pytest: 40 passed, 1 warning.
+Day1-Day20 completed.
+Day20 completed: route validation metadata and fallback support.
+Local pytest: 45 passed, 1 warning.
 GitHub Actions CI: green.
-Next: Day20 route confidence / validation fallback or vector DB preparation.
+Next: Day21 vector DB preparation or richer route evaluation tests.
 ```
 
 ## Project Goal
@@ -97,6 +97,8 @@ Current:
 - Ollama LLM Router for local manual routing
 - Smart Chat unified entry point preview
 - Smart Chat SSE streaming endpoint
+- Route validation metadata layer
+- Route fallback support
 - pytest
 - GitHub Actions CI
 
@@ -145,7 +147,8 @@ agent-api/
 │   ├── DAY16.md
 │   ├── DAY17.md
 │   ├── DAY18.md
-│   └── DAY19.md
+│   ├── DAY19.md
+│   └── DAY20.md
 ├── knowledge/
 │   └── agent_basics.md
 ├── data/
@@ -184,6 +187,7 @@ agent-api/
 │           ├── llm_router.py
 │           ├── smart_router.py
 │           ├── smart_streaming.py
+│           ├── route_validation.py
 │           ├── llm_graph.py
 │           ├── llm_nodes.py
 │           ├── state.py
@@ -206,7 +210,8 @@ agent-api/
     ├── test_router_stream.py
     ├── test_llm_router.py
     ├── test_smart_chat.py
-    └── test_smart_stream.py
+    ├── test_smart_stream.py
+    └── test_route_validation.py
 ```
 
 ---
@@ -1066,6 +1071,63 @@ tests/test_smart_stream.py
 
 ---
 
+## Current Route Validation Strategy
+
+Day20 added route validation metadata and fallback support.
+
+Current route validation file:
+
+```text
+src/app/agent/route_validation.py
+```
+
+Current route validation function:
+
+```text
+validate_route_decision()
+```
+
+Returned metadata:
+
+```text
+route_confidence
+route_valid
+fallback_used
+validation_reason
+```
+
+Confidence strategy:
+
+```text
+deterministic -> 1.0
+mock          -> 1.0
+ollama        -> 0.85
+unknown       -> 0.5
+invalid route -> 0.0
+```
+
+Fallback behavior:
+
+```text
+invalid route -> fallback to chat
+```
+
+Applied endpoints:
+
+```text
+POST /agent/llm-router-chat
+POST /agent/smart-chat
+POST /agent/smart-stream
+```
+
+New Day20 test file:
+
+```text
+tests/test_route_validation.py
+```
+
+---
+
 ## Day1 - Project Initialization
 
 ### Completed
@@ -1641,7 +1703,7 @@ Observed tool call:
 ### Test Result
 
 ```text
-40 passed, 1 warning
+45 passed, 1 warning
 ```
 
 ### CI Result
@@ -1700,7 +1762,7 @@ POST /agent/router-debug
 ### Test Result
 
 ```text
-40 passed, 1 warning
+45 passed, 1 warning
 ```
 
 ### CI Result
@@ -1769,7 +1831,7 @@ Response:
 ### Test Result
 
 ```text
-40 passed, 1 warning
+45 passed, 1 warning
 ```
 
 ### CI Result
@@ -1827,7 +1889,7 @@ metadata -> route -> answer_chunk -> final -> done
 ### Test Result
 
 ```text
-40 passed, 1 warning
+45 passed, 1 warning
 ```
 
 ### CI Result
@@ -1889,7 +1951,7 @@ tests/test_llm_router.py
 ### Test Result
 
 ```text
-40 passed, 1 warning
+45 passed, 1 warning
 ```
 
 ### CI Result
@@ -1950,7 +2012,7 @@ tests/test_smart_chat.py
 ### Test Result
 
 ```text
-40 passed, 1 warning
+45 passed, 1 warning
 ```
 
 ### CI Result
@@ -2016,7 +2078,7 @@ tests/test_rag_debug.py
 ### Test Result
 
 ```text
-40 passed, 1 warning
+45 passed, 1 warning
 ```
 
 ### CI Result
@@ -2069,7 +2131,7 @@ tests/test_smart_stream.py
 ### Test Result
 
 ```text
-40 passed, 1 warning
+45 passed, 1 warning
 ```
 
 ### CI Result
@@ -2083,6 +2145,59 @@ GitHub Actions CI: green
 Day19 adds streaming capability to the Smart Chat unified entry point preview.
 
 The current stream emits the full answer as one `answer_chunk`, leaving room for token-level streaming later.
+
+---
+
+## Day20 - Route Validation Metadata / Fallback Support
+
+### Completed
+
+- Added `src/app/agent/route_validation.py`
+- Added `RouteValidationResult`
+- Added `validate_route_decision()`
+- Added invalid route fallback to `chat`
+- Added `route_confidence`, `route_valid`, `fallback_used`, and `validation_reason`
+- Updated `/agent/llm-router-chat`
+- Updated `/agent/smart-chat`
+- Updated `/agent/smart-stream`
+- Added validation metadata to Smart Stream SSE payloads
+- Added `tests/test_route_validation.py`
+- Expanded pytest from 40 tests to 45 tests
+- Verified local pytest
+- Verified GitHub Actions CI
+
+### New Files
+
+```text
+src/app/agent/route_validation.py
+tests/test_route_validation.py
+```
+
+### Updated Endpoints
+
+```text
+POST /agent/llm-router-chat
+POST /agent/smart-chat
+POST /agent/smart-stream
+```
+
+### Test Result
+
+```text
+45 passed, 1 warning
+```
+
+### CI Result
+
+```text
+GitHub Actions CI: green
+```
+
+### Commit
+
+```text
+10e25aa add route validation metadata
+```
 
 ---
 
@@ -2142,7 +2257,7 @@ Agent response
 Local pytest currently shows:
 
 ```text
-40 passed, 1 warning
+45 passed, 1 warning
 ```
 
 The warning is:
@@ -2190,8 +2305,8 @@ It has a typo: `langraph` should be `langgraph`. This does not affect code and d
 Recommended next route:
 
 ```text
-Day20: route confidence / validation fallback or vector DB preparation
-Day21+: vector DB based RAG preparation
+Day21: vector DB preparation or richer route decision evaluation tests
+Day22+: embedding-based retrieval
 Later: vector DB based RAG
 Later: GraphRAG + Neo4j + Multi-Agent Supervisor
 ```
@@ -2290,7 +2405,15 @@ Completed:
 - [x] Day19 Ollama Smart Stream manual verification
 - [x] Day19 Smart Stream tests
 - [x] Day19 GitHub Actions CI
+- [x] Day20 route validation metadata
+- [x] Day20 `validate_route_decision()`
+- [x] Day20 invalid route fallback to chat
+- [x] Day20 `/agent/llm-router-chat` validation metadata
+- [x] Day20 `/agent/smart-chat` validation metadata
+- [x] Day20 `/agent/smart-stream` validation metadata
+- [x] Day20 route validation tests
+- [x] Day20 GitHub Actions CI
 
 Next:
 
-- [ ] Day20 route confidence / validation fallback or vector DB preparation
+- [ ] Day21 vector DB preparation or richer route decision evaluation tests
