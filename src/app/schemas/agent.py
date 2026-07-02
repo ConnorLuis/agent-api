@@ -68,6 +68,10 @@ class AgentLLMRouterChatResponse(AgentChatResponse):
     router_model: str
     thread_id: str | None = None
     trace_id: str | None = None
+    route_confidence: float = 1.0
+    route_valid: bool = True
+    fallback_used: bool = False
+    validation_reason: str | None = None
 
 
 class AgentSmartChatRequest(AgentChatRequest):
@@ -84,3 +88,7 @@ class AgentSmartChatResponse(BaseModel):
     router_model: str
     thread_id: str | None = None
     trace_id: str | None = None
+    route_confidence: float = 1.0
+    route_valid: bool = True
+    fallback_used: bool = False
+    validation_reason: str | None = None

@@ -7,6 +7,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 
 from src.app.agent.graph import invoke_agent
 from src.app.agent.router_graph import _classify_route
+from src.app.agent.route_validation import validate_route_decision
 from src.app.core.config import get_settings
 
 
@@ -160,6 +161,8 @@ def invoke_llm_router_agent(message: str, thread_id: str | None = None, router_p
 
     decision = classify_route_with_llm(message=message, router_provider=router_provider)
 
+    validation = validate_route_decision(route=decision.route, router_provider=decision.provider, fallback_route="chat")
+
     answer = _run_selected_route(message=message, thread_id=final_thread_id, route=decision.route)
 
     return {
@@ -168,5 +171,9 @@ def invoke_llm_router_agent(message: str, thread_id: str | None = None, router_p
         "route_reason": decision.reason,
         "router_provider": decision.provider,
         "router_model": decision.model,
+        "route_confidence": validation.route_confidence,
+        "route_valid": validation.route_valid,
+        "fallback_used": validation.fallback_used,
+        "validation_reason": validation.validation_reason,
         "thread_id": final_thread_id,
     }

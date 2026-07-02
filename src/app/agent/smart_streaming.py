@@ -26,6 +26,11 @@ def stream_smart_agent_events(
     final_router_model = result["router_model"]
     final_answer = result["answer"]
 
+    route_confidence = result.get("route_confidence", 1.0)
+    route_valid = result.get("route_valid", True)
+    fallback_used = result.get("fallback_used", False)
+    validation_reason = result.get("validation_reason", "Route is valid.")
+
     yield sse_event(
         event="metadata",
         data={
@@ -47,6 +52,10 @@ def stream_smart_agent_events(
             "router_model": final_router_model,
             "thread_id": final_thread_id,
             "trace_id": trace_id,
+            "route_confidence": route_confidence,
+            "route_valid": route_valid,
+            "fallback_used": fallback_used,
+            "validation_reason": validation_reason,
         },
     )
 
@@ -60,6 +69,9 @@ def stream_smart_agent_events(
             "router_model": final_router_model,
             "thread_id": final_thread_id,
             "trace_id": trace_id,
+            "route_confidence": route_confidence,
+            "route_valid": route_valid,
+            "fallback_used": fallback_used,
         },
     )
 
@@ -74,6 +86,10 @@ def stream_smart_agent_events(
             "router_model": final_router_model,
             "thread_id": final_thread_id,
             "trace_id": trace_id,
+            "route_confidence": route_confidence,
+            "route_valid": route_valid,
+            "fallback_used": fallback_used,
+            "validation_reason": validation_reason,
         },
     )
 
