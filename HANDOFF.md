@@ -13,11 +13,11 @@ Project 2 has officially started and is now the main development line.
 Current `agent-api` status:
 
 ```text
-Day1-Day18 completed.
-Day18 completed: RAG Search Debug and retrieval explainability endpoint.
-Local pytest: 37 passed, 1 warning.
+Day1-Day19 completed.
+Day19 completed: Smart Chat SSE streaming endpoint.
+Local pytest: 40 passed, 1 warning.
 GitHub Actions CI: green.
-Next: Day19 LLM Router streaming or route confidence / validation fallback.
+Next: Day20 route confidence / validation fallback or vector DB preparation.
 ```
 
 ## Project Goal
@@ -96,6 +96,7 @@ Current:
 - Mock LLM Router for CI-safe routing
 - Ollama LLM Router for local manual routing
 - Smart Chat unified entry point preview
+- Smart Chat SSE streaming endpoint
 - pytest
 - GitHub Actions CI
 
@@ -143,7 +144,8 @@ agent-api/
 │   ├── DAY15.md
 │   ├── DAY16.md
 │   ├── DAY17.md
-│   └── DAY18.md
+│   ├── DAY18.md
+│   └── DAY19.md
 ├── knowledge/
 │   └── agent_basics.md
 ├── data/
@@ -181,6 +183,7 @@ agent-api/
 │           ├── streaming.py
 │           ├── llm_router.py
 │           ├── smart_router.py
+│           ├── smart_streaming.py
 │           ├── llm_graph.py
 │           ├── llm_nodes.py
 │           ├── state.py
@@ -202,7 +205,8 @@ agent-api/
     ├── test_router_delegation.py
     ├── test_router_stream.py
     ├── test_llm_router.py
-    └── test_smart_chat.py
+    ├── test_smart_chat.py
+    └── test_smart_stream.py
 ```
 
 ---
@@ -326,6 +330,7 @@ POST /agent/router-debug
 POST /agent/router-stream
 POST /agent/llm-router-chat
 POST /agent/smart-chat
+POST /agent/smart-stream
 ```
 
 Routes:
@@ -999,6 +1004,68 @@ tests/test_rag_debug.py
 
 ---
 
+## Current Smart Stream Strategy
+
+Day19 added Smart Stream as the SSE streaming version of Smart Chat.
+
+Current Smart Stream file:
+
+```text
+src/app/agent/smart_streaming.py
+```
+
+Current Smart Stream endpoint:
+
+```text
+POST /agent/smart-stream
+```
+
+Current streaming function:
+
+```text
+stream_smart_agent_events()
+```
+
+It reuses:
+
+```text
+invoke_smart_agent()
+```
+
+Current event sequence:
+
+```text
+metadata
+route
+answer_chunk
+final
+done
+```
+
+Supported modes:
+
+```text
+router_mode="deterministic"
+router_mode="llm", router_provider="mock"
+router_mode="llm", router_provider="ollama"  # local manual verification only
+```
+
+Important:
+
+```text
+deterministic and llm+mock modes are covered by pytest and CI.
+llm+ollama mode is manually verified locally.
+answer_chunk currently emits the complete answer as one chunk.
+```
+
+New Day19 test file:
+
+```text
+tests/test_smart_stream.py
+```
+
+---
+
 ## Day1 - Project Initialization
 
 ### Completed
@@ -1574,7 +1641,7 @@ Observed tool call:
 ### Test Result
 
 ```text
-37 passed, 1 warning
+40 passed, 1 warning
 ```
 
 ### CI Result
@@ -1633,7 +1700,7 @@ POST /agent/router-debug
 ### Test Result
 
 ```text
-37 passed, 1 warning
+40 passed, 1 warning
 ```
 
 ### CI Result
@@ -1702,7 +1769,7 @@ Response:
 ### Test Result
 
 ```text
-37 passed, 1 warning
+40 passed, 1 warning
 ```
 
 ### CI Result
@@ -1760,7 +1827,7 @@ metadata -> route -> answer_chunk -> final -> done
 ### Test Result
 
 ```text
-37 passed, 1 warning
+40 passed, 1 warning
 ```
 
 ### CI Result
@@ -1822,7 +1889,7 @@ tests/test_llm_router.py
 ### Test Result
 
 ```text
-37 passed, 1 warning
+40 passed, 1 warning
 ```
 
 ### CI Result
@@ -1883,7 +1950,7 @@ tests/test_smart_chat.py
 ### Test Result
 
 ```text
-37 passed, 1 warning
+40 passed, 1 warning
 ```
 
 ### CI Result
@@ -1949,7 +2016,7 @@ tests/test_rag_debug.py
 ### Test Result
 
 ```text
-37 passed, 1 warning
+40 passed, 1 warning
 ```
 
 ### CI Result
@@ -1965,6 +2032,57 @@ Day18 improves RAG observability without introducing a vector database or embedd
 This keeps the project deterministic and CI-safe.
 
 The debug endpoint helps inspect which chunks were retrieved and which query terms matched each chunk.
+
+---
+
+## Day19 - Smart Chat SSE Streaming
+
+### Completed
+
+- Added `src/app/agent/smart_streaming.py`
+- Added `stream_smart_agent_events()`
+- Added `/agent/smart-stream`
+- Reused existing `invoke_smart_agent()`
+- Supported `router_mode="deterministic"`
+- Supported `router_mode="llm"` with `router_provider="mock"`
+- Manually verified `router_provider="ollama"` locally
+- Added SSE event sequence: `metadata -> route -> answer_chunk -> final -> done`
+- Added `route_reason`, `router_mode`, `router_provider`, and `router_model` in SSE payloads
+- Added `tests/test_smart_stream.py`
+- Expanded pytest from 37 tests to 40 tests
+- Verified local pytest
+- Verified GitHub Actions CI
+
+### New Endpoint
+
+```text
+POST /agent/smart-stream
+```
+
+### New Files
+
+```text
+src/app/agent/smart_streaming.py
+tests/test_smart_stream.py
+```
+
+### Test Result
+
+```text
+40 passed, 1 warning
+```
+
+### CI Result
+
+```text
+GitHub Actions CI: green
+```
+
+### Notes
+
+Day19 adds streaming capability to the Smart Chat unified entry point preview.
+
+The current stream emits the full answer as one `answer_chunk`, leaving room for token-level streaming later.
 
 ---
 
@@ -2024,7 +2142,7 @@ Agent response
 Local pytest currently shows:
 
 ```text
-37 passed, 1 warning
+40 passed, 1 warning
 ```
 
 The warning is:
@@ -2072,8 +2190,8 @@ It has a typo: `langraph` should be `langgraph`. This does not affect code and d
 Recommended next route:
 
 ```text
-Day19: LLM Router streaming or route confidence / validation fallback
-Day20+: vector DB based RAG preparation
+Day20: route confidence / validation fallback or vector DB preparation
+Day21+: vector DB based RAG preparation
 Later: vector DB based RAG
 Later: GraphRAG + Neo4j + Multi-Agent Supervisor
 ```
@@ -2164,7 +2282,15 @@ Completed:
 - [x] Day18 matched terms
 - [x] Day18 RAG debug tests
 - [x] Day18 GitHub Actions CI
+- [x] Day19 Smart Chat SSE streaming endpoint
+- [x] Day19 `/agent/smart-stream`
+- [x] Day19 deterministic Smart Stream calculator route
+- [x] Day19 LLM mock Smart Stream RAG route
+- [x] Day19 LLM mock Smart Stream chat route
+- [x] Day19 Ollama Smart Stream manual verification
+- [x] Day19 Smart Stream tests
+- [x] Day19 GitHub Actions CI
 
 Next:
 
-- [ ] Day19 LLM Router streaming or route confidence / validation fallback
+- [ ] Day20 route confidence / validation fallback or vector DB preparation
