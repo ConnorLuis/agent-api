@@ -39,3 +39,25 @@ class RagSearchDebugResponse(BaseModel):
     k: int
     results: list[RagSearchDebugResult]
     trace_id: str | None = None
+
+
+class RagChunksDebugRequest(BaseModel):
+    source_filter: str | None = None
+    max_chars: int = 500
+
+
+class RagChunkInfo(BaseModel):
+    chunk_id: str
+    source: str
+    index: int
+    content: str
+    preview: str
+    content_length: int
+
+
+class RagChunksDebugResponse(BaseModel):
+    source_filter: str | None = None
+    max_chars: int
+    total_chunks: int
+    chunks: list[RagChunkInfo]
+    trace_id: str | None = None
