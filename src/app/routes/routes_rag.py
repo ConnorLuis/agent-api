@@ -4,8 +4,10 @@ from src.app.core.request_context import get_trace_id
 from src.app.rag.retriever import search_knowledge
 from src.app.rag.explain import explain_search_knowledge
 from src.app.rag.chunking import debug_knowledge_chunks
+from src.app.rag.vector_index import vector_search_knowledge
 from src.app.schemas.rag import RAGReaderRequest, RAGSearchResponse, RAGSearchResult, RagSearchDebugResponse, \
-    RagSearchDebugRequest, RagChunksDebugResponse, RagChunksDebugRequest
+    RagSearchDebugRequest, RagChunksDebugResponse, RagChunksDebugRequest, RagVectorSearchDebugResponse, \
+    RagVectorSearchDebugRequest
 
 router = APIRouter()
 
@@ -48,6 +50,24 @@ def rag_chunks_debug(request: RagChunksDebugRequest) -> RagChunksDebugResponse:
     )
 
     return RagChunksDebugResponse(
+        **result,
+        trace_id=get_trace_id(),
+    )
+
+
+@router.post("/vector-search-debug", response_model=RagVectorSearchDebugResponse)
+def rag_vector_search_debug(
+    request: RagVectorSearchDebugRequest,
+) -> RagVectorSearchDebugResponse:
+    result = vector_search_knowledge(
+        query=request.query,
+        top_k=request.top_k,
+        source_filter=request.source_filter,
+        max_chars=request.max_chars,
+        embedding_dim=request.embedding_dim,
+    )
+
+    return RagVectorSearchDebugResponse(
         **result,
         trace_id=get_trace_id(),
     )

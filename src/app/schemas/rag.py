@@ -61,3 +61,34 @@ class RagChunksDebugResponse(BaseModel):
     total_chunks: int
     chunks: list[RagChunkInfo]
     trace_id: str | None = None
+
+
+class RagVectorSearchDebugRequest(BaseModel):
+    query: str
+    top_k: int = 3
+    source_filter: str | None = None
+    max_chars: int = 500
+    embedding_dim: int = 64
+
+
+class RagVectorSearchDebugResult(BaseModel):
+    rank: int
+    chunk_id: str
+    source: str
+    index: int
+    score: float
+    content: str
+    preview: str
+    matched_terms: list[str]
+    content_length: int
+
+
+class RagVectorSearchDebugResponse(BaseModel):
+    query: str
+    top_k: int
+    source_filter: str | None = None
+    max_chars: int
+    embedding_dim: int
+    total_chunks: int
+    results: list[RagVectorSearchDebugResult]
+    trace_id: str | None = None

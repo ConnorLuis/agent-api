@@ -13,11 +13,11 @@ Project 2 has officially started and is now the main development line.
 Current `agent-api` status:
 
 ```text
-Day1-Day20 completed.
-Day20 completed: route validation metadata and fallback support.
-Local pytest: 45 passed, 1 warning.
+Day1-Day21 completed.
+Day21 completed: RAG chunk pipeline and chunks debug endpoint.
+Local pytest: 48 passed, 1 warning.
 GitHub Actions CI: green.
-Next: Day21 vector DB preparation or richer route evaluation tests.
+Next: Day22 embedding-based retrieval or vector DB integration.
 ```
 
 ## Project Goal
@@ -99,6 +99,8 @@ Current:
 - Smart Chat SSE streaming endpoint
 - Route validation metadata layer
 - Route fallback support
+- RAG chunk pipeline for vector DB preparation
+- RAG Chunks Debug endpoint
 - pytest
 - GitHub Actions CI
 
@@ -148,7 +150,8 @@ agent-api/
 │   ├── DAY17.md
 │   ├── DAY18.md
 │   ├── DAY19.md
-│   └── DAY20.md
+│   ├── DAY20.md
+│   └── DAY21.md
 ├── knowledge/
 │   └── agent_basics.md
 ├── data/
@@ -173,6 +176,7 @@ agent-api/
 │       ├── rag/
 │       │   ├── __init__.py
 │       │   ├── explain.py
+│       │   ├── chunking.py
 │       │   └── retriever.py
 │       ├── llm/
 │       │   ├── base.py
@@ -205,13 +209,15 @@ agent-api/
     ├── test_stream.py
     ├── test_rag.py
     ├── test_rag_debug.py
+    ├── test_rag_chunks.py
     ├── test_router_agent.py
     ├── test_router_delegation.py
     ├── test_router_stream.py
     ├── test_llm_router.py
     ├── test_smart_chat.py
     ├── test_smart_stream.py
-    └── test_route_validation.py
+    ├── test_route_validation.py
+    └── test_rag_chunks.py
 ```
 
 ---
@@ -325,6 +331,7 @@ POST /agent/llm-stream
 ```text
 POST /rag/search
 POST /rag/search-debug
+POST /rag/chunks-debug
 ```
 
 ### Router Agent
@@ -1128,6 +1135,69 @@ tests/test_route_validation.py
 
 ---
 
+## Current RAG Chunk Pipeline Strategy
+
+Day21 added a deterministic chunk pipeline for vector DB preparation.
+
+Current chunking file:
+
+```text
+src/app/rag/chunking.py
+```
+
+Current chunk debug endpoint:
+
+```text
+POST /rag/chunks-debug
+```
+
+Current chunking functions:
+
+```text
+split_text_into_chunks()
+load_markdown_documents()
+load_knowledge_chunks()
+debug_knowledge_chunks()
+```
+
+Request fields:
+
+```text
+source_filter
+max_chars
+```
+
+Returned metadata:
+
+```text
+source_filter
+max_chars
+total_chunks
+chunk_id
+source
+index
+content
+preview
+content_length
+trace_id
+```
+
+Important:
+
+```text
+Day21 does not add embeddings or a vector database yet.
+It prepares the deterministic document loading and chunk metadata layer.
+This keeps CI stable while preparing for vector DB based RAG.
+```
+
+New Day21 test file:
+
+```text
+tests/test_rag_chunks.py
+```
+
+---
+
 ## Day1 - Project Initialization
 
 ### Completed
@@ -1703,7 +1773,7 @@ Observed tool call:
 ### Test Result
 
 ```text
-45 passed, 1 warning
+48 passed, 1 warning
 ```
 
 ### CI Result
@@ -1762,7 +1832,7 @@ POST /agent/router-debug
 ### Test Result
 
 ```text
-45 passed, 1 warning
+48 passed, 1 warning
 ```
 
 ### CI Result
@@ -1831,7 +1901,7 @@ Response:
 ### Test Result
 
 ```text
-45 passed, 1 warning
+48 passed, 1 warning
 ```
 
 ### CI Result
@@ -1889,7 +1959,7 @@ metadata -> route -> answer_chunk -> final -> done
 ### Test Result
 
 ```text
-45 passed, 1 warning
+48 passed, 1 warning
 ```
 
 ### CI Result
@@ -1951,7 +2021,7 @@ tests/test_llm_router.py
 ### Test Result
 
 ```text
-45 passed, 1 warning
+48 passed, 1 warning
 ```
 
 ### CI Result
@@ -2012,7 +2082,7 @@ tests/test_smart_chat.py
 ### Test Result
 
 ```text
-45 passed, 1 warning
+48 passed, 1 warning
 ```
 
 ### CI Result
@@ -2078,7 +2148,7 @@ tests/test_rag_debug.py
 ### Test Result
 
 ```text
-45 passed, 1 warning
+48 passed, 1 warning
 ```
 
 ### CI Result
@@ -2131,7 +2201,7 @@ tests/test_smart_stream.py
 ### Test Result
 
 ```text
-45 passed, 1 warning
+48 passed, 1 warning
 ```
 
 ### CI Result
@@ -2184,7 +2254,7 @@ POST /agent/smart-stream
 ### Test Result
 
 ```text
-45 passed, 1 warning
+48 passed, 1 warning
 ```
 
 ### CI Result
@@ -2197,6 +2267,61 @@ GitHub Actions CI: green
 
 ```text
 10e25aa add route validation metadata
+```
+
+---
+
+## Day21 - RAG Chunk Pipeline / Vector DB Preparation
+
+### Completed
+
+- Added `src/app/rag/chunking.py`
+- Added `split_text_into_chunks()`
+- Added `load_markdown_documents()`
+- Added `load_knowledge_chunks()`
+- Added `debug_knowledge_chunks()`
+- Added `/rag/chunks-debug`
+- Added `RagChunksDebugRequest`
+- Added `RagChunkInfo`
+- Added `RagChunksDebugResponse`
+- Supported `source_filter`
+- Supported `max_chars`
+- Returned `chunk_id`, `source`, `index`, `content`, `preview`, and `content_length`
+- Preserved `trace_id`
+- Added `tests/test_rag_chunks.py`
+- Expanded pytest from 45 tests to 48 tests
+- Verified local pytest
+- Verified GitHub Actions CI
+
+### New Endpoint
+
+```text
+POST /rag/chunks-debug
+```
+
+### New Files
+
+```text
+src/app/rag/chunking.py
+tests/test_rag_chunks.py
+```
+
+### Test Result
+
+```text
+48 passed, 1 warning
+```
+
+### CI Result
+
+```text
+GitHub Actions CI: green
+```
+
+### Commit
+
+```text
+00a2cad add rag chunk debug endpoint
 ```
 
 ---
@@ -2257,7 +2382,7 @@ Agent response
 Local pytest currently shows:
 
 ```text
-45 passed, 1 warning
+48 passed, 1 warning
 ```
 
 The warning is:
@@ -2305,8 +2430,8 @@ It has a typo: `langraph` should be `langgraph`. This does not affect code and d
 Recommended next route:
 
 ```text
-Day21: vector DB preparation or richer route decision evaluation tests
-Day22+: embedding-based retrieval
+Day22: embedding-based retrieval or vector DB integration
+Day23+: vector DB based RAG search path
 Later: vector DB based RAG
 Later: GraphRAG + Neo4j + Multi-Agent Supervisor
 ```
@@ -2413,7 +2538,16 @@ Completed:
 - [x] Day20 `/agent/smart-stream` validation metadata
 - [x] Day20 route validation tests
 - [x] Day20 GitHub Actions CI
+- [x] Day21 RAG chunk pipeline
+- [x] Day21 `/rag/chunks-debug`
+- [x] Day21 Markdown document loading
+- [x] Day21 blank-line based chunk splitting
+- [x] Day21 chunk metadata
+- [x] Day21 source_filter support
+- [x] Day21 max_chars support
+- [x] Day21 RAG chunk tests
+- [x] Day21 GitHub Actions CI
 
 Next:
 
-- [ ] Day21 vector DB preparation or richer route decision evaluation tests
+- [ ] Day22 embedding-based retrieval or vector DB integration
