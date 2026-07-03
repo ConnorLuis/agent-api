@@ -15,7 +15,7 @@ Current `agent-api` status:
 ```text
 Day1-Day23 completed.
 Day23 completed: Hybrid Retrieval Debug endpoint.
-Local pytest: 54 passed, 1 warning.
+Local pytest: 57 passed, 1 warning.
 GitHub Actions CI: green.
 Next: Day24 Agentic RAG graph preparation or RAG evaluation.
 ```
@@ -106,6 +106,8 @@ Current:
 - Cosine similarity based chunk ranking
 - Hybrid Retrieval Debug endpoint
 - Hybrid retrieval scoring with keyword_score, vector_score, and hybrid_score
+- Agentic RAG Debug Graph
+- Agentic RAG query analysis, query rewriting, hybrid retrieval, relevance grading, and citation-aware answering
 - pytest
 - GitHub Actions CI
 
@@ -158,7 +160,8 @@ agent-api/
 │   ├── DAY20.md
 │   ├── DAY21.md
 │   ├── DAY22.md
-│   └── DAY23.md
+│   ├── DAY23.md
+│   └── DAY24.md
 ├── knowledge/
 │   └── agent_basics.md
 ├── data/
@@ -186,6 +189,7 @@ agent-api/
 │       │   ├── chunking.py
 │       │   ├── vector_index.py
 │       │   ├── hybrid.py
+│       │   ├── agentic_graph.py
 │       │   └── retriever.py
 │       ├── llm/
 │       │   ├── base.py
@@ -221,6 +225,7 @@ agent-api/
     ├── test_rag_chunks.py
     ├── test_rag_vector_search.py
     ├── test_rag_hybrid_search.py
+    ├── test_rag_agentic_debug.py
     ├── test_router_agent.py
     ├── test_router_delegation.py
     ├── test_router_stream.py
@@ -345,6 +350,7 @@ POST /rag/search-debug
 POST /rag/chunks-debug
 POST /rag/vector-search-debug
 POST /rag/hybrid-search-debug
+POST /rag/agentic-debug
 ```
 
 ### Router Agent
@@ -1370,6 +1376,92 @@ tests/test_rag_hybrid_search.py
 
 ---
 
+## Current Agentic RAG Strategy
+
+Day24 added an Agentic RAG debug graph.
+
+Current Agentic RAG file:
+
+```text
+src/app/rag/agentic_graph.py
+```
+
+Current Agentic RAG endpoint:
+
+```text
+POST /rag/agentic-debug
+```
+
+Current graph state:
+
+```text
+AgenticRagState
+```
+
+Current graph nodes:
+
+```text
+query_analyzer
+query_rewriter
+hybrid_retrieve
+relevance_grade
+answer_with_citations
+direct_answer
+```
+
+Current function:
+
+```text
+invoke_agentic_rag()
+```
+
+It reuses:
+
+```text
+hybrid_search_knowledge()
+```
+
+Retrieval path:
+
+```text
+query_analyzer -> query_rewriter -> hybrid_retrieve -> relevance_grade -> answer_with_citations
+```
+
+Direct path:
+
+```text
+query_analyzer -> direct_answer
+```
+
+Returned metadata:
+
+```text
+query
+rewritten_query
+retrieval_needed
+relevance_score
+citations
+retrieval_results
+final_answer
+steps
+trace_id
+```
+
+Important:
+
+```text
+Day24 turns RAG into a debuggable workflow instead of a single retrieval endpoint.
+It supports both retrieval and non-retrieval paths.
+```
+
+New Day24 test file:
+
+```text
+tests/test_rag_agentic_debug.py
+```
+
+---
+
 ## Day1 - Project Initialization
 
 ### Completed
@@ -1945,7 +2037,7 @@ Observed tool call:
 ### Test Result
 
 ```text
-54 passed, 1 warning
+57 passed, 1 warning
 ```
 
 ### CI Result
@@ -2004,7 +2096,7 @@ POST /agent/router-debug
 ### Test Result
 
 ```text
-54 passed, 1 warning
+57 passed, 1 warning
 ```
 
 ### CI Result
@@ -2073,7 +2165,7 @@ Response:
 ### Test Result
 
 ```text
-54 passed, 1 warning
+57 passed, 1 warning
 ```
 
 ### CI Result
@@ -2131,7 +2223,7 @@ metadata -> route -> answer_chunk -> final -> done
 ### Test Result
 
 ```text
-54 passed, 1 warning
+57 passed, 1 warning
 ```
 
 ### CI Result
@@ -2193,7 +2285,7 @@ tests/test_llm_router.py
 ### Test Result
 
 ```text
-54 passed, 1 warning
+57 passed, 1 warning
 ```
 
 ### CI Result
@@ -2254,7 +2346,7 @@ tests/test_smart_chat.py
 ### Test Result
 
 ```text
-54 passed, 1 warning
+57 passed, 1 warning
 ```
 
 ### CI Result
@@ -2320,7 +2412,7 @@ tests/test_rag_debug.py
 ### Test Result
 
 ```text
-54 passed, 1 warning
+57 passed, 1 warning
 ```
 
 ### CI Result
@@ -2373,7 +2465,7 @@ tests/test_smart_stream.py
 ### Test Result
 
 ```text
-54 passed, 1 warning
+57 passed, 1 warning
 ```
 
 ### CI Result
@@ -2426,7 +2518,7 @@ POST /agent/smart-stream
 ### Test Result
 
 ```text
-54 passed, 1 warning
+57 passed, 1 warning
 ```
 
 ### CI Result
@@ -2481,7 +2573,7 @@ tests/test_rag_chunks.py
 ### Test Result
 
 ```text
-54 passed, 1 warning
+57 passed, 1 warning
 ```
 
 ### CI Result
@@ -2538,7 +2630,7 @@ tests/test_rag_vector_search.py
 ### Test Result
 
 ```text
-54 passed, 1 warning
+57 passed, 1 warning
 ```
 
 ### CI Result
@@ -2606,7 +2698,7 @@ tests/test_rag_hybrid_search.py
 ### Test Result
 
 ```text
-54 passed, 1 warning
+57 passed, 1 warning
 ```
 
 ### Commit
@@ -2620,6 +2712,70 @@ b3a8f0c add rag hybrid search debug
 Day23 makes retrieval more realistic by combining keyword and vector retrieval signals.
 
 This prepares the project for future reranking, RAG evaluation, and Agentic RAG.
+
+---
+
+## Day24 - Agentic RAG Debug Graph
+
+### Completed
+
+- Added `src/app/rag/agentic_graph.py`
+- Added `AgenticRagState`
+- Added `query_analyzer_node`
+- Added `query_rewriter_node`
+- Added `retrieve_node`
+- Added `relevance_grade_node`
+- Added `answer_node`
+- Added `direct_answer_node`
+- Added `build_agentic_rag_graph()`
+- Added `invoke_agentic_rag()`
+- Added `/rag/agentic-debug`
+- Reused Day23 `hybrid_search_knowledge()`
+- Supported retrieval path
+- Supported direct non-retrieval path
+- Returned `rewritten_query`
+- Returned `retrieval_needed`
+- Returned `relevance_score`
+- Returned `citations`
+- Returned `retrieval_results`
+- Returned `final_answer`
+- Returned `steps`
+- Preserved `trace_id`
+- Added `tests/test_rag_agentic_debug.py`
+- Expanded pytest from 54 tests to 57 tests
+- Verified local pytest
+- Git push succeeded
+
+### New Endpoint
+
+```text
+POST /rag/agentic-debug
+```
+
+### New Files
+
+```text
+src/app/rag/agentic_graph.py
+tests/test_rag_agentic_debug.py
+```
+
+### Test Result
+
+```text
+57 passed, 1 warning
+```
+
+### Commit
+
+```text
+4ed753a add agentic rag debug graph
+```
+
+### Notes
+
+Day24 upgrades RAG from retrieval endpoints to a debuggable Agentic RAG workflow.
+
+The provided log does not show GitHub Actions CI status. Confirm CI separately from GitHub Actions.
 
 ---
 
@@ -2679,7 +2835,7 @@ Agent response
 Local pytest currently shows:
 
 ```text
-54 passed, 1 warning
+57 passed, 1 warning
 ```
 
 The warning is:
@@ -2727,8 +2883,8 @@ It has a typo: `langraph` should be `langgraph`. This does not affect code and d
 Recommended next route:
 
 ```text
-Day24: Agentic RAG graph preparation or RAG evaluation
-Day25+: real embedding or vector database backed RAG
+Day25: RAG evaluation or observability trace store
+Day26+: real embedding or vector database backed RAG
 Later: vector DB based RAG
 Later: GraphRAG + Neo4j + Multi-Agent Supervisor
 ```
@@ -2863,7 +3019,18 @@ Completed:
 - [x] Day23 vector_weight support
 - [x] Day23 hybrid retrieval tests
 - [x] Day23 Git push
+- [x] Day24 Agentic RAG Debug Graph
+- [x] Day24 `/rag/agentic-debug`
+- [x] Day24 query_analyzer
+- [x] Day24 query_rewriter
+- [x] Day24 hybrid_retrieve
+- [x] Day24 relevance_grade
+- [x] Day24 answer_with_citations
+- [x] Day24 direct_answer
+- [x] Day24 retrieval path tests
+- [x] Day24 direct path tests
+- [x] Day24 Git push
 
 Next:
 
-- [ ] Day24 Agentic RAG graph preparation or RAG evaluation
+- [ ] Day25 RAG evaluation or observability trace store
