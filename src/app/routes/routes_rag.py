@@ -1,6 +1,8 @@
 from fastapi import APIRouter
+from starlette.responses import StreamingResponse
 
 from src.app.core.request_context import get_trace_id
+from src.app.rag.agentic_streaming import stream_agentic_rag_events
 from src.app.rag.retriever import search_knowledge
 from src.app.rag.explain import explain_search_knowledge
 from src.app.rag.chunking import debug_knowledge_chunks
@@ -162,4 +164,25 @@ def rag_eval_debug(
     return RagEvalDebugResponse(
         **result,
         trace_id=trace_id,
+    )
+
+
+@router.post("/agentic-stream")
+def rag_agentic_stream(
+    request: RagAgenticDebugRequest,
+) -> StreamingResponse:
+    trace_id = get_trace_id()
+
+    return StreamingResponse(
+        stream_agentic_rag_events(
+            query=request.query,
+            trace_id=trace_id,
+            top_k=request.top_k,
+            source_filter=request.source_filter,
+            max_chars=request.max_chars,
+            embedding_dim=request.embedding_dim,
+            keyword_weight=request.keyword_weight,
+            vector_weight=request.vector_weight,
+        ),
+        media_type="text/event-stream",
     )
