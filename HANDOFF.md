@@ -13,12 +13,12 @@ Project 2 has officially started and is now the main development line.
 Current `agent-api` status:
 
 ```text
-Day1-Day25 completed.
-Day25 completed: RAG Evaluation Debug.
-Local pytest: 60 passed, 1 warning.
+Day1-Day26 completed.
+Day26 completed: Observability Trace Store.
+Local pytest: 63 passed, 1 warning.
 Git push: success.
-GitHub Actions CI: not shown in provided Day25 log.
-Next: Day26 observability trace store or Agentic RAG streaming.
+GitHub Actions CI: green.
+Next: Day27 Agentic RAG streaming, answer verification, or real embedding/vector DB preparation.
 ```
 
 ## Project Goal
@@ -111,6 +111,8 @@ Current:
 - Agentic RAG query analysis, query rewriting, hybrid retrieval, relevance grading, and citation-aware answering
 - RAG Evaluation Debug endpoint
 - RAG evaluation JSONL cases and metrics
+- Observability Trace Store
+- SQLite-backed trace events for Agentic RAG and RAG Evaluation
 - pytest
 - GitHub Actions CI
 
@@ -167,7 +169,8 @@ agent-api/
 │   ├── DAY22.md
 │   ├── DAY23.md
 │   ├── DAY24.md
-│   └── DAY25.md
+│   ├── DAY25.md
+│   └── DAY26.md
 ├── knowledge/
 │   └── agent_basics.md
 ├── data/
@@ -184,14 +187,19 @@ agent-api/
 │       ├── schemas/
 │       │   ├── agent.py
 │       │   ├── llm.py
-│       │   └── rag.py
+│       │   ├── rag.py
+│       │   └── observability.py
 │       ├── routes/
 │       │   ├── routes_agent.py
 │       │   ├── routes_llm.py
-│       │   └── routes_rag.py
+│       │   ├── routes_rag.py
+│       │   └── routes_observability.py
 │       ├── evaluation/
 │       │   ├── __init__.py
 │       │   └── rag_eval.py
+│       ├── observability/
+│       │   ├── __init__.py
+│       │   └── trace_store.py
 │       ├── rag/
 │       │   ├── __init__.py
 │       │   ├── explain.py
@@ -236,6 +244,7 @@ agent-api/
     ├── test_rag_hybrid_search.py
     ├── test_rag_agentic_debug.py
     ├── test_rag_eval.py
+    ├── test_observability.py
     ├── test_router_agent.py
     ├── test_router_delegation.py
     ├── test_router_stream.py
@@ -362,6 +371,8 @@ POST /rag/vector-search-debug
 POST /rag/hybrid-search-debug
 POST /rag/agentic-debug
 POST /rag/eval-debug
+GET /observability/traces/{trace_id}
+GET /observability/traces
 ```
 
 ### Router Agent
@@ -2884,6 +2895,99 @@ average_relevance_score = 0.278223
 958b791 add rag evaluation debug
 ```
 
+
+---
+
+## Current Observability Trace Store Strategy
+
+Day26 added a SQLite-backed observability trace store.
+
+Current files:
+
+```text
+src/app/observability/trace_store.py
+src/app/schemas/observability.py
+src/app/routes/routes_observability.py
+tests/test_observability.py
+```
+
+Current endpoints:
+
+```text
+GET /observability/traces/{trace_id}
+GET /observability/traces
+```
+
+Current trace database:
+
+```text
+data/observability.sqlite
+```
+
+Current functions:
+
+```text
+init_trace_store()
+record_trace_event()
+get_trace_events()
+list_recent_trace_ids()
+```
+
+Current event types:
+
+```text
+rag_agentic_debug
+rag_eval_debug
+```
+
+---
+
+## Day26 - Observability Trace Store
+
+### Completed
+
+- Added `src/app/observability/__init__.py`
+- Added `src/app/observability/trace_store.py`
+- Added `src/app/schemas/observability.py`
+- Added `src/app/routes/routes_observability.py`
+- Registered Observability router in `main.py`
+- Added `/observability/traces/{trace_id}`
+- Added `/observability/traces`
+- Added `init_trace_store()`
+- Added `record_trace_event()`
+- Added `get_trace_events()`
+- Added `list_recent_trace_ids()`
+- Added SQLite trace table `trace_events`
+- Added `rag_agentic_debug` event writes from `/rag/agentic-debug`
+- Added `rag_eval_debug` event writes from `/rag/eval-debug`
+- Verified direct trace-store Python usage
+- Verified Agentic RAG trace lookup
+- Verified RAG Eval trace lookup
+- Verified recent trace listing
+- Added `tests/test_observability.py`
+- Expanded pytest from 60 tests to 63 tests
+- Verified local pytest
+- Verified GitHub Actions CI
+- Git push succeeded
+
+### Test Result
+
+```text
+63 passed, 1 warning
+```
+
+### CI Result
+
+```text
+GitHub Actions CI: green
+```
+
+### Commit
+
+```text
+ce8fe35 add observability trace store
+```
+
 ---
 
 ## Known Issues / Notes
@@ -2990,8 +3094,8 @@ It has a typo: `langraph` should be `langgraph`. This does not affect code and d
 Recommended next route:
 
 ```text
-Day26: observability trace store or Agentic RAG streaming
-Day27+: real embedding or vector database backed RAG
+Day27: Agentic RAG streaming, answer verification, or real embedding/vector DB preparation
+Day28+: real embedding or vector database backed RAG
 Later: vector DB based RAG
 Later: GraphRAG + Neo4j + Multi-Agent Supervisor
 ```
@@ -3152,4 +3256,18 @@ Next:
 
 Next:
 
-- [ ] Day26 observability trace store or Agentic RAG streaming
+- [x] Day26 Observability Trace Store
+- [x] Day26 `/observability/traces/{trace_id}`
+- [x] Day26 `/observability/traces`
+- [x] Day26 `record_trace_event()`
+- [x] Day26 `get_trace_events()`
+- [x] Day26 `list_recent_trace_ids()`
+- [x] Day26 `rag_agentic_debug` trace event
+- [x] Day26 `rag_eval_debug` trace event
+- [x] Day26 observability tests
+- [x] Day26 GitHub Actions CI
+- [x] Day26 Git push
+
+Next:
+
+- [ ] Day27 Agentic RAG streaming, answer verification, or real embedding/vector DB preparation

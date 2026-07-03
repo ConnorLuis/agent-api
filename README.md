@@ -7,12 +7,12 @@ This project is the second project in the AI internship preparation roadmap, fol
 ## Current Status
 
 ```text
-Day1-Day25 completed.
-Current stage: RAG Evaluation Debug completed.
-Local pytest: 60 passed, 1 warning.
+Day1-Day26 completed.
+Current stage: Observability Trace Store completed.
+Local pytest: 63 passed, 1 warning.
 Git push: success.
-GitHub Actions CI: not shown in provided Day25 log.
-Next milestone: Day26 observability trace store or Agentic RAG streaming.
+GitHub Actions CI: green.
+Next milestone: Day27 Agentic RAG streaming, answer verification, or real embedding/vector DB preparation.
 ```
 
 ## Features
@@ -35,6 +35,8 @@ Current features:
 * `/rag/hybrid-search-debug` hybrid retrieval debug endpoint
 * `/rag/agentic-debug` Agentic RAG debug graph endpoint
 * `/rag/eval-debug` RAG evaluation debug endpoint
+* `/observability/traces/{trace_id}` trace event lookup endpoint
+* `/observability/traces` recent trace list endpoint
 * `/agent/router-chat` deterministic Router Agent chat endpoint
 * `/agent/router-debug` deterministic Router Agent debug endpoint
 * `/agent/router-stream` deterministic Router Agent SSE streaming endpoint
@@ -128,6 +130,7 @@ Not implemented yet:
 * Hybrid retrieval debug layer
 * Agentic RAG debug graph
 * RAG evaluation debug layer
+* Observability trace store
 * pytest
 * GitHub Actions
 * Server-Sent Events
@@ -172,7 +175,8 @@ agent-api/
 │   ├── DAY22.md
 │   ├── DAY23.md
 │   ├── DAY24.md
-│   └── DAY25.md
+│   ├── DAY25.md
+│   └── DAY26.md
 ├── knowledge/
 │   └── agent_basics.md
 ├── data/
@@ -189,14 +193,19 @@ agent-api/
 │       ├── schemas/
 │       │   ├── agent.py
 │       │   ├── llm.py
-│       │   └── rag.py
+│       │   ├── rag.py
+│       │   └── observability.py
 │       ├── routes/
 │       │   ├── routes_agent.py
 │       │   ├── routes_llm.py
-│       │   └── routes_rag.py
+│       │   ├── routes_rag.py
+│       │   └── routes_observability.py
 │       ├── evaluation/
 │       │   ├── __init__.py
 │       │   └── rag_eval.py
+│       ├── observability/
+│       │   ├── __init__.py
+│       │   └── trace_store.py
 │       ├── rag/
 │       │   ├── __init__.py
 │       │   ├── explain.py
@@ -1086,6 +1095,59 @@ curl -s -X POST http://localhost:8000/rag/eval-debug \
   -d '{"source_filter":"agent_basics","max_chars":300,"embedding_dim":64,"keyword_weight":0.6,"vector_weight":0.4}' \
   | python -m json.tool --no-ensure-ascii
 ```
+
+
+## Current Observability Trace Store Architecture
+
+Day26 added an observability trace store.
+
+```text
+/rag/agentic-debug
+  ↓
+record_trace_event(event_type="rag_agentic_debug")
+  ↓
+data/observability.sqlite
+  ↓
+GET /observability/traces/{trace_id}
+```
+
+```text
+/rag/eval-debug
+  ↓
+record_trace_event(event_type="rag_eval_debug")
+  ↓
+data/observability.sqlite
+  ↓
+GET /observability/traces/{trace_id}
+```
+
+Current observability files:
+
+```text
+src/app/observability/trace_store.py
+src/app/schemas/observability.py
+src/app/routes/routes_observability.py
+tests/test_observability.py
+```
+
+Current observability endpoints:
+
+```text
+GET /observability/traces/{trace_id}
+GET /observability/traces?limit=10
+```
+
+Each trace event contains:
+
+```text
+event_id
+trace_id
+event_type
+payload
+created_at_ms
+```
+
+Agentic RAG trace payload includes query, rewritten query, retrieval decision, relevance score, citations, steps, and retrieval result count. RAG Eval trace payload includes eval file, source filter, metrics, and case count.
 
 ## Request Tracing
 
@@ -2202,6 +2264,43 @@ Expected response includes:
 "trace_id": "day24-rag-agentic-debug-direct-001"
 ```
 
+
+### Observability Trace Lookup
+
+```bash
+curl -s http://localhost:8000/observability/traces/day26-observability-agentic-001 \
+  | python -m json.tool --no-ensure-ascii
+```
+
+Expected Agentic RAG trace fields:
+
+```text
+event_type = rag_agentic_debug
+payload.rewritten_query = LangGraph 是什么？
+payload.retrieval_needed = true
+payload.relevance_score = 0.383914
+payload.retrieval_results_count = 2
+```
+
+```bash
+curl -s http://localhost:8000/observability/traces/day26-observability-eval-001 \
+  | python -m json.tool --no-ensure-ascii
+```
+
+Expected RAG Eval trace fields:
+
+```text
+event_type = rag_eval_debug
+payload.case_count = 3
+payload.metrics.total_cases = 3
+payload.metrics.pass_rate = 1.0
+```
+
+```bash
+curl -s "http://localhost:8000/observability/traces?limit=10" \
+  | python -m json.tool --no-ensure-ascii
+```
+
 ## Tests
 
 Run tests:
@@ -2213,7 +2312,7 @@ pytest -q
 Current result:
 
 ```text
-60 passed, 1 warning
+63 passed, 1 warning
 ```
 
 Current test coverage includes:
@@ -2296,6 +2395,7 @@ tests/
 ├── test_rag_hybrid_search.py
 ├── test_rag_agentic_debug.py
 ├── test_rag_eval.py
+├── test_observability.py
 ├── test_router_agent.py
 ├── test_router_delegation.py
 ├── test_router_stream.py
@@ -2327,7 +2427,7 @@ pytest -q
 Current CI status:
 
 ```text
-not shown in provided Day24 log
+green
 ```
 
 ## Runtime Data
@@ -2395,8 +2495,8 @@ mv /tmp/agent_basics.md knowledge/agent_basics.md
 
 Next milestones:
 
-* Day26: Add observability trace store or Agentic RAG streaming
-* Day27+: Add real embedding or vector database backed RAG
+* Day27: Add Agentic RAG streaming, answer verification, or real embedding/vector DB preparation
+* Day28+: Add real embedding or vector database backed RAG
 * Later: Add vector database based RAG
 * Later: Add GraphRAG and Neo4j integration
 * Later: Add Multi-Agent Supervisor workflow
