@@ -13,11 +13,11 @@ Project 2 has officially started and is now the main development line.
 Current `agent-api` status:
 
 ```text
-Day1-Day21 completed.
-Day21 completed: RAG chunk pipeline and chunks debug endpoint.
-Local pytest: 48 passed, 1 warning.
+Day1-Day22 completed.
+Day22 completed: deterministic RAG vector-search debug endpoint.
+Local pytest: 51 passed, 1 warning.
 GitHub Actions CI: green.
-Next: Day22 embedding-based retrieval or vector DB integration.
+Next: Day23 hybrid retrieval or Agentic RAG graph preparation.
 ```
 
 ## Project Goal
@@ -101,6 +101,9 @@ Current:
 - Route fallback support
 - RAG chunk pipeline for vector DB preparation
 - RAG Chunks Debug endpoint
+- Deterministic RAG vector-search debug endpoint
+- Deterministic hashed embedding preview
+- Cosine similarity based chunk ranking
 - pytest
 - GitHub Actions CI
 
@@ -151,7 +154,8 @@ agent-api/
 │   ├── DAY18.md
 │   ├── DAY19.md
 │   ├── DAY20.md
-│   └── DAY21.md
+│   ├── DAY21.md
+│   └── DAY22.md
 ├── knowledge/
 │   └── agent_basics.md
 ├── data/
@@ -177,6 +181,7 @@ agent-api/
 │       │   ├── __init__.py
 │       │   ├── explain.py
 │       │   ├── chunking.py
+│       │   ├── vector_index.py
 │       │   └── retriever.py
 │       ├── llm/
 │       │   ├── base.py
@@ -210,6 +215,7 @@ agent-api/
     ├── test_rag.py
     ├── test_rag_debug.py
     ├── test_rag_chunks.py
+    ├── test_rag_vector_search.py
     ├── test_router_agent.py
     ├── test_router_delegation.py
     ├── test_router_stream.py
@@ -332,6 +338,7 @@ POST /agent/llm-stream
 POST /rag/search
 POST /rag/search-debug
 POST /rag/chunks-debug
+POST /rag/vector-search-debug
 ```
 
 ### Router Agent
@@ -1198,6 +1205,83 @@ tests/test_rag_chunks.py
 
 ---
 
+## Current Deterministic Vector Search Strategy
+
+Day22 added a deterministic vector-search debug layer.
+
+Current vector search file:
+
+```text
+src/app/rag/vector_index.py
+```
+
+Current vector-search debug endpoint:
+
+```text
+POST /rag/vector-search-debug
+```
+
+Current functions:
+
+```text
+build_deterministic_embedding()
+cosine_similarity()
+vector_search_knowledge()
+```
+
+It reuses the Day21 chunk pipeline:
+
+```text
+load_knowledge_chunks()
+```
+
+Request fields:
+
+```text
+query
+top_k
+source_filter
+max_chars
+embedding_dim
+```
+
+Returned metadata:
+
+```text
+query
+top_k
+source_filter
+max_chars
+embedding_dim
+total_chunks
+rank
+chunk_id
+source
+index
+score
+content
+preview
+matched_terms
+content_length
+trace_id
+```
+
+Important:
+
+```text
+Day22 does not add a real embedding model or vector database yet.
+It uses deterministic hashed embeddings so tests remain stable.
+The API shape prepares the project for later real embeddings or vector DB integration.
+```
+
+New Day22 test file:
+
+```text
+tests/test_rag_vector_search.py
+```
+
+---
+
 ## Day1 - Project Initialization
 
 ### Completed
@@ -1773,7 +1857,7 @@ Observed tool call:
 ### Test Result
 
 ```text
-48 passed, 1 warning
+51 passed, 1 warning
 ```
 
 ### CI Result
@@ -1832,7 +1916,7 @@ POST /agent/router-debug
 ### Test Result
 
 ```text
-48 passed, 1 warning
+51 passed, 1 warning
 ```
 
 ### CI Result
@@ -1901,7 +1985,7 @@ Response:
 ### Test Result
 
 ```text
-48 passed, 1 warning
+51 passed, 1 warning
 ```
 
 ### CI Result
@@ -1959,7 +2043,7 @@ metadata -> route -> answer_chunk -> final -> done
 ### Test Result
 
 ```text
-48 passed, 1 warning
+51 passed, 1 warning
 ```
 
 ### CI Result
@@ -2021,7 +2105,7 @@ tests/test_llm_router.py
 ### Test Result
 
 ```text
-48 passed, 1 warning
+51 passed, 1 warning
 ```
 
 ### CI Result
@@ -2082,7 +2166,7 @@ tests/test_smart_chat.py
 ### Test Result
 
 ```text
-48 passed, 1 warning
+51 passed, 1 warning
 ```
 
 ### CI Result
@@ -2148,7 +2232,7 @@ tests/test_rag_debug.py
 ### Test Result
 
 ```text
-48 passed, 1 warning
+51 passed, 1 warning
 ```
 
 ### CI Result
@@ -2201,7 +2285,7 @@ tests/test_smart_stream.py
 ### Test Result
 
 ```text
-48 passed, 1 warning
+51 passed, 1 warning
 ```
 
 ### CI Result
@@ -2254,7 +2338,7 @@ POST /agent/smart-stream
 ### Test Result
 
 ```text
-48 passed, 1 warning
+51 passed, 1 warning
 ```
 
 ### CI Result
@@ -2309,7 +2393,7 @@ tests/test_rag_chunks.py
 ### Test Result
 
 ```text
-48 passed, 1 warning
+51 passed, 1 warning
 ```
 
 ### CI Result
@@ -2323,6 +2407,69 @@ GitHub Actions CI: green
 ```text
 00a2cad add rag chunk debug endpoint
 ```
+
+---
+
+## Day22 - Deterministic RAG Vector Search Debug
+
+### Completed
+
+- Added `src/app/rag/vector_index.py`
+- Added `build_deterministic_embedding()`
+- Added `cosine_similarity()`
+- Added `vector_search_knowledge()`
+- Added `/rag/vector-search-debug`
+- Reused Day21 `load_knowledge_chunks()`
+- Added `RagVectorSearchDebugRequest`
+- Added `RagVectorSearchDebugResult`
+- Added `RagVectorSearchDebugResponse`
+- Supported `top_k`
+- Supported `source_filter`
+- Supported `max_chars`
+- Supported `embedding_dim`
+- Returned `rank`, `chunk_id`, `source`, `index`, `score`, `content`, `preview`, `matched_terms`, and `content_length`
+- Preserved `trace_id`
+- Added `tests/test_rag_vector_search.py`
+- Expanded pytest from 48 tests to 51 tests
+- Verified local pytest
+- Verified GitHub Actions CI
+
+### New Endpoint
+
+```text
+POST /rag/vector-search-debug
+```
+
+### New Files
+
+```text
+src/app/rag/vector_index.py
+tests/test_rag_vector_search.py
+```
+
+### Test Result
+
+```text
+51 passed, 1 warning
+```
+
+### CI Result
+
+```text
+GitHub Actions CI: green
+```
+
+### Commit
+
+```text
+1f1364d add deterministic rag vector search debug
+```
+
+### Notes
+
+Day22 is a vector-search preview layer, not a production semantic embedding layer.
+
+It keeps CI deterministic while preparing the API, schemas, and tests for future real embedding or vector DB integration.
 
 ---
 
@@ -2382,7 +2529,7 @@ Agent response
 Local pytest currently shows:
 
 ```text
-48 passed, 1 warning
+51 passed, 1 warning
 ```
 
 The warning is:
@@ -2430,8 +2577,8 @@ It has a typo: `langraph` should be `langgraph`. This does not affect code and d
 Recommended next route:
 
 ```text
-Day22: embedding-based retrieval or vector DB integration
-Day23+: vector DB based RAG search path
+Day23: hybrid retrieval or Agentic RAG graph preparation
+Day24+: real embedding or vector database backed RAG
 Later: vector DB based RAG
 Later: GraphRAG + Neo4j + Multi-Agent Supervisor
 ```
@@ -2547,7 +2694,17 @@ Completed:
 - [x] Day21 max_chars support
 - [x] Day21 RAG chunk tests
 - [x] Day21 GitHub Actions CI
+- [x] Day22 deterministic RAG vector-search debug
+- [x] Day22 `/rag/vector-search-debug`
+- [x] Day22 deterministic hashed embedding
+- [x] Day22 cosine similarity ranking
+- [x] Day22 vector-search metadata
+- [x] Day22 source_filter support
+- [x] Day22 max_chars support
+- [x] Day22 embedding_dim support
+- [x] Day22 RAG vector-search tests
+- [x] Day22 GitHub Actions CI
 
 Next:
 
-- [ ] Day22 embedding-based retrieval or vector DB integration
+- [ ] Day23 hybrid retrieval or Agentic RAG graph preparation

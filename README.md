@@ -2,16 +2,16 @@
 
 `agent-api` is a FastAPI + LangGraph backend project for building an Agent service step by step.
 
-This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent, SQLite-based short-term memory, graph debug output, request tracing, LLM provider abstraction, a real Ollama-backed LLM Tool Calling Agent path, SSE streaming endpoints, a lightweight local RAG search tool, a RAG search-debug endpoint with explainability metadata, a deterministic Router Agent that delegates calculator and RAG routes to the existing Agent graph, a Router Agent SSE streaming endpoint, an initial LLM Router Agent endpoint with mock and Ollama router providers, a Smart Chat endpoint as a future unified Agent entry point preview, a Smart Chat SSE streaming endpoint, route validation metadata for Router and Smart Chat paths, and a RAG chunk pipeline debug endpoint for vector DB preparation.
+This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent, SQLite-based short-term memory, graph debug output, request tracing, LLM provider abstraction, a real Ollama-backed LLM Tool Calling Agent path, SSE streaming endpoints, a lightweight local RAG search tool, a RAG search-debug endpoint with explainability metadata, a deterministic Router Agent that delegates calculator and RAG routes to the existing Agent graph, a Router Agent SSE streaming endpoint, an initial LLM Router Agent endpoint with mock and Ollama router providers, a Smart Chat endpoint as a future unified Agent entry point preview, a Smart Chat SSE streaming endpoint, route validation metadata for Router and Smart Chat paths, and a RAG chunk pipeline debug endpoint for vector DB preparation, and a deterministic RAG vector-search debug endpoint.
 
 ## Current Status
 
 ```text
-Day1-Day21 completed.
-Current stage: RAG chunk pipeline and chunks debug endpoint completed.
-Local pytest: 48 passed, 1 warning.
+Day1-Day22 completed.
+Current stage: Deterministic RAG vector-search debug endpoint completed.
+Local pytest: 51 passed, 1 warning.
 GitHub Actions CI: green.
-Next milestone: Day22 embedding-based retrieval or vector DB integration.
+Next milestone: Day23 hybrid retrieval or Agentic RAG graph preparation.
 ```
 
 ## Features
@@ -30,6 +30,7 @@ Current features:
 * `/rag/search` lightweight local RAG search endpoint
 * `/rag/search-debug` RAG search explainability endpoint
 * `/rag/chunks-debug` RAG chunk pipeline debug endpoint
+* `/rag/vector-search-debug` deterministic RAG vector-search debug endpoint
 * `/agent/router-chat` deterministic Router Agent chat endpoint
 * `/agent/router-debug` deterministic Router Agent debug endpoint
 * `/agent/router-stream` deterministic Router Agent SSE streaming endpoint
@@ -47,6 +48,9 @@ Current features:
 * RAG debug metadata: `normalized_query`, `rank`, `source`, `score`, `preview`, `matched_terms`, and `content_length`
 * RAG chunk metadata: `chunk_id`, `source`, `index`, `content`, `preview`, and `content_length`
 * Markdown document loading and blank-line based chunk splitting
+* Deterministic hashed embedding for CI-safe vector-search preview
+* Cosine similarity based chunk ranking
+* Vector search debug metadata: `rank`, `chunk_id`, `source`, `score`, `matched_terms`, `preview`, and `content_length`
 * Local Markdown knowledge base under `knowledge/`
 * UTF-8 encoded knowledge base files for CI compatibility
 * Deterministic Router Agent route classification
@@ -112,6 +116,7 @@ Not implemented yet:
 * Smart Chat unified entry point preview
 * Route validation metadata layer
 * RAG chunk pipeline for vector DB preparation
+* Deterministic RAG vector-search debug layer
 * pytest
 * GitHub Actions
 * Server-Sent Events
@@ -150,7 +155,8 @@ agent-api/
 │   ├── DAY18.md
 │   ├── DAY19.md
 │   ├── DAY20.md
-│   └── DAY21.md
+│   ├── DAY21.md
+│   └── DAY22.md
 ├── knowledge/
 │   └── agent_basics.md
 ├── data/
@@ -176,6 +182,7 @@ agent-api/
 │       │   ├── __init__.py
 │       │   ├── explain.py
 │       │   ├── chunking.py
+│       │   ├── vector_index.py
 │       │   └── retriever.py
 │       ├── llm/
 │       │   ├── base.py
@@ -782,6 +789,74 @@ max_chars
 ```
 
 Day21 intentionally does not add embeddings or a vector database yet. It prepares the document loading and chunk metadata layer that a vector store will later persist and retrieve.
+
+## Current Deterministic Vector Search Architecture
+
+Day22 added a CI-safe deterministic vector-search debug layer.
+
+```text
+query
+  ↓
+build_deterministic_embedding()
+  ↓
+load_knowledge_chunks()
+  ↓
+chunk deterministic embeddings
+  ↓
+cosine_similarity()
+  ↓
+ranked vector-search results
+  ↓
+/rag/vector-search-debug
+```
+
+Current vector search file:
+
+```text
+src/app/rag/vector_index.py
+```
+
+Current vector-search debug endpoint:
+
+```text
+POST /rag/vector-search-debug
+```
+
+The implementation uses deterministic hashed embeddings instead of a real embedding model.
+
+This is intentional:
+
+```text
+No external embedding service.
+No vector database dependency.
+Stable pytest and GitHub Actions CI.
+Same API shape can later be backed by real embeddings and a vector store.
+```
+
+Supported request fields:
+
+```text
+query
+top_k
+source_filter
+max_chars
+embedding_dim
+```
+
+Returned metadata:
+
+```text
+rank
+chunk_id
+source
+index
+score
+content
+preview
+matched_terms
+content_length
+trace_id
+```
 
 ## Request Tracing
 
@@ -1780,6 +1855,50 @@ Expected response structure:
 }
 ```
 
+### RAG Vector Search Debug
+
+`/rag/vector-search-debug` previews vector-search behavior with deterministic hashed embeddings.
+
+```bash
+curl -s -X POST http://localhost:8000/rag/vector-search-debug \
+  -H "Content-Type: application/json" \
+  -H "x-trace-id: day22-rag-vector-search-debug-001" \
+  -d '{"query":"RAG 是什么？","top_k":2,"source_filter":"agent_basics","max_chars":300,"embedding_dim":64}' \
+  | python -m json.tool --no-ensure-ascii
+```
+
+Expected response includes:
+
+```text
+"query": "RAG 是什么？"
+"top_k": 2
+"source_filter": "agent_basics"
+"embedding_dim": 64
+"total_chunks": 2
+"chunk_id": "knowledge/agent_basics.md::chunk-2"
+"score": 0.376889
+"matched_terms": ["rag", "是"]
+"trace_id": "day22-rag-vector-search-debug-001"
+```
+
+LangGraph example:
+
+```bash
+curl -s -X POST http://localhost:8000/rag/vector-search-debug \
+  -H "Content-Type: application/json" \
+  -H "x-trace-id: day22-rag-vector-search-debug-langgraph-001" \
+  -d '{"query":"LangGraph 是什么？","top_k":2,"source_filter":"agent_basics","max_chars":300,"embedding_dim":64}' \
+  | python -m json.tool --no-ensure-ascii
+```
+
+Expected response includes:
+
+```text
+"source": "knowledge/agent_basics.md"
+"matched_terms": ["langgraph", "是"]
+"trace_id": "day22-rag-vector-search-debug-langgraph-001"
+```
+
 ## Tests
 
 Run tests:
@@ -1791,7 +1910,7 @@ pytest -q
 Current result:
 
 ```text
-48 passed, 1 warning
+51 passed, 1 warning
 ```
 
 Current test coverage includes:
@@ -1845,6 +1964,9 @@ Current test coverage includes:
 * `split_text_into_chunks()` blank-line based chunk splitting
 * `debug_knowledge_chunks()` loads `knowledge/agent_basics.md`
 * `/rag/chunks-debug` returns chunk metadata and trace id
+* `build_deterministic_embedding()` stable embedding behavior
+* `vector_search_knowledge()` ranked chunk results
+* `/rag/vector-search-debug` vector-search metadata and trace id
 
 Current test organization:
 
@@ -1861,6 +1983,7 @@ tests/
 ├── test_rag.py
 ├── test_rag_debug.py
 ├── test_rag_chunks.py
+├── test_rag_vector_search.py
 ├── test_router_agent.py
 ├── test_router_delegation.py
 ├── test_router_stream.py
@@ -1871,7 +1994,7 @@ tests/
 └── test_rag_chunks.py
 ```
 
-Ollama provider, real LLM tool calling, `/agent/llm-stream`, `/agent/llm-router-chat` with `router_provider="ollama"`, `/agent/smart-chat` with `router_provider="ollama"`, and `/agent/smart-stream` with `router_provider="ollama"` are manually tested locally and are not covered by CI, because CI should not depend on a local Ollama service. The deterministic `/agent/stream`, `/rag/search`, `/rag/search-debug`, `/rag/chunks-debug`, deterministic RAG tool path, Router Agent path, Router delegation memory path, Router stream path, `/agent/llm-router-chat` mock path, `/agent/smart-chat` deterministic/mock paths, `/agent/smart-stream` deterministic/mock paths, route validation paths, and chunk pipeline paths are covered by CI.
+Ollama provider, real LLM tool calling, `/agent/llm-stream`, `/agent/llm-router-chat` with `router_provider="ollama"`, `/agent/smart-chat` with `router_provider="ollama"`, and `/agent/smart-stream` with `router_provider="ollama"` are manually tested locally and are not covered by CI, because CI should not depend on a local Ollama service. The deterministic `/agent/stream`, `/rag/search`, `/rag/search-debug`, `/rag/chunks-debug`, `/rag/vector-search-debug`, deterministic RAG tool path, Router Agent path, Router delegation memory path, Router stream path, `/agent/llm-router-chat` mock path, `/agent/smart-chat` deterministic/mock paths, `/agent/smart-stream` deterministic/mock paths, route validation paths, chunk pipeline paths, and deterministic vector-search paths are covered by CI.
 
 ## CI
 
@@ -1960,8 +2083,8 @@ mv /tmp/agent_basics.md knowledge/agent_basics.md
 
 Next milestones:
 
-* Day22: Add embedding-based retrieval or vector DB integration
-* Day23+: Add vector database based RAG search path
+* Day23: Add hybrid retrieval or Agentic RAG graph preparation
+* Day24+: Add real embedding or vector database backed RAG
 * Later: Add vector database based RAG
 * Later: Add GraphRAG and Neo4j integration
 * Later: Add Multi-Agent Supervisor workflow
