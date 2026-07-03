@@ -5,9 +5,10 @@ from src.app.rag.retriever import search_knowledge
 from src.app.rag.explain import explain_search_knowledge
 from src.app.rag.chunking import debug_knowledge_chunks
 from src.app.rag.vector_index import vector_search_knowledge
+from src.app.rag.hybrid import hybrid_search_knowledge
 from src.app.schemas.rag import RAGReaderRequest, RAGSearchResponse, RAGSearchResult, RagSearchDebugResponse, \
     RagSearchDebugRequest, RagChunksDebugResponse, RagChunksDebugRequest, RagVectorSearchDebugResponse, \
-    RagVectorSearchDebugRequest
+    RagVectorSearchDebugRequest, RagHybridSearchDebugResponse, RagHybridSearchDebugRequest
 
 router = APIRouter()
 
@@ -72,4 +73,23 @@ def rag_vector_search_debug(
         trace_id=get_trace_id(),
     )
 
+
+@router.post("/hybrid-search-debug", response_model=RagHybridSearchDebugResponse)
+def rag_hybrid_search_debug(
+    request: RagHybridSearchDebugRequest,
+) -> RagHybridSearchDebugResponse:
+    result = hybrid_search_knowledge(
+        query=request.query,
+        top_k=request.top_k,
+        source_filter=request.source_filter,
+        max_chars=request.max_chars,
+        embedding_dim=request.embedding_dim,
+        keyword_weight=request.keyword_weight,
+        vector_weight=request.vector_weight,
+    )
+
+    return RagHybridSearchDebugResponse(
+        **result,
+        trace_id=get_trace_id(),
+    )
 
