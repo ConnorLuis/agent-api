@@ -13,11 +13,11 @@ Project 2 has officially started and is now the main development line.
 Current `agent-api` status:
 
 ```text
-Day1-Day22 completed.
-Day22 completed: deterministic RAG vector-search debug endpoint.
-Local pytest: 51 passed, 1 warning.
+Day1-Day23 completed.
+Day23 completed: Hybrid Retrieval Debug endpoint.
+Local pytest: 54 passed, 1 warning.
 GitHub Actions CI: green.
-Next: Day23 hybrid retrieval or Agentic RAG graph preparation.
+Next: Day24 Agentic RAG graph preparation or RAG evaluation.
 ```
 
 ## Project Goal
@@ -104,6 +104,8 @@ Current:
 - Deterministic RAG vector-search debug endpoint
 - Deterministic hashed embedding preview
 - Cosine similarity based chunk ranking
+- Hybrid Retrieval Debug endpoint
+- Hybrid retrieval scoring with keyword_score, vector_score, and hybrid_score
 - pytest
 - GitHub Actions CI
 
@@ -155,7 +157,8 @@ agent-api/
 │   ├── DAY19.md
 │   ├── DAY20.md
 │   ├── DAY21.md
-│   └── DAY22.md
+│   ├── DAY22.md
+│   └── DAY23.md
 ├── knowledge/
 │   └── agent_basics.md
 ├── data/
@@ -182,6 +185,7 @@ agent-api/
 │       │   ├── explain.py
 │       │   ├── chunking.py
 │       │   ├── vector_index.py
+│       │   ├── hybrid.py
 │       │   └── retriever.py
 │       ├── llm/
 │       │   ├── base.py
@@ -216,6 +220,7 @@ agent-api/
     ├── test_rag_debug.py
     ├── test_rag_chunks.py
     ├── test_rag_vector_search.py
+    ├── test_rag_hybrid_search.py
     ├── test_router_agent.py
     ├── test_router_delegation.py
     ├── test_router_stream.py
@@ -339,6 +344,7 @@ POST /rag/search
 POST /rag/search-debug
 POST /rag/chunks-debug
 POST /rag/vector-search-debug
+POST /rag/hybrid-search-debug
 ```
 
 ### Router Agent
@@ -1282,6 +1288,88 @@ tests/test_rag_vector_search.py
 
 ---
 
+## Current Hybrid Retrieval Strategy
+
+Day23 added a hybrid retrieval debug layer.
+
+Current hybrid retrieval file:
+
+```text
+src/app/rag/hybrid.py
+```
+
+Current hybrid retrieval debug endpoint:
+
+```text
+POST /rag/hybrid-search-debug
+```
+
+Current function:
+
+```text
+hybrid_search_knowledge()
+```
+
+It reuses:
+
+```text
+load_knowledge_chunks()
+build_deterministic_embedding()
+cosine_similarity()
+```
+
+Request fields:
+
+```text
+query
+top_k
+source_filter
+max_chars
+embedding_dim
+keyword_weight
+vector_weight
+```
+
+Returned metadata:
+
+```text
+query
+top_k
+source_filter
+max_chars
+embedding_dim
+keyword_weight
+vector_weight
+total_chunks
+rank
+chunk_id
+source
+index
+hybrid_score
+keyword_score
+vector_score
+content
+preview
+matched_terms
+content_length
+trace_id
+```
+
+Important:
+
+```text
+Day23 combines keyword retrieval signal and deterministic vector retrieval signal.
+It exposes score components for retrieval debugging and future reranking or evaluation.
+```
+
+New Day23 test file:
+
+```text
+tests/test_rag_hybrid_search.py
+```
+
+---
+
 ## Day1 - Project Initialization
 
 ### Completed
@@ -1857,7 +1945,7 @@ Observed tool call:
 ### Test Result
 
 ```text
-51 passed, 1 warning
+54 passed, 1 warning
 ```
 
 ### CI Result
@@ -1916,7 +2004,7 @@ POST /agent/router-debug
 ### Test Result
 
 ```text
-51 passed, 1 warning
+54 passed, 1 warning
 ```
 
 ### CI Result
@@ -1985,7 +2073,7 @@ Response:
 ### Test Result
 
 ```text
-51 passed, 1 warning
+54 passed, 1 warning
 ```
 
 ### CI Result
@@ -2043,7 +2131,7 @@ metadata -> route -> answer_chunk -> final -> done
 ### Test Result
 
 ```text
-51 passed, 1 warning
+54 passed, 1 warning
 ```
 
 ### CI Result
@@ -2105,7 +2193,7 @@ tests/test_llm_router.py
 ### Test Result
 
 ```text
-51 passed, 1 warning
+54 passed, 1 warning
 ```
 
 ### CI Result
@@ -2166,7 +2254,7 @@ tests/test_smart_chat.py
 ### Test Result
 
 ```text
-51 passed, 1 warning
+54 passed, 1 warning
 ```
 
 ### CI Result
@@ -2232,7 +2320,7 @@ tests/test_rag_debug.py
 ### Test Result
 
 ```text
-51 passed, 1 warning
+54 passed, 1 warning
 ```
 
 ### CI Result
@@ -2285,7 +2373,7 @@ tests/test_smart_stream.py
 ### Test Result
 
 ```text
-51 passed, 1 warning
+54 passed, 1 warning
 ```
 
 ### CI Result
@@ -2338,7 +2426,7 @@ POST /agent/smart-stream
 ### Test Result
 
 ```text
-51 passed, 1 warning
+54 passed, 1 warning
 ```
 
 ### CI Result
@@ -2393,7 +2481,7 @@ tests/test_rag_chunks.py
 ### Test Result
 
 ```text
-51 passed, 1 warning
+54 passed, 1 warning
 ```
 
 ### CI Result
@@ -2450,7 +2538,7 @@ tests/test_rag_vector_search.py
 ### Test Result
 
 ```text
-51 passed, 1 warning
+54 passed, 1 warning
 ```
 
 ### CI Result
@@ -2470,6 +2558,68 @@ GitHub Actions CI: green
 Day22 is a vector-search preview layer, not a production semantic embedding layer.
 
 It keeps CI deterministic while preparing the API, schemas, and tests for future real embedding or vector DB integration.
+
+---
+
+## Day23 - Hybrid Retrieval Debug
+
+### Completed
+
+- Added `src/app/rag/hybrid.py`
+- Added `hybrid_search_knowledge()`
+- Added keyword scoring
+- Added vector scoring reuse
+- Added weighted `hybrid_score`
+- Added `/rag/hybrid-search-debug`
+- Reused Day21 `load_knowledge_chunks()`
+- Reused Day22 `build_deterministic_embedding()`
+- Reused Day22 `cosine_similarity()`
+- Added `RagHybridSearchDebugRequest`
+- Added `RagHybridSearchDebugResult`
+- Added `RagHybridSearchDebugResponse`
+- Supported `top_k`
+- Supported `source_filter`
+- Supported `max_chars`
+- Supported `embedding_dim`
+- Supported `keyword_weight`
+- Supported `vector_weight`
+- Returned `rank`, `chunk_id`, `source`, `index`, `hybrid_score`, `keyword_score`, `vector_score`, `content`, `preview`, `matched_terms`, and `content_length`
+- Preserved `trace_id`
+- Added `tests/test_rag_hybrid_search.py`
+- Expanded pytest from 51 tests to 54 tests
+- Verified local pytest
+- Git push succeeded
+
+### New Endpoint
+
+```text
+POST /rag/hybrid-search-debug
+```
+
+### New Files
+
+```text
+src/app/rag/hybrid.py
+tests/test_rag_hybrid_search.py
+```
+
+### Test Result
+
+```text
+54 passed, 1 warning
+```
+
+### Commit
+
+```text
+b3a8f0c add rag hybrid search debug
+```
+
+### Notes
+
+Day23 makes retrieval more realistic by combining keyword and vector retrieval signals.
+
+This prepares the project for future reranking, RAG evaluation, and Agentic RAG.
 
 ---
 
@@ -2529,7 +2679,7 @@ Agent response
 Local pytest currently shows:
 
 ```text
-51 passed, 1 warning
+54 passed, 1 warning
 ```
 
 The warning is:
@@ -2577,8 +2727,8 @@ It has a typo: `langraph` should be `langgraph`. This does not affect code and d
 Recommended next route:
 
 ```text
-Day23: hybrid retrieval or Agentic RAG graph preparation
-Day24+: real embedding or vector database backed RAG
+Day24: Agentic RAG graph preparation or RAG evaluation
+Day25+: real embedding or vector database backed RAG
 Later: vector DB based RAG
 Later: GraphRAG + Neo4j + Multi-Agent Supervisor
 ```
@@ -2704,7 +2854,16 @@ Completed:
 - [x] Day22 embedding_dim support
 - [x] Day22 RAG vector-search tests
 - [x] Day22 GitHub Actions CI
+- [x] Day23 Hybrid Retrieval Debug
+- [x] Day23 `/rag/hybrid-search-debug`
+- [x] Day23 keyword_score
+- [x] Day23 vector_score
+- [x] Day23 hybrid_score
+- [x] Day23 keyword_weight support
+- [x] Day23 vector_weight support
+- [x] Day23 hybrid retrieval tests
+- [x] Day23 Git push
 
 Next:
 
-- [ ] Day23 hybrid retrieval or Agentic RAG graph preparation
+- [ ] Day24 Agentic RAG graph preparation or RAG evaluation
