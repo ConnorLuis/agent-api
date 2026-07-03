@@ -6,9 +6,11 @@ from src.app.rag.explain import explain_search_knowledge
 from src.app.rag.chunking import debug_knowledge_chunks
 from src.app.rag.vector_index import vector_search_knowledge
 from src.app.rag.hybrid import hybrid_search_knowledge
+from src.app.rag.agentic_graph import invoke_agentic_rag
 from src.app.schemas.rag import RAGReaderRequest, RAGSearchResponse, RAGSearchResult, RagSearchDebugResponse, \
     RagSearchDebugRequest, RagChunksDebugResponse, RagChunksDebugRequest, RagVectorSearchDebugResponse, \
-    RagVectorSearchDebugRequest, RagHybridSearchDebugResponse, RagHybridSearchDebugRequest
+    RagVectorSearchDebugRequest, RagHybridSearchDebugResponse, RagHybridSearchDebugRequest, RagAgenticDebugResponse, \
+    RagAgenticDebugRequest
 
 router = APIRouter()
 
@@ -93,3 +95,21 @@ def rag_hybrid_search_debug(
         trace_id=get_trace_id(),
     )
 
+@router.post("/agentic-debug", response_model=RagAgenticDebugResponse)
+def rag_agentic_debug(
+    request: RagAgenticDebugRequest,
+) -> RagAgenticDebugResponse:
+    result = invoke_agentic_rag(
+        query=request.query,
+        top_k=request.top_k,
+        source_filter=request.source_filter,
+        max_chars=request.max_chars,
+        embedding_dim=request.embedding_dim,
+        keyword_weight=request.keyword_weight,
+        vector_weight=request.vector_weight,
+    )
+
+    return RagAgenticDebugResponse(
+        **result,
+        trace_id=get_trace_id(),
+    )

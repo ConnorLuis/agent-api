@@ -129,3 +129,39 @@ class RagHybridSearchDebugResponse(BaseModel):
     total_chunks: int
     results: list[RagHybridSearchDebugResult]
     trace_id: str | None = None
+
+
+class RagAgenticDebugRequest(BaseModel):
+    query: str
+    top_k: int = 3
+    source_filter: str | None = None
+    max_chars: int = 500
+    embedding_dim: int = 64
+    keyword_weight: float = 0.6
+    vector_weight: float = 0.4
+
+
+class RagAgenticDebugResult(BaseModel):
+    rank: int
+    chunk_id: str
+    source: str
+    index: int
+    hybrid_score: float
+    keyword_score: float
+    vector_score: float
+    content: str
+    preview: str
+    matched_terms: list[str]
+    content_length: int
+
+
+class RagAgenticDebugResponse(BaseModel):
+    query: str
+    rewritten_query: str
+    retrieval_needed: bool
+    relevance_score: float
+    citations: list[str]
+    retrieval_results: list[RagAgenticDebugResult]
+    final_answer: str
+    steps: list[str]
+    trace_id: str | None = None
