@@ -13,12 +13,12 @@ Project 2 has officially started and is now the main development line.
 Current `agent-api` status:
 
 ```text
-Day1-Day27 completed.
-Day27 completed: Agentic RAG Streaming.
-Local pytest: 66 passed, 1 warning.
+Day1-Day28 completed.
+Day28 completed: Agentic RAG Answer Verification.
+Local pytest: 69 passed, 1 warning.
 Git push: success.
 GitHub Actions CI: green.
-Next: Day28 answer verification, real embedding/vector DB preparation, or richer observability.
+Next: Day29 real embedding/vector DB preparation, richer observability, or streamed verification.
 ```
 
 ## Project Goal
@@ -115,6 +115,8 @@ Current:
 - SQLite-backed trace events for Agentic RAG and RAG Evaluation
 - Agentic RAG Streaming endpoint
 - Agentic RAG SSE events for retrieval and direct paths
+- Agentic RAG Answer Verification endpoint
+- Deterministic answer support, citation, grounding-term, and risk-flag checks
 - pytest
 - GitHub Actions CI
 
@@ -173,7 +175,8 @@ agent-api/
 │   ├── DAY24.md
 │   ├── DAY25.md
 │   ├── DAY26.md
-│   └── DAY27.md
+│   ├── DAY27.md
+│   └── DAY28.md
 ├── knowledge/
 │   └── agent_basics.md
 ├── data/
@@ -211,6 +214,7 @@ agent-api/
 │       │   ├── hybrid.py
 │       │   ├── agentic_graph.py
 │       │   ├── agentic_streaming.py
+│       │   ├── answer_verifier.py
 │       │   └── retriever.py
 │       ├── llm/
 │       │   ├── base.py
@@ -250,6 +254,7 @@ agent-api/
     ├── test_rag_eval.py
     ├── test_observability.py
     ├── test_rag_agentic_stream.py
+    ├── test_rag_answer_verify.py
     ├── test_router_agent.py
     ├── test_router_delegation.py
     ├── test_router_stream.py
@@ -376,6 +381,7 @@ POST /rag/vector-search-debug
 POST /rag/hybrid-search-debug
 POST /rag/agentic-debug
 POST /rag/agentic-stream
+POST /rag/answer-verify-debug
 POST /rag/eval-debug
 GET /observability/traces/{trace_id}
 GET /observability/traces
@@ -1572,6 +1578,92 @@ New Day27 test file:
 
 ```text
 tests/test_rag_agentic_stream.py
+```
+
+---
+
+## Current Agentic RAG Answer Verification Strategy
+
+Day28 added a deterministic answer verification layer.
+
+Current verification file:
+
+```text
+src/app/rag/answer_verifier.py
+```
+
+Current endpoint:
+
+```text
+POST /rag/answer-verify-debug
+```
+
+Current function:
+
+```text
+verify_agentic_rag_answer()
+```
+
+It reuses:
+
+```text
+invoke_agentic_rag()
+record_trace_event()
+```
+
+Verification metadata:
+
+```text
+verification_mode
+answer_supported
+verification_pass
+confidence
+answer_has_citation
+citation_coverage_pass
+cited_in_answer
+unsupported_citations
+grounding_terms
+matched_grounding_terms
+risk_flags
+```
+
+Retrieval verification checks:
+
+```text
+citations exist
+citations come from retrieval_results
+answer contains a citation/source marker
+answer contains matched grounding terms
+relevance_score is positive
+risk_flags is empty
+```
+
+Direct verification checks:
+
+```text
+citations is empty
+retrieval_results is empty
+relevance_score is 0.0
+risk_flags is empty
+```
+
+Observability event:
+
+```text
+rag_answer_verify_debug
+```
+
+Important:
+
+```text
+Day28 adds a post-answer support check to Agentic RAG.
+It helps detect unsupported citations, missing citations, low relevance, and missing grounding terms.
+```
+
+New Day28 test file:
+
+```text
+tests/test_rag_answer_verify.py
 ```
 
 ---
@@ -3065,7 +3157,7 @@ rag_eval_debug
 ### Test Result
 
 ```text
-66 passed, 1 warning
+69 passed, 1 warning
 ```
 
 ### CI Result
@@ -3131,7 +3223,7 @@ tests/test_rag_agentic_stream.py
 ### Test Result
 
 ```text
-66 passed, 1 warning
+69 passed, 1 warning
 ```
 
 ### CI Result
@@ -3149,6 +3241,73 @@ GitHub Actions CI: green
 ### Notes
 
 Day27 adds real-time SSE output for Agentic RAG and stores stream execution summaries in the observability trace store.
+
+---
+
+## Day28 - Agentic RAG Answer Verification
+
+### Completed
+
+- Added `src/app/rag/answer_verifier.py`
+- Added `verify_agentic_rag_answer()`
+- Added `/rag/answer-verify-debug`
+- Reused Day24 `invoke_agentic_rag()`
+- Reused Day26 `record_trace_event()`
+- Added retrieval path verification
+- Added direct path verification
+- Returned `verification_mode`
+- Returned `answer_supported`
+- Returned `verification_pass`
+- Returned `confidence`
+- Returned `answer_has_citation`
+- Returned `citation_coverage_pass`
+- Returned `cited_in_answer`
+- Returned `unsupported_citations`
+- Returned `grounding_terms`
+- Returned `matched_grounding_terms`
+- Returned `risk_flags`
+- Added `rag_answer_verify_debug` observability event
+- Verified verification trace lookup through `/observability/traces/{trace_id}`
+- Added `tests/test_rag_answer_verify.py`
+- Expanded pytest from 66 tests to 69 tests
+- Verified local pytest
+- Verified GitHub Actions CI
+- Git push succeeded
+
+### New Endpoint
+
+```text
+POST /rag/answer-verify-debug
+```
+
+### New Files
+
+```text
+src/app/rag/answer_verifier.py
+tests/test_rag_answer_verify.py
+```
+
+### Test Result
+
+```text
+69 passed, 1 warning
+```
+
+### CI Result
+
+```text
+GitHub Actions CI: green
+```
+
+### Commit
+
+```text
+25b07cd add agentic rag answer verification
+```
+
+### Notes
+
+Day28 adds deterministic post-answer verification for Agentic RAG.
 
 ---
 
@@ -3256,8 +3415,8 @@ It has a typo: `langraph` should be `langgraph`. This does not affect code and d
 Recommended next route:
 
 ```text
-Day28: answer verification, real embedding/vector DB preparation, or richer observability
-Day29+: real embedding or vector database backed RAG
+Day29: real embedding/vector DB preparation, richer observability, or streamed verification
+Day30+: real embedding or vector database backed RAG
 Later: vector DB based RAG
 Later: GraphRAG + Neo4j + Multi-Agent Supervisor
 ```
@@ -3445,4 +3604,21 @@ Next:
 
 Next:
 
-- [ ] Day28 answer verification, real embedding/vector DB preparation, or richer observability
+- [x] Day28 Agentic RAG Answer Verification
+- [x] Day28 `/rag/answer-verify-debug`
+- [x] Day28 `verify_agentic_rag_answer()`
+- [x] Day28 retrieval path verification
+- [x] Day28 direct path verification
+- [x] Day28 `verification_pass`
+- [x] Day28 `confidence`
+- [x] Day28 citation coverage checks
+- [x] Day28 grounding terms checks
+- [x] Day28 `risk_flags`
+- [x] Day28 `rag_answer_verify_debug` trace event
+- [x] Day28 answer verification tests
+- [x] Day28 GitHub Actions CI
+- [x] Day28 Git push
+
+Next:
+
+- [ ] Day29 real embedding/vector DB preparation, richer observability, or streamed verification

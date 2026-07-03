@@ -2,17 +2,17 @@
 
 `agent-api` is a FastAPI + LangGraph backend project for building an Agent service step by step.
 
-This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent, SQLite-based short-term memory, graph debug output, request tracing, LLM provider abstraction, a real Ollama-backed LLM Tool Calling Agent path, SSE streaming endpoints, a lightweight local RAG search tool, a RAG search-debug endpoint with explainability metadata, a deterministic Router Agent that delegates calculator and RAG routes to the existing Agent graph, a Router Agent SSE streaming endpoint, an initial LLM Router Agent endpoint with mock and Ollama router providers, a Smart Chat endpoint as a future unified Agent entry point preview, a Smart Chat SSE streaming endpoint, route validation metadata for Router and Smart Chat paths, and a RAG chunk pipeline debug endpoint for vector DB preparation, a deterministic RAG vector-search debug endpoint, a hybrid retrieval debug endpoint that combines keyword and vector signals, an Agentic RAG debug graph with query analysis, query rewriting, hybrid retrieval, relevance grading, citation-aware answers, and an Agentic RAG SSE streaming endpoint.
+This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent, SQLite-based short-term memory, graph debug output, request tracing, LLM provider abstraction, a real Ollama-backed LLM Tool Calling Agent path, SSE streaming endpoints, a lightweight local RAG search tool, a RAG search-debug endpoint with explainability metadata, a deterministic Router Agent that delegates calculator and RAG routes to the existing Agent graph, a Router Agent SSE streaming endpoint, an initial LLM Router Agent endpoint with mock and Ollama router providers, a Smart Chat endpoint as a future unified Agent entry point preview, a Smart Chat SSE streaming endpoint, route validation metadata for Router and Smart Chat paths, and a RAG chunk pipeline debug endpoint for vector DB preparation, a deterministic RAG vector-search debug endpoint, a hybrid retrieval debug endpoint that combines keyword and vector signals, an Agentic RAG debug graph with query analysis, query rewriting, hybrid retrieval, relevance grading, citation-aware answers, an Agentic RAG SSE streaming endpoint, and an Agentic RAG answer verification debug endpoint.
 
 ## Current Status
 
 ```text
-Day1-Day27 completed.
-Current stage: Agentic RAG Streaming completed.
-Local pytest: 66 passed, 1 warning.
+Day1-Day28 completed.
+Current stage: Agentic RAG Answer Verification completed.
+Local pytest: 69 passed, 1 warning.
 Git push: success.
 GitHub Actions CI: green.
-Next milestone: Day28 answer verification, real embedding/vector DB preparation, or richer observability.
+Next milestone: Day29 real embedding/vector DB preparation, richer observability, or streamed verification.
 ```
 
 ## Features
@@ -35,6 +35,7 @@ Current features:
 * `/rag/hybrid-search-debug` hybrid retrieval debug endpoint
 * `/rag/agentic-debug` Agentic RAG debug graph endpoint
 * `/rag/agentic-stream` Agentic RAG SSE streaming endpoint
+* `/rag/answer-verify-debug` Agentic RAG answer verification debug endpoint
 * `/rag/eval-debug` RAG evaluation debug endpoint
 * `/observability/traces/{trace_id}` trace event lookup endpoint
 * `/observability/traces` recent trace list endpoint
@@ -64,6 +65,8 @@ Current features:
 * Agentic RAG debug metadata: `rewritten_query`, `retrieval_needed`, `relevance_score`, `citations`, `retrieval_results`, `final_answer`, and `steps`
 * Agentic RAG stream events: `metadata`, `decision`, `rewrite`, `retrieval`, `relevance`, `citation`, `answer_chunk`, `final`, and `done`
 * Agentic RAG streaming observability event: `rag_agentic_stream`
+* Agentic RAG answer verification metadata: `verification_mode`, `answer_supported`, `verification_pass`, `confidence`, `answer_has_citation`, `citation_coverage_pass`, `cited_in_answer`, `unsupported_citations`, `grounding_terms`, `matched_grounding_terms`, and `risk_flags`
+* Agentic RAG answer verification observability event: `rag_answer_verify_debug`
 * Local Markdown knowledge base under `knowledge/`
 * UTF-8 encoded knowledge base files for CI compatibility
 * Deterministic Router Agent route classification
@@ -135,6 +138,7 @@ Not implemented yet:
 * RAG evaluation debug layer
 * Observability trace store
 * Agentic RAG streaming layer
+* Agentic RAG answer verification layer
 * pytest
 * GitHub Actions
 * Server-Sent Events
@@ -181,7 +185,8 @@ agent-api/
 │   ├── DAY24.md
 │   ├── DAY25.md
 │   ├── DAY26.md
-│   └── DAY27.md
+│   ├── DAY27.md
+│   └── DAY28.md
 ├── knowledge/
 │   └── agent_basics.md
 ├── data/
@@ -219,6 +224,7 @@ agent-api/
 │       │   ├── hybrid.py
 │       │   ├── agentic_graph.py
 │       │   ├── agentic_streaming.py
+│       │   ├── answer_verifier.py
 │       │   └── retriever.py
 │       ├── llm/
 │       │   ├── base.py
@@ -1227,6 +1233,87 @@ retrieval_results_count
 ```
 
 This turns Agentic RAG from a single JSON debug response into a real-time event stream suitable for frontend step-by-step display.
+
+## Current Agentic RAG Answer Verification Architecture
+
+Day28 added a deterministic answer verification layer for Agentic RAG.
+
+```text
+/rag/answer-verify-debug
+  ↓
+verify_agentic_rag_answer()
+  ↓
+invoke_agentic_rag()
+  ↓
+verification checks
+  ↓
+record_trace_event(event_type="rag_answer_verify_debug")
+  ↓
+verification result + trace_id
+```
+
+Current answer verification file:
+
+```text
+src/app/rag/answer_verifier.py
+```
+
+Current answer verification endpoint:
+
+```text
+POST /rag/answer-verify-debug
+```
+
+The verification path reuses:
+
+```text
+Day24: invoke_agentic_rag()
+Day26: record_trace_event()
+```
+
+Verification metadata:
+
+```text
+verification_mode
+answer_supported
+verification_pass
+confidence
+answer_has_citation
+citation_coverage_pass
+cited_in_answer
+unsupported_citations
+grounding_terms
+matched_grounding_terms
+risk_flags
+```
+
+Retrieval-path verification checks:
+
+```text
+citations exist
+citations come from retrieval_results
+answer includes a citation/source marker
+answer contains grounding terms from retrieved chunks
+relevance_score is positive
+risk_flags is empty
+```
+
+Direct-path verification checks:
+
+```text
+citations is empty
+retrieval_results is empty
+relevance_score is 0.0
+risk_flags is empty
+```
+
+The endpoint writes an observability event:
+
+```text
+event_type = rag_answer_verify_debug
+```
+
+This makes the Agentic RAG answer post-checkable and helps identify unsupported or weakly grounded answers.
 
 ## Request Tracing
 
@@ -2461,6 +2548,76 @@ payload.rewritten_query = LangGraph 是什么？
 payload.retrieval_results_count = 2
 ```
 
+### RAG Answer Verification Debug
+
+`/rag/answer-verify-debug` verifies whether an Agentic RAG answer is supported by retrieval results and citations.
+
+Retrieval path:
+
+```bash
+curl -s -X POST http://localhost:8000/rag/answer-verify-debug \
+  -H "Content-Type: application/json" \
+  -H "x-trace-id: day28-answer-verify-langgraph-001" \
+  -d '{"query":"请搜索知识库：LangGraph 是什么？","top_k":2,"source_filter":"agent_basics","max_chars":300,"embedding_dim":64,"keyword_weight":0.6,"vector_weight":0.4}' \
+  | python -m json.tool --no-ensure-ascii
+```
+
+Expected retrieval-path verification fields:
+
+```text
+retrieval_needed = true
+relevance_score = 0.383914
+verification_mode = retrieval
+answer_supported = true
+verification_pass = true
+confidence = high
+answer_has_citation = true
+citation_coverage_pass = true
+matched_grounding_terms = ["langgraph"]
+risk_flags = []
+trace_id = day28-answer-verify-langgraph-001
+```
+
+Trace lookup:
+
+```bash
+curl -s http://localhost:8000/observability/traces/day28-answer-verify-langgraph-001 \
+  | python -m json.tool --no-ensure-ascii
+```
+
+Expected trace fields:
+
+```text
+event_type = rag_answer_verify_debug
+payload.verification.verification_pass = true
+payload.verification.confidence = high
+payload.verification.matched_grounding_terms = ["langgraph"]
+```
+
+Direct path:
+
+```bash
+curl -s -X POST http://localhost:8000/rag/answer-verify-debug \
+  -H "Content-Type: application/json" \
+  -H "x-trace-id: day28-answer-verify-direct-001" \
+  -d '{"query":"你好，介绍一下你自己","top_k":2,"source_filter":"agent_basics"}' \
+  | python -m json.tool --no-ensure-ascii
+```
+
+Expected direct-path verification fields:
+
+```text
+retrieval_needed = false
+citations = []
+retrieval_results = []
+verification_mode = direct
+answer_supported = true
+verification_pass = true
+confidence = high
+risk_flags = []
+trace_id = day28-answer-verify-direct-001
+```
+
 ## Tests
 
 Run tests:
@@ -2472,7 +2629,7 @@ pytest -q
 Current result:
 
 ```text
-66 passed, 1 warning
+69 passed, 1 warning
 ```
 
 Current test coverage includes:
@@ -2557,6 +2714,7 @@ tests/
 ├── test_rag_eval.py
 ├── test_observability.py
 ├── test_rag_agentic_stream.py
+├── test_rag_answer_verify.py
 ├── test_router_agent.py
 ├── test_router_delegation.py
 ├── test_router_stream.py
@@ -2656,8 +2814,8 @@ mv /tmp/agent_basics.md knowledge/agent_basics.md
 
 Next milestones:
 
-* Day28: Add answer verification, real embedding/vector DB preparation, or richer observability
-* Day29+: Add real embedding or vector database backed RAG
+* Day29: Add real embedding/vector DB preparation, richer observability, or streamed verification
+* Day30+: Add real embedding or vector database backed RAG
 * Later: Add vector database based RAG
 * Later: Add GraphRAG and Neo4j integration
 * Later: Add Multi-Agent Supervisor workflow
