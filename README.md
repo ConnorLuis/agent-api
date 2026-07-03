@@ -7,12 +7,12 @@ This project is the second project in the AI internship preparation roadmap, fol
 ## Current Status
 
 ```text
-Day1-Day24 completed.
-Current stage: Agentic RAG Debug Graph completed.
-Local pytest: 57 passed, 1 warning.
+Day1-Day25 completed.
+Current stage: RAG Evaluation Debug completed.
+Local pytest: 60 passed, 1 warning.
 Git push: success.
-GitHub Actions CI: not shown in provided log.
-Next milestone: Day25 RAG evaluation or observability trace store.
+GitHub Actions CI: not shown in provided Day25 log.
+Next milestone: Day26 observability trace store or Agentic RAG streaming.
 ```
 
 ## Features
@@ -34,6 +34,7 @@ Current features:
 * `/rag/vector-search-debug`, `/rag/hybrid-search-debug` deterministic RAG vector-search debug endpoint
 * `/rag/hybrid-search-debug` hybrid retrieval debug endpoint
 * `/rag/agentic-debug` Agentic RAG debug graph endpoint
+* `/rag/eval-debug` RAG evaluation debug endpoint
 * `/agent/router-chat` deterministic Router Agent chat endpoint
 * `/agent/router-debug` deterministic Router Agent debug endpoint
 * `/agent/router-stream` deterministic Router Agent SSE streaming endpoint
@@ -126,6 +127,7 @@ Not implemented yet:
 * Deterministic RAG vector-search debug layer
 * Hybrid retrieval debug layer
 * Agentic RAG debug graph
+* RAG evaluation debug layer
 * pytest
 * GitHub Actions
 * Server-Sent Events
@@ -143,6 +145,8 @@ agent-api/
 ├── .github/
 │   └── workflows/
 │       └── ci.yml
+├── eval_cases/
+│   └── rag_agentic_eval.jsonl
 ├── docs/
 │   ├── DAY01.md
 │   ├── DAY02.md
@@ -167,7 +171,8 @@ agent-api/
 │   ├── DAY21.md
 │   ├── DAY22.md
 │   ├── DAY23.md
-│   └── DAY24.md
+│   ├── DAY24.md
+│   └── DAY25.md
 ├── knowledge/
 │   └── agent_basics.md
 ├── data/
@@ -189,6 +194,9 @@ agent-api/
 │       │   ├── routes_agent.py
 │       │   ├── routes_llm.py
 │       │   └── routes_rag.py
+│       ├── evaluation/
+│       │   ├── __init__.py
+│       │   └── rag_eval.py
 │       ├── rag/
 │       │   ├── __init__.py
 │       │   ├── explain.py
@@ -1011,6 +1019,73 @@ query_analyzer -> direct_answer
 ```
 
 This turns RAG from a single retrieval call into a controllable workflow that can decide whether to retrieve, rewrite the query, retrieve with hybrid search, grade relevance, and answer with citations.
+
+
+## Current RAG Evaluation Architecture
+
+Day25 added a RAG evaluation debug layer.
+
+```text
+eval_cases/rag_agentic_eval.jsonl
+  ↓
+load_rag_eval_cases()
+  ↓
+evaluate_rag_cases()
+  ↓
+invoke_agentic_rag()
+  ↓
+metrics + per-case results
+  ↓
+/rag/eval-debug
+```
+
+Current evaluation files:
+
+```text
+eval_cases/rag_agentic_eval.jsonl
+src/app/evaluation/rag_eval.py
+tests/test_rag_eval.py
+```
+
+Current endpoint:
+
+```text
+POST /rag/eval-debug
+```
+
+Current metrics:
+
+```text
+total_cases
+passed_cases
+pass_rate
+retrieval_decision_accuracy
+expected_terms_hit_rate
+citation_hit_rate
+average_relevance_score
+```
+
+Current local result:
+
+```text
+total_cases = 3
+passed_cases = 3
+pass_rate = 1.0
+retrieval_decision_accuracy = 1.0
+expected_terms_hit_rate = 1.0
+citation_hit_rate = 1.0
+average_relevance_score = 0.278223
+```
+
+### RAG Eval Debug
+
+```bash
+curl -s -X POST http://localhost:8000/rag/eval-debug \
+  -H "Content-Type: application/json" \
+  -H "x-trace-id: day25-rag-eval-debug-001" \
+  -d '{"source_filter":"agent_basics","max_chars":300,"embedding_dim":64,"keyword_weight":0.6,"vector_weight":0.4}' \
+  | python -m json.tool --no-ensure-ascii
+```
 
 ## Request Tracing
 
@@ -2138,7 +2213,7 @@ pytest -q
 Current result:
 
 ```text
-57 passed, 1 warning
+60 passed, 1 warning
 ```
 
 Current test coverage includes:
@@ -2220,6 +2295,7 @@ tests/
 ├── test_rag_vector_search.py
 ├── test_rag_hybrid_search.py
 ├── test_rag_agentic_debug.py
+├── test_rag_eval.py
 ├── test_router_agent.py
 ├── test_router_delegation.py
 ├── test_router_stream.py
@@ -2319,8 +2395,8 @@ mv /tmp/agent_basics.md knowledge/agent_basics.md
 
 Next milestones:
 
-* Day25: Add RAG evaluation or observability trace store
-* Day26+: Add real embedding or vector database backed RAG
+* Day26: Add observability trace store or Agentic RAG streaming
+* Day27+: Add real embedding or vector database backed RAG
 * Later: Add vector database based RAG
 * Later: Add GraphRAG and Neo4j integration
 * Later: Add Multi-Agent Supervisor workflow

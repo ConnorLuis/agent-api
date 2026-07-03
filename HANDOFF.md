@@ -13,11 +13,12 @@ Project 2 has officially started and is now the main development line.
 Current `agent-api` status:
 
 ```text
-Day1-Day23 completed.
-Day23 completed: Hybrid Retrieval Debug endpoint.
-Local pytest: 57 passed, 1 warning.
-GitHub Actions CI: green.
-Next: Day24 Agentic RAG graph preparation or RAG evaluation.
+Day1-Day25 completed.
+Day25 completed: RAG Evaluation Debug.
+Local pytest: 60 passed, 1 warning.
+Git push: success.
+GitHub Actions CI: not shown in provided Day25 log.
+Next: Day26 observability trace store or Agentic RAG streaming.
 ```
 
 ## Project Goal
@@ -108,6 +109,8 @@ Current:
 - Hybrid retrieval scoring with keyword_score, vector_score, and hybrid_score
 - Agentic RAG Debug Graph
 - Agentic RAG query analysis, query rewriting, hybrid retrieval, relevance grading, and citation-aware answering
+- RAG Evaluation Debug endpoint
+- RAG evaluation JSONL cases and metrics
 - pytest
 - GitHub Actions CI
 
@@ -137,6 +140,8 @@ agent-api/
 ├── .github/
 │   └── workflows/
 │       └── ci.yml
+├── eval_cases/
+│   └── rag_agentic_eval.jsonl
 ├── docs/
 │   ├── DAY01.md
 │   ├── DAY02.md
@@ -161,7 +166,8 @@ agent-api/
 │   ├── DAY21.md
 │   ├── DAY22.md
 │   ├── DAY23.md
-│   └── DAY24.md
+│   ├── DAY24.md
+│   └── DAY25.md
 ├── knowledge/
 │   └── agent_basics.md
 ├── data/
@@ -183,6 +189,9 @@ agent-api/
 │       │   ├── routes_agent.py
 │       │   ├── routes_llm.py
 │       │   └── routes_rag.py
+│       ├── evaluation/
+│       │   ├── __init__.py
+│       │   └── rag_eval.py
 │       ├── rag/
 │       │   ├── __init__.py
 │       │   ├── explain.py
@@ -226,6 +235,7 @@ agent-api/
     ├── test_rag_vector_search.py
     ├── test_rag_hybrid_search.py
     ├── test_rag_agentic_debug.py
+    ├── test_rag_eval.py
     ├── test_router_agent.py
     ├── test_router_delegation.py
     ├── test_router_stream.py
@@ -351,6 +361,7 @@ POST /rag/chunks-debug
 POST /rag/vector-search-debug
 POST /rag/hybrid-search-debug
 POST /rag/agentic-debug
+POST /rag/eval-debug
 ```
 
 ### Router Agent
@@ -2777,6 +2788,102 @@ Day24 upgrades RAG from retrieval endpoints to a debuggable Agentic RAG workflow
 
 The provided log does not show GitHub Actions CI status. Confirm CI separately from GitHub Actions.
 
+
+---
+
+## Current RAG Evaluation Strategy
+
+Day25 added a RAG evaluation debug layer.
+
+Current evaluation dataset:
+
+```text
+eval_cases/rag_agentic_eval.jsonl
+```
+
+Current evaluation module:
+
+```text
+src/app/evaluation/rag_eval.py
+```
+
+Current endpoint:
+
+```text
+POST /rag/eval-debug
+```
+
+Current functions:
+
+```text
+load_rag_eval_cases()
+evaluate_rag_cases()
+```
+
+It reuses:
+
+```text
+invoke_agentic_rag()
+```
+
+Current metrics:
+
+```text
+pass_rate
+retrieval_decision_accuracy
+expected_terms_hit_rate
+citation_hit_rate
+average_relevance_score
+```
+
+Current local evaluation result:
+
+```text
+total_cases = 3
+passed_cases = 3
+pass_rate = 1.0
+retrieval_decision_accuracy = 1.0
+expected_terms_hit_rate = 1.0
+citation_hit_rate = 1.0
+average_relevance_score = 0.278223
+```
+
+---
+
+## Day25 - RAG Evaluation Debug
+
+### Completed
+
+- Added `eval_cases/rag_agentic_eval.jsonl`
+- Added `src/app/evaluation/__init__.py`
+- Added `src/app/evaluation/rag_eval.py`
+- Added `load_rag_eval_cases()`
+- Added `evaluate_rag_cases()`
+- Added `/rag/eval-debug`
+- Reused Day24 `invoke_agentic_rag()`
+- Added RAG evaluation schemas
+- Evaluated retrieval decision accuracy
+- Evaluated expected terms hit rate
+- Evaluated citation hit rate
+- Evaluated pass rate
+- Returned per-case evaluation details
+- Added `tests/test_rag_eval.py`
+- Expanded pytest from 57 tests to 60 tests
+- Verified local pytest
+- Git push succeeded
+
+### Test Result
+
+```text
+60 passed, 1 warning
+```
+
+### Commit
+
+```text
+958b791 add rag evaluation debug
+```
+
 ---
 
 ## Known Issues / Notes
@@ -2883,8 +2990,8 @@ It has a typo: `langraph` should be `langgraph`. This does not affect code and d
 Recommended next route:
 
 ```text
-Day25: RAG evaluation or observability trace store
-Day26+: real embedding or vector database backed RAG
+Day26: observability trace store or Agentic RAG streaming
+Day27+: real embedding or vector database backed RAG
 Later: vector DB based RAG
 Later: GraphRAG + Neo4j + Multi-Agent Supervisor
 ```
@@ -3033,4 +3140,16 @@ Completed:
 
 Next:
 
-- [ ] Day25 RAG evaluation or observability trace store
+- [x] Day25 RAG Evaluation Debug
+- [x] Day25 `/rag/eval-debug`
+- [x] Day25 JSONL eval cases
+- [x] Day25 retrieval_decision_accuracy
+- [x] Day25 expected_terms_hit_rate
+- [x] Day25 citation_hit_rate
+- [x] Day25 pass_rate
+- [x] Day25 RAG eval tests
+- [x] Day25 Git push
+
+Next:
+
+- [ ] Day26 observability trace store or Agentic RAG streaming
