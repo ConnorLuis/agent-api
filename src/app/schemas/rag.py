@@ -214,3 +214,41 @@ class RagEvalDebugResponse(BaseModel):
     metrics: RagEvalMetrics
     cases: list[RagEvalCaseResult]
     trace_id: str | None = None
+
+
+
+class RagAnswerVerifyDebugRequest(BaseModel):
+    query: str
+    top_k: int = 3
+    source_filter: str | None = None
+    max_chars: int = 500
+    embedding_dim: int = 64
+    keyword_weight: float = 0.6
+    vector_weight: float = 0.4
+
+
+class RagAnswerVerificationResult(BaseModel):
+    verification_mode: str
+    answer_supported: bool
+    verification_pass: bool
+    confidence: str
+    answer_has_citation: bool
+    citation_coverage_pass: bool
+    cited_in_answer: list[str]
+    unsupported_citations: list[str]
+    grounding_terms: list[str]
+    matched_grounding_terms: list[str]
+    risk_flags: list[str]
+
+
+class RagAnswerVerifyDebugResponse(BaseModel):
+    query: str
+    rewritten_query: str
+    retrieval_needed: bool
+    relevance_score: float
+    citations: list[str]
+    retrieval_results: list[RagAgenticDebugResult]
+    final_answer: str
+    steps: list[str]
+    verification: RagAnswerVerificationResult
+    trace_id: str | None = None

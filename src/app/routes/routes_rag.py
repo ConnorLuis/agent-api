@@ -3,6 +3,7 @@ from starlette.responses import StreamingResponse
 
 from src.app.core.request_context import get_trace_id
 from src.app.rag.agentic_streaming import stream_agentic_rag_events
+from src.app.rag.answer_verifier import verify_agentic_rag_answer
 from src.app.rag.retriever import search_knowledge
 from src.app.rag.explain import explain_search_knowledge
 from src.app.rag.chunking import debug_knowledge_chunks
@@ -14,7 +15,8 @@ from src.app.evaluation.rag_eval import evaluate_rag_cases
 from src.app.schemas.rag import RAGReaderRequest, RAGSearchResponse, RAGSearchResult, RagSearchDebugResponse, \
     RagSearchDebugRequest, RagChunksDebugResponse, RagChunksDebugRequest, RagVectorSearchDebugResponse, \
     RagVectorSearchDebugRequest, RagHybridSearchDebugResponse, RagHybridSearchDebugRequest, RagAgenticDebugResponse, \
-    RagAgenticDebugRequest, RagEvalDebugResponse, RagEvalDebugRequest
+    RagAgenticDebugRequest, RagEvalDebugResponse, RagEvalDebugRequest, RagAnswerVerifyDebugResponse, \
+    RagAnswerVerifyDebugRequest
 
 router = APIRouter()
 
@@ -185,4 +187,40 @@ def rag_agentic_stream(
             vector_weight=request.vector_weight,
         ),
         media_type="text/event-stream",
+    )
+
+
+@router.post("/answer-verify-debug", response_model=RagAnswerVerifyDebugResponse)
+def rag_answer_verify_debug(
+    request: RagAnswerVerifyDebugRequest,
+) -> RagAnswerVerifyDebugResponse:
+    result = verify_agentic_rag_answer(
+        query=request.query,
+        top_k=request.top_k,
+        source_filter=request.source_filter,
+        max_chars=request.max_chars,
+        embedding_dim=request.embedding_dim,
+        keyword_weight=request.keyword_weight,
+        vector_weight=request.vector_weight,
+    )
+
+    trace_id = get_trace_id()
+
+    record_trace_event(
+        trace_id=trace_id,
+        event_type="rag_answer_verify_debug",
+        payload={
+            "query": result["query"],
+            "rewritten_query": result["rewritten_query"],
+            "retrieval_needed": result["retrieval_needed"],
+            "relevance_score": result["relevance_score"],
+            "citations": result["citations"],
+            "steps": result["steps"],
+            "verification": result["verification"],
+        },
+    )
+
+    return RagAnswerVerifyDebugResponse(
+        **result,
+        trace_id=trace_id,
     )
