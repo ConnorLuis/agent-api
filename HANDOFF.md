@@ -13,12 +13,12 @@ Project 2 has officially started and is now the main development line.
 Current `agent-api` status:
 
 ```text
-Day1-Day26 completed.
-Day26 completed: Observability Trace Store.
-Local pytest: 63 passed, 1 warning.
+Day1-Day27 completed.
+Day27 completed: Agentic RAG Streaming.
+Local pytest: 66 passed, 1 warning.
 Git push: success.
 GitHub Actions CI: green.
-Next: Day27 Agentic RAG streaming, answer verification, or real embedding/vector DB preparation.
+Next: Day28 answer verification, real embedding/vector DB preparation, or richer observability.
 ```
 
 ## Project Goal
@@ -113,6 +113,8 @@ Current:
 - RAG evaluation JSONL cases and metrics
 - Observability Trace Store
 - SQLite-backed trace events for Agentic RAG and RAG Evaluation
+- Agentic RAG Streaming endpoint
+- Agentic RAG SSE events for retrieval and direct paths
 - pytest
 - GitHub Actions CI
 
@@ -170,7 +172,8 @@ agent-api/
 │   ├── DAY23.md
 │   ├── DAY24.md
 │   ├── DAY25.md
-│   └── DAY26.md
+│   ├── DAY26.md
+│   └── DAY27.md
 ├── knowledge/
 │   └── agent_basics.md
 ├── data/
@@ -207,6 +210,7 @@ agent-api/
 │       │   ├── vector_index.py
 │       │   ├── hybrid.py
 │       │   ├── agentic_graph.py
+│       │   ├── agentic_streaming.py
 │       │   └── retriever.py
 │       ├── llm/
 │       │   ├── base.py
@@ -245,6 +249,7 @@ agent-api/
     ├── test_rag_agentic_debug.py
     ├── test_rag_eval.py
     ├── test_observability.py
+    ├── test_rag_agentic_stream.py
     ├── test_router_agent.py
     ├── test_router_delegation.py
     ├── test_router_stream.py
@@ -370,6 +375,7 @@ POST /rag/chunks-debug
 POST /rag/vector-search-debug
 POST /rag/hybrid-search-debug
 POST /rag/agentic-debug
+POST /rag/agentic-stream
 POST /rag/eval-debug
 GET /observability/traces/{trace_id}
 GET /observability/traces
@@ -1480,6 +1486,92 @@ New Day24 test file:
 
 ```text
 tests/test_rag_agentic_debug.py
+```
+
+---
+
+## Current Agentic RAG Streaming Strategy
+
+Day27 added an Agentic RAG SSE streaming endpoint.
+
+Current streaming file:
+
+```text
+src/app/rag/agentic_streaming.py
+```
+
+Current endpoint:
+
+```text
+POST /rag/agentic-stream
+```
+
+Current function:
+
+```text
+stream_agentic_rag_events()
+```
+
+It reuses:
+
+```text
+invoke_agentic_rag()
+record_trace_event()
+```
+
+Retrieval path event sequence:
+
+```text
+metadata
+decision
+rewrite
+retrieval
+relevance
+citation
+answer_chunk
+final
+done
+```
+
+Direct path event sequence:
+
+```text
+metadata
+decision
+answer_chunk
+final
+done
+```
+
+Stream observability event:
+
+```text
+rag_agentic_stream
+```
+
+Stored trace payload:
+
+```text
+query
+rewritten_query
+retrieval_needed
+relevance_score
+citations
+steps
+retrieval_results_count
+```
+
+Important:
+
+```text
+Day27 makes Agentic RAG suitable for real-time frontend display.
+It streams the same decision chain that /rag/agentic-debug returns as a single JSON payload.
+```
+
+New Day27 test file:
+
+```text
+tests/test_rag_agentic_stream.py
 ```
 
 ---
@@ -2973,7 +3065,7 @@ rag_eval_debug
 ### Test Result
 
 ```text
-63 passed, 1 warning
+66 passed, 1 warning
 ```
 
 ### CI Result
@@ -2987,6 +3079,76 @@ GitHub Actions CI: green
 ```text
 ce8fe35 add observability trace store
 ```
+
+---
+
+## Day27 - Agentic RAG Streaming
+
+### Completed
+
+- Added `src/app/rag/agentic_streaming.py`
+- Added `stream_agentic_rag_events()`
+- Added `/rag/agentic-stream`
+- Reused Day24 `invoke_agentic_rag()`
+- Reused Day26 `record_trace_event()`
+- Added retrieval path SSE event sequence:
+  - `metadata`
+  - `decision`
+  - `rewrite`
+  - `retrieval`
+  - `relevance`
+  - `citation`
+  - `answer_chunk`
+  - `final`
+  - `done`
+- Added direct path SSE event sequence:
+  - `metadata`
+  - `decision`
+  - `answer_chunk`
+  - `final`
+  - `done`
+- Added `rag_agentic_stream` observability event
+- Verified stream trace lookup through `/observability/traces/{trace_id}`
+- Added `tests/test_rag_agentic_stream.py`
+- Expanded pytest from 63 tests to 66 tests
+- Verified local pytest
+- Verified GitHub Actions CI
+- Git push succeeded
+
+### New Endpoint
+
+```text
+POST /rag/agentic-stream
+```
+
+### New Files
+
+```text
+src/app/rag/agentic_streaming.py
+tests/test_rag_agentic_stream.py
+```
+
+### Test Result
+
+```text
+66 passed, 1 warning
+```
+
+### CI Result
+
+```text
+GitHub Actions CI: green
+```
+
+### Commit
+
+```text
+1976482 add agentic rag streaming
+```
+
+### Notes
+
+Day27 adds real-time SSE output for Agentic RAG and stores stream execution summaries in the observability trace store.
 
 ---
 
@@ -3094,8 +3256,8 @@ It has a typo: `langraph` should be `langgraph`. This does not affect code and d
 Recommended next route:
 
 ```text
-Day27: Agentic RAG streaming, answer verification, or real embedding/vector DB preparation
-Day28+: real embedding or vector database backed RAG
+Day28: answer verification, real embedding/vector DB preparation, or richer observability
+Day29+: real embedding or vector database backed RAG
 Later: vector DB based RAG
 Later: GraphRAG + Neo4j + Multi-Agent Supervisor
 ```
@@ -3270,4 +3432,17 @@ Next:
 
 Next:
 
-- [ ] Day27 Agentic RAG streaming, answer verification, or real embedding/vector DB preparation
+- [x] Day27 Agentic RAG Streaming
+- [x] Day27 `/rag/agentic-stream`
+- [x] Day27 `stream_agentic_rag_events()`
+- [x] Day27 retrieval path SSE events
+- [x] Day27 direct path SSE events
+- [x] Day27 `rag_agentic_stream` trace event
+- [x] Day27 observability lookup for stream trace
+- [x] Day27 Agentic RAG stream tests
+- [x] Day27 GitHub Actions CI
+- [x] Day27 Git push
+
+Next:
+
+- [ ] Day28 answer verification, real embedding/vector DB preparation, or richer observability

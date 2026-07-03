@@ -2,17 +2,17 @@
 
 `agent-api` is a FastAPI + LangGraph backend project for building an Agent service step by step.
 
-This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent, SQLite-based short-term memory, graph debug output, request tracing, LLM provider abstraction, a real Ollama-backed LLM Tool Calling Agent path, SSE streaming endpoints, a lightweight local RAG search tool, a RAG search-debug endpoint with explainability metadata, a deterministic Router Agent that delegates calculator and RAG routes to the existing Agent graph, a Router Agent SSE streaming endpoint, an initial LLM Router Agent endpoint with mock and Ollama router providers, a Smart Chat endpoint as a future unified Agent entry point preview, a Smart Chat SSE streaming endpoint, route validation metadata for Router and Smart Chat paths, and a RAG chunk pipeline debug endpoint for vector DB preparation, a deterministic RAG vector-search debug endpoint, a hybrid retrieval debug endpoint that combines keyword and vector signals, and an Agentic RAG debug graph with query analysis, query rewriting, hybrid retrieval, relevance grading, and citation-aware answers.
+This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent, SQLite-based short-term memory, graph debug output, request tracing, LLM provider abstraction, a real Ollama-backed LLM Tool Calling Agent path, SSE streaming endpoints, a lightweight local RAG search tool, a RAG search-debug endpoint with explainability metadata, a deterministic Router Agent that delegates calculator and RAG routes to the existing Agent graph, a Router Agent SSE streaming endpoint, an initial LLM Router Agent endpoint with mock and Ollama router providers, a Smart Chat endpoint as a future unified Agent entry point preview, a Smart Chat SSE streaming endpoint, route validation metadata for Router and Smart Chat paths, and a RAG chunk pipeline debug endpoint for vector DB preparation, a deterministic RAG vector-search debug endpoint, a hybrid retrieval debug endpoint that combines keyword and vector signals, an Agentic RAG debug graph with query analysis, query rewriting, hybrid retrieval, relevance grading, citation-aware answers, and an Agentic RAG SSE streaming endpoint.
 
 ## Current Status
 
 ```text
-Day1-Day26 completed.
-Current stage: Observability Trace Store completed.
-Local pytest: 63 passed, 1 warning.
+Day1-Day27 completed.
+Current stage: Agentic RAG Streaming completed.
+Local pytest: 66 passed, 1 warning.
 Git push: success.
 GitHub Actions CI: green.
-Next milestone: Day27 Agentic RAG streaming, answer verification, or real embedding/vector DB preparation.
+Next milestone: Day28 answer verification, real embedding/vector DB preparation, or richer observability.
 ```
 
 ## Features
@@ -34,6 +34,7 @@ Current features:
 * `/rag/vector-search-debug`, `/rag/hybrid-search-debug` deterministic RAG vector-search debug endpoint
 * `/rag/hybrid-search-debug` hybrid retrieval debug endpoint
 * `/rag/agentic-debug` Agentic RAG debug graph endpoint
+* `/rag/agentic-stream` Agentic RAG SSE streaming endpoint
 * `/rag/eval-debug` RAG evaluation debug endpoint
 * `/observability/traces/{trace_id}` trace event lookup endpoint
 * `/observability/traces` recent trace list endpoint
@@ -61,6 +62,8 @@ Current features:
 * Hybrid retrieval weights: `keyword_weight` and `vector_weight`
 * Agentic RAG workflow with `query_analyzer`, `query_rewriter`, `hybrid_retrieve`, `relevance_grade`, and `answer_with_citations`
 * Agentic RAG debug metadata: `rewritten_query`, `retrieval_needed`, `relevance_score`, `citations`, `retrieval_results`, `final_answer`, and `steps`
+* Agentic RAG stream events: `metadata`, `decision`, `rewrite`, `retrieval`, `relevance`, `citation`, `answer_chunk`, `final`, and `done`
+* Agentic RAG streaming observability event: `rag_agentic_stream`
 * Local Markdown knowledge base under `knowledge/`
 * UTF-8 encoded knowledge base files for CI compatibility
 * Deterministic Router Agent route classification
@@ -131,6 +134,7 @@ Not implemented yet:
 * Agentic RAG debug graph
 * RAG evaluation debug layer
 * Observability trace store
+* Agentic RAG streaming layer
 * pytest
 * GitHub Actions
 * Server-Sent Events
@@ -176,7 +180,8 @@ agent-api/
 │   ├── DAY23.md
 │   ├── DAY24.md
 │   ├── DAY25.md
-│   └── DAY26.md
+│   ├── DAY26.md
+│   └── DAY27.md
 ├── knowledge/
 │   └── agent_basics.md
 ├── data/
@@ -213,6 +218,7 @@ agent-api/
 │       │   ├── vector_index.py
 │       │   ├── hybrid.py
 │       │   ├── agentic_graph.py
+│       │   ├── agentic_streaming.py
 │       │   └── retriever.py
 │       ├── llm/
 │       │   ├── base.py
@@ -1148,6 +1154,79 @@ created_at_ms
 ```
 
 Agentic RAG trace payload includes query, rewritten query, retrieval decision, relevance score, citations, steps, and retrieval result count. RAG Eval trace payload includes eval file, source filter, metrics, and case count.
+
+## Current Agentic RAG Streaming Architecture
+
+Day27 added an Agentic RAG SSE streaming endpoint.
+
+```text
+/rag/agentic-stream
+  ↓
+stream_agentic_rag_events()
+  ↓
+invoke_agentic_rag()
+  ↓
+metadata
+decision
+rewrite
+retrieval
+relevance
+citation
+answer_chunk
+final
+done
+```
+
+Current streaming file:
+
+```text
+src/app/rag/agentic_streaming.py
+```
+
+Current streaming endpoint:
+
+```text
+POST /rag/agentic-stream
+```
+
+The streaming path reuses:
+
+```text
+Day24: invoke_agentic_rag()
+Day26: record_trace_event()
+```
+
+Retrieval path event sequence:
+
+```text
+metadata -> decision -> rewrite -> retrieval -> relevance -> citation -> answer_chunk -> final -> done
+```
+
+Direct path event sequence:
+
+```text
+metadata -> decision -> answer_chunk -> final -> done
+```
+
+The stream writes an observability event:
+
+```text
+event_type = rag_agentic_stream
+```
+
+Stored stream trace payload includes:
+
+```text
+query
+rewritten_query
+retrieval_needed
+relevance_score
+citations
+steps
+retrieval_results_count
+```
+
+This turns Agentic RAG from a single JSON debug response into a real-time event stream suitable for frontend step-by-step display.
 
 ## Request Tracing
 
@@ -2301,6 +2380,87 @@ curl -s "http://localhost:8000/observability/traces?limit=10" \
   | python -m json.tool --no-ensure-ascii
 ```
 
+### RAG Agentic Stream
+
+`/rag/agentic-stream` exposes the Agentic RAG decision chain as SSE events.
+
+Retrieval path:
+
+```bash
+curl -N -X POST http://localhost:8000/rag/agentic-stream \
+  -H "Content-Type: application/json" \
+  -H "x-trace-id: day27-rag-agentic-stream-001" \
+  -d '{"query":"请搜索知识库：LangGraph 是什么？","top_k":2,"source_filter":"agent_basics","max_chars":300,"embedding_dim":64,"keyword_weight":0.6,"vector_weight":0.4}'
+```
+
+Expected event sequence:
+
+```text
+event: metadata
+event: decision
+event: rewrite
+event: retrieval
+event: relevance
+event: citation
+event: answer_chunk
+event: final
+event: done
+```
+
+Expected retrieval path fields:
+
+```text
+retrieval_needed = true
+rewritten_query = LangGraph 是什么？
+relevance_score = 0.383914
+citations include knowledge/agent_basics.md::chunk-1
+steps include query_analyzer -> query_rewriter -> hybrid_retrieve -> relevance_grade -> answer_with_citations
+```
+
+Direct path:
+
+```bash
+curl -N -X POST http://localhost:8000/rag/agentic-stream \
+  -H "Content-Type: application/json" \
+  -H "x-trace-id: day27-rag-agentic-stream-direct-001" \
+  -d '{"query":"你好，介绍一下你自己","top_k":2,"source_filter":"agent_basics"}'
+```
+
+Expected direct path event sequence:
+
+```text
+event: metadata
+event: decision
+event: answer_chunk
+event: final
+event: done
+```
+
+Expected direct path fields:
+
+```text
+retrieval_needed = false
+steps = ["query_analyzer", "direct_answer"]
+citations = []
+retrieval_results = []
+```
+
+Stream trace lookup:
+
+```bash
+curl -s http://localhost:8000/observability/traces/day27-rag-agentic-stream-001 \
+  | python -m json.tool --no-ensure-ascii
+```
+
+Expected trace fields:
+
+```text
+event_type = rag_agentic_stream
+payload.retrieval_needed = true
+payload.rewritten_query = LangGraph 是什么？
+payload.retrieval_results_count = 2
+```
+
 ## Tests
 
 Run tests:
@@ -2312,7 +2472,7 @@ pytest -q
 Current result:
 
 ```text
-63 passed, 1 warning
+66 passed, 1 warning
 ```
 
 Current test coverage includes:
@@ -2396,6 +2556,7 @@ tests/
 ├── test_rag_agentic_debug.py
 ├── test_rag_eval.py
 ├── test_observability.py
+├── test_rag_agentic_stream.py
 ├── test_router_agent.py
 ├── test_router_delegation.py
 ├── test_router_stream.py
@@ -2495,8 +2656,8 @@ mv /tmp/agent_basics.md knowledge/agent_basics.md
 
 Next milestones:
 
-* Day27: Add Agentic RAG streaming, answer verification, or real embedding/vector DB preparation
-* Day28+: Add real embedding or vector database backed RAG
+* Day28: Add answer verification, real embedding/vector DB preparation, or richer observability
+* Day29+: Add real embedding or vector database backed RAG
 * Later: Add vector database based RAG
 * Later: Add GraphRAG and Neo4j integration
 * Later: Add Multi-Agent Supervisor workflow
