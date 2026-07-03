@@ -7,10 +7,11 @@ from src.app.rag.chunking import debug_knowledge_chunks
 from src.app.rag.vector_index import vector_search_knowledge
 from src.app.rag.hybrid import hybrid_search_knowledge
 from src.app.rag.agentic_graph import invoke_agentic_rag
+from src.app.evaluation.rag_eval import evaluate_rag_cases
 from src.app.schemas.rag import RAGReaderRequest, RAGSearchResponse, RAGSearchResult, RagSearchDebugResponse, \
     RagSearchDebugRequest, RagChunksDebugResponse, RagChunksDebugRequest, RagVectorSearchDebugResponse, \
     RagVectorSearchDebugRequest, RagHybridSearchDebugResponse, RagHybridSearchDebugRequest, RagAgenticDebugResponse, \
-    RagAgenticDebugRequest
+    RagAgenticDebugRequest, RagEvalDebugResponse, RagEvalDebugRequest
 
 router = APIRouter()
 
@@ -110,6 +111,25 @@ def rag_agentic_debug(
     )
 
     return RagAgenticDebugResponse(
+        **result,
+        trace_id=get_trace_id(),
+    )
+
+
+@router.post("/eval-debug", response_model=RagEvalDebugResponse)
+def rag_eval_debug(
+    request: RagEvalDebugRequest,
+) -> RagEvalDebugResponse:
+    result = evaluate_rag_cases(
+        eval_file=request.eval_file,
+        source_filter=request.source_filter,
+        max_chars=request.max_chars,
+        embedding_dim=request.embedding_dim,
+        keyword_weight=request.keyword_weight,
+        vector_weight=request.vector_weight,
+    )
+
+    return RagEvalDebugResponse(
         **result,
         trace_id=get_trace_id(),
     )

@@ -1,0 +1,3 @@
+{"case_id":"rag_definition","query":"请搜索知识库：RAG 是什么？","expected_retrieval_needed":true,"expected_terms":["Retrieval-Augmented Generation","检索"],"expected_citation_keywords":["knowledge/agent_basics.md"]}
+{"case_id":"langgraph_definition","query":"请搜索知识库：LangGraph 是什么？","expected_retrieval_needed":true,"expected_terms":["LangGraph","图结构"],"expected_citation_keywords":["knowledge/agent_basics.md"]}
+{"case_id":"direct_chat","query":"你好，介绍一下你自己","expected_retrieval_needed":false,"expected_terms":["不需要检索知识库"],"expected_citation_keywords":[]}
