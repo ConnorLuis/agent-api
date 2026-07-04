@@ -13,12 +13,12 @@ Project 2 has officially started and is now the main development line.
 Current `agent-api` status:
 
 ```text
-Day1-Day29 completed.
-Day29 completed: SQLite Vector Store Debug.
-Local pytest: 72 passed, 1 warning.
+Day1-Day30 completed.
+Day30 completed: EmbeddingProvider abstraction.
+Local pytest: 75 passed, 1 warning.
 Git push: success.
-GitHub Actions CI: not shown in the provided Day29 log; confirm from GitHub Actions.
-Next: Day30 real embedding provider and real vector database integration.
+GitHub Actions CI: green.
+Next: Day31 Chroma persistent vector database integration.
 ```
 
 ## Project Goal
@@ -119,6 +119,11 @@ Current:
 - Deterministic answer support, citation, grounding-term, and risk-flag checks
 - SQLite Vector Store Debug endpoint
 - SQLite-backed deterministic chunk embedding persistence for real vector DB preparation
+- EmbeddingProvider abstraction layer
+- DeterministicEmbeddingProvider as CI-safe fallback
+- Reserved SentenceTransformersEmbeddingProvider for local semantic embeddings
+- RAG Embedding Debug endpoint
+- Provider-aware SQLite vector store debug endpoint
 - pytest
 - GitHub Actions CI
 
@@ -179,7 +184,8 @@ agent-api/
 │   ├── DAY26.md
 │   ├── DAY27.md
 │   ├── DAY28.md
-│   └── DAY29.md
+│   ├── DAY29.md
+│   └── DAY30.md
 ├── knowledge/
 │   └── agent_basics.md
 ├── data/
@@ -218,6 +224,7 @@ agent-api/
 │       │   ├── agentic_graph.py
 │       │   ├── agentic_streaming.py
 │       │   ├── answer_verifier.py
+│       │   ├── embedding_provider.py
 │       │   ├── vector_store.py
 │       │   └── retriever.py
 │       ├── llm/
@@ -260,6 +267,7 @@ agent-api/
     ├── test_rag_agentic_stream.py
     ├── test_rag_answer_verify.py
     ├── test_rag_vector_store.py
+    ├── test_rag_embedding_provider.py
     ├── test_router_agent.py
     ├── test_router_delegation.py
     ├── test_router_stream.py
@@ -388,6 +396,7 @@ POST /rag/agentic-debug
 POST /rag/agentic-stream
 POST /rag/answer-verify-debug
 POST /rag/vector-store-debug
+POST /rag/embedding-debug
 POST /rag/eval-debug
 GET /observability/traces/{trace_id}
 GET /observability/traces
@@ -1779,6 +1788,102 @@ New Day29 test file:
 
 ```text
 tests/test_rag_vector_store.py
+```
+
+---
+
+## Current EmbeddingProvider Strategy
+
+Day30 added an EmbeddingProvider abstraction layer.
+
+Current file:
+
+```text
+src/app/rag/embedding_provider.py
+```
+
+Current endpoint:
+
+```text
+POST /rag/embedding-debug
+```
+
+Current classes and functions:
+
+```text
+EmbeddingProvider
+DeterministicEmbeddingProvider
+SentenceTransformersEmbeddingProvider
+get_embedding_provider()
+debug_embeddings()
+embedding_norm()
+```
+
+Current default provider:
+
+```text
+deterministic
+```
+
+Current default deterministic model:
+
+```text
+deterministic-hash
+```
+
+Reserved semantic embedding provider:
+
+```text
+sentence_transformers
+```
+
+Reserved semantic embedding model:
+
+```text
+BAAI/bge-small-zh-v1.5
+```
+
+Day30 also upgraded the SQLite vector store debug layer so `build_vector_store_index()` and `query_vector_store()` use `get_embedding_provider()` instead of directly depending on deterministic embedding functions.
+
+Provider-aware vector store request/response fields:
+
+```text
+embedding_provider
+embedding_model
+```
+
+Embedding debug response metadata:
+
+```text
+provider
+model
+requested_embedding_dim
+actual_embedding_dim
+query_embedding_preview
+query_embedding_norm
+documents_count
+documents
+trace_id
+```
+
+Observability event:
+
+```text
+rag_embedding_debug
+```
+
+Important:
+
+```text
+Day30 does not yet make Chroma the production retriever.
+It creates the provider abstraction needed before connecting Chroma or other vector databases.
+The deterministic provider remains the default CI-safe fallback.
+```
+
+New Day30 test file:
+
+```text
+tests/test_rag_embedding_provider.py
 ```
 
 ---
@@ -3505,6 +3610,81 @@ Day29 prepares the project for real vector database integration. It still uses d
 
 ---
 
+## Day30 - EmbeddingProvider Abstraction
+
+### Completed
+
+- Added `src/app/rag/embedding_provider.py`
+- Added `EmbeddingProvider` protocol
+- Added `DeterministicEmbeddingProvider`
+- Reserved `SentenceTransformersEmbeddingProvider`
+- Added `get_embedding_provider()`
+- Added `debug_embeddings()`
+- Added `embedding_norm()`
+- Added `/rag/embedding-debug`
+- Added `rag_embedding_debug` observability event
+- Upgraded `src/app/rag/vector_store.py` to use `EmbeddingProvider`
+- Upgraded `/rag/vector-store-debug` with `embedding_provider`
+- Upgraded `/rag/vector-store-debug` with `embedding_model`
+- Updated vector store `index_key` to include provider and model
+- Preserved deterministic provider as the default CI-safe fallback
+- Verified direct Python embedding provider usage
+- Verified `/rag/embedding-debug`
+- Verified `/observability/traces/{trace_id}` for embedding debug traces
+- Verified provider-aware `/rag/vector-store-debug`
+- Added `tests/test_rag_embedding_provider.py`
+- Expanded pytest from 72 tests to 75 tests
+- Verified local pytest
+- Verified GitHub Actions CI
+- Git push succeeded
+
+### New Endpoint
+
+```text
+POST /rag/embedding-debug
+```
+
+### Updated Endpoint
+
+```text
+POST /rag/vector-store-debug
+```
+
+### New Files
+
+```text
+src/app/rag/embedding_provider.py
+tests/test_rag_embedding_provider.py
+```
+
+### Modified Files
+
+```text
+src/app/rag/vector_store.py
+src/app/routes/routes_rag.py
+src/app/schemas/rag.py
+```
+
+### Test Result
+
+```text
+75 passed, 1 warning
+```
+
+### CI Result
+
+```text
+GitHub Actions CI: green
+```
+
+### Notes
+
+Day30 prepares the project for real vector database integration by decoupling embedding generation from vector store indexing/querying.
+
+The project still defaults to deterministic embeddings for CI stability. Day31 can now add Chroma or another persistent vector database without changing the upper RAG endpoint contract.
+
+---
+
 ## Known Issues / Notes
 
 ### SQLite runtime files
@@ -3561,7 +3741,7 @@ Agent response
 Local pytest currently shows:
 
 ```text
-57 passed, 1 warning
+75 passed, 1 warning
 ```
 
 The warning is:
@@ -3609,8 +3789,8 @@ It has a typo: `langraph` should be `langgraph`. This does not affect code and d
 Recommended next route:
 
 ```text
-Day30: real embedding provider and real vector database integration
-Day31-Day35: Chroma or another vector database backed RAG engineering integration
+Day31: Chroma persistent vector database integration
+Day32-Day35: Chroma-backed RAG engineering integration, backend switch, evaluation, and documentation
 Later: vector DB based RAG
 Later: GraphRAG + Neo4j + Multi-Agent Supervisor
 ```
@@ -3829,4 +4009,20 @@ Next:
 
 Next:
 
-- [ ] Day30 real embedding provider and real vector database integration
+- [x] Day30 EmbeddingProvider abstraction
+- [x] Day30 `/rag/embedding-debug`
+- [x] Day30 `EmbeddingProvider`
+- [x] Day30 `DeterministicEmbeddingProvider`
+- [x] Day30 reserved `SentenceTransformersEmbeddingProvider`
+- [x] Day30 `get_embedding_provider()`
+- [x] Day30 `debug_embeddings()`
+- [x] Day30 provider-aware `/rag/vector-store-debug`
+- [x] Day30 `rag_embedding_debug` trace event
+- [x] Day30 embedding provider tests
+- [x] Day30 local pytest
+- [x] Day30 GitHub Actions CI
+- [x] Day30 Git push
+
+Next:
+
+- [ ] Day31 Chroma persistent vector database integration

@@ -2,17 +2,17 @@
 
 `agent-api` is a FastAPI + LangGraph backend project for building an Agent service step by step.
 
-This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent, SQLite-based short-term memory, graph debug output, request tracing, LLM provider abstraction, a real Ollama-backed LLM Tool Calling Agent path, SSE streaming endpoints, a lightweight local RAG search tool, a RAG search-debug endpoint with explainability metadata, a deterministic Router Agent that delegates calculator and RAG routes to the existing Agent graph, a Router Agent SSE streaming endpoint, an initial LLM Router Agent endpoint with mock and Ollama router providers, a Smart Chat endpoint as a future unified Agent entry point preview, a Smart Chat SSE streaming endpoint, route validation metadata for Router and Smart Chat paths, and a RAG chunk pipeline debug endpoint for vector DB preparation, a deterministic RAG vector-search debug endpoint, a hybrid retrieval debug endpoint that combines keyword and vector signals, an Agentic RAG debug graph with query analysis, query rewriting, hybrid retrieval, relevance grading, citation-aware answers, an Agentic RAG SSE streaming endpoint, an Agentic RAG answer verification debug endpoint, and a SQLite-backed vector store debug layer for real vector database preparation.
+This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent, SQLite-based short-term memory, graph debug output, request tracing, LLM provider abstraction, a real Ollama-backed LLM Tool Calling Agent path, SSE streaming endpoints, a lightweight local RAG search tool, a RAG search-debug endpoint with explainability metadata, a deterministic Router Agent that delegates calculator and RAG routes to the existing Agent graph, a Router Agent SSE streaming endpoint, an initial LLM Router Agent endpoint with mock and Ollama router providers, a Smart Chat endpoint as a future unified Agent entry point preview, a Smart Chat SSE streaming endpoint, route validation metadata for Router and Smart Chat paths, and a RAG chunk pipeline debug endpoint for vector DB preparation, a deterministic RAG vector-search debug endpoint, a hybrid retrieval debug endpoint that combines keyword and vector signals, an Agentic RAG debug graph with query analysis, query rewriting, hybrid retrieval, relevance grading, citation-aware answers, an Agentic RAG SSE streaming endpoint, an Agentic RAG answer verification debug endpoint, a SQLite-backed vector store debug layer for real vector database preparation, and an EmbeddingProvider abstraction layer with an embedding debug endpoint.
 
 ## Current Status
 
 ```text
-Day1-Day29 completed.
-Current stage: SQLite Vector Store Debug completed.
-Local pytest: 72 passed, 1 warning.
+Day1-Day30 completed.
+Current stage: EmbeddingProvider abstraction completed.
+Local pytest: 75 passed, 1 warning.
 Git push: success.
-GitHub Actions CI: not shown in the provided Day29 log; confirm from GitHub Actions.
-Next milestone: Day30 real embedding provider and real vector database integration.
+GitHub Actions CI: green.
+Next milestone: Day31 Chroma persistent vector database integration.
 ```
 
 ## Features
@@ -37,6 +37,7 @@ Current features:
 * `/rag/agentic-stream` Agentic RAG SSE streaming endpoint
 * `/rag/answer-verify-debug` Agentic RAG answer verification debug endpoint
 * `/rag/vector-store-debug` SQLite-backed vector store debug endpoint
+* `/rag/embedding-debug` embedding provider debug endpoint
 * `/rag/eval-debug` RAG evaluation debug endpoint
 * `/observability/traces/{trace_id}` trace event lookup endpoint
 * `/observability/traces` recent trace list endpoint
@@ -71,6 +72,10 @@ Current features:
 * SQLite-backed vector store debug layer with `build_vector_store_index()`, `query_vector_store()`, and `debug_vector_store_search()`
 * Vector store index statistics: `index_key`, `loaded_chunks`, `inserted_count`, `stored_count`, and `db_path`
 * Vector store debug observability event: `rag_vector_store_debug`
+* EmbeddingProvider abstraction layer with `deterministic` provider and reserved `sentence_transformers` provider
+* Embedding debug metadata: `provider`, `model`, `requested_embedding_dim`, `actual_embedding_dim`, `query_embedding_preview`, `query_embedding_norm`, and document embedding previews
+* Embedding debug observability event: `rag_embedding_debug`
+* Provider-aware vector store debug fields: `embedding_provider` and `embedding_model`
 * Local Markdown knowledge base under `knowledge/`
 * UTF-8 encoded knowledge base files for CI compatibility
 * Deterministic Router Agent route classification
@@ -192,7 +197,8 @@ agent-api/
 │   ├── DAY26.md
 │   ├── DAY27.md
 │   ├── DAY28.md
-│   └── DAY29.md
+│   ├── DAY29.md
+│   └── DAY30.md
 ├── knowledge/
 │   └── agent_basics.md
 ├── data/
@@ -231,6 +237,7 @@ agent-api/
 │       │   ├── agentic_graph.py
 │       │   ├── agentic_streaming.py
 │       │   ├── answer_verifier.py
+│       │   ├── embedding_provider.py
 │       │   ├── vector_store.py
 │       │   └── retriever.py
 │       ├── llm/
@@ -1426,6 +1433,88 @@ event_type = rag_vector_store_debug
 ```
 
 Day29 still uses deterministic hashed embeddings to keep local tests and CI stable. The purpose is to introduce a vector-store-shaped persistence and query abstraction that can later be replaced by Chroma, FAISS, Milvus, or Qdrant.
+
+## Current EmbeddingProvider Architecture
+
+Day30 added an EmbeddingProvider abstraction layer and an embedding debug endpoint.
+
+```text
+/rag/embedding-debug
+  ↓
+debug_embeddings()
+  ↓
+get_embedding_provider()
+  ├── deterministic -> DeterministicEmbeddingProvider
+  └── sentence_transformers -> SentenceTransformersEmbeddingProvider  # reserved
+  ↓
+query/document embeddings
+  ↓
+record_trace_event(event_type="rag_embedding_debug")
+```
+
+Current embedding provider file:
+
+```text
+src/app/rag/embedding_provider.py
+```
+
+Current embedding debug endpoint:
+
+```text
+POST /rag/embedding-debug
+```
+
+Current functions and classes:
+
+```text
+EmbeddingProvider
+DeterministicEmbeddingProvider
+SentenceTransformersEmbeddingProvider
+get_embedding_provider()
+debug_embeddings()
+embedding_norm()
+```
+
+The default provider is:
+
+```text
+deterministic
+```
+
+The default deterministic model name is:
+
+```text
+deterministic-hash
+```
+
+The reserved local semantic embedding provider is:
+
+```text
+sentence_transformers
+```
+
+The reserved sentence-transformers model name is:
+
+```text
+BAAI/bge-small-zh-v1.5
+```
+
+Day30 also upgraded `/rag/vector-store-debug` to be provider-aware. Vector store indexing and querying now use `get_embedding_provider()` instead of directly calling deterministic embedding functions.
+
+Provider-aware vector store fields:
+
+```text
+embedding_provider
+embedding_model
+```
+
+The endpoint writes an observability event:
+
+```text
+event_type = rag_embedding_debug
+```
+
+Day30 intentionally keeps the deterministic provider as the default so local pytest and GitHub Actions remain stable. Real semantic embeddings and Chroma integration are deferred to Day31.
 
 ## Request Tracing
 
@@ -2799,6 +2888,75 @@ results_count = 2
 trace_id = day29-vector-store-rag-001
 ```
 
+### RAG Embedding Debug
+
+`/rag/embedding-debug` exposes embedding provider behavior for a query and optional document list.
+
+```bash
+curl -s -X POST http://localhost:8000/rag/embedding-debug \
+  -H "Content-Type: application/json" \
+  -H "x-trace-id: day30-embedding-debug-001" \
+  -d '{"query":"LangGraph 是什么？","documents":["LangGraph 是一个适合构建 Agent 工作流的框架。","RAG 是 Retrieval-Augmented Generation。"],"provider":"deterministic","embedding_dim":64}' \
+  | python -m json.tool --no-ensure-ascii
+```
+
+Expected response fields:
+
+```text
+provider = deterministic
+model = deterministic-hash
+requested_embedding_dim = 64
+actual_embedding_dim = 64
+query_embedding_norm = 1.0
+documents_count = 2
+documents[*].embedding_dim = 64
+documents[*].embedding_norm = 1.0
+trace_id = day30-embedding-debug-001
+```
+
+Trace lookup:
+
+```bash
+curl -s http://localhost:8000/observability/traces/day30-embedding-debug-001 \
+  | python -m json.tool --no-ensure-ascii
+```
+
+Expected trace fields:
+
+```text
+event_type = rag_embedding_debug
+payload.provider = deterministic
+payload.model = deterministic-hash
+payload.actual_embedding_dim = 64
+payload.documents_count = 2
+```
+
+### Provider-aware RAG Vector Store Debug
+
+Day30 upgrades `/rag/vector-store-debug` with embedding provider metadata.
+
+```bash
+curl -s -X POST http://localhost:8000/rag/vector-store-debug \
+  -H "Content-Type: application/json" \
+  -H "x-trace-id: day30-vector-store-provider-001" \
+  -d '{"query":"LangGraph 是什么？","top_k":2,"source_filter":"agent_basics","max_chars":300,"embedding_dim":64,"embedding_provider":"deterministic","rebuild_index":true}' \
+  | python -m json.tool --no-ensure-ascii
+```
+
+Expected response fields:
+
+```text
+embedding_provider = deterministic
+embedding_model = deterministic-hash
+index_key includes embedding_provider and embedding_model
+total_indexed_chunks = 2
+index_stats.embedding_provider = deterministic
+index_stats.embedding_model = deterministic-hash
+index_stats.loaded_chunks = 2
+index_stats.inserted_count = 2
+index_stats.stored_count = 2
+```
+
 ## Tests
 
 Run tests:
@@ -2810,7 +2968,7 @@ pytest -q
 Current result:
 
 ```text
-72 passed, 1 warning
+75 passed, 1 warning
 ```
 
 Current test coverage includes:
@@ -2897,6 +3055,7 @@ tests/
 ├── test_rag_agentic_stream.py
 ├── test_rag_answer_verify.py
 ├── test_rag_vector_store.py
+├── test_rag_embedding_provider.py
 ├── test_router_agent.py
 ├── test_router_delegation.py
 ├── test_router_stream.py
@@ -2928,8 +3087,7 @@ pytest -q
 Current CI status:
 
 ```text
-Day28: green
-Day29: not shown in the provided log; confirm from GitHub Actions
+Day30: green
 ```
 
 ## Runtime Data
@@ -2997,8 +3155,8 @@ mv /tmp/agent_basics.md knowledge/agent_basics.md
 
 Next milestones:
 
-* Day30: Add real embedding provider and real vector database integration
-* Day31-Day35: Chroma or another vector database backed RAG engineering integration
+* Day31: Add Chroma persistent vector database integration
+* Day32-Day35: Chroma-backed RAG engineering integration, backend switch, evaluation, and documentation
 * Later: Add vector database based RAG
 * Later: Add GraphRAG and Neo4j integration
 * Later: Add Multi-Agent Supervisor workflow
