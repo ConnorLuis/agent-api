@@ -2,17 +2,17 @@
 
 `agent-api` is a FastAPI + LangGraph backend project for building an Agent service step by step.
 
-This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent, SQLite-based short-term memory, graph debug output, request tracing, LLM provider abstraction, a real Ollama-backed LLM Tool Calling Agent path, SSE streaming endpoints, a lightweight local RAG search tool, a RAG search-debug endpoint with explainability metadata, a deterministic Router Agent that delegates calculator and RAG routes to the existing Agent graph, a Router Agent SSE streaming endpoint, an initial LLM Router Agent endpoint with mock and Ollama router providers, a Smart Chat endpoint as a future unified Agent entry point preview, a Smart Chat SSE streaming endpoint, route validation metadata for Router and Smart Chat paths, and a RAG chunk pipeline debug endpoint for vector DB preparation, a deterministic RAG vector-search debug endpoint, a hybrid retrieval debug endpoint that combines keyword and vector signals, an Agentic RAG debug graph with query analysis, query rewriting, hybrid retrieval, relevance grading, citation-aware answers, an Agentic RAG SSE streaming endpoint, an Agentic RAG answer verification debug endpoint, a SQLite-backed vector store debug layer for real vector database preparation, and an EmbeddingProvider abstraction layer with an embedding debug endpoint.
+This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent, SQLite-based short-term memory, graph debug output, request tracing, LLM provider abstraction, a real Ollama-backed LLM Tool Calling Agent path, SSE streaming endpoints, a lightweight local RAG search tool, a RAG search-debug endpoint with explainability metadata, a deterministic Router Agent that delegates calculator and RAG routes to the existing Agent graph, a Router Agent SSE streaming endpoint, an initial LLM Router Agent endpoint with mock and Ollama router providers, a Smart Chat endpoint as a future unified Agent entry point preview, a Smart Chat SSE streaming endpoint, route validation metadata for Router and Smart Chat paths, and a RAG chunk pipeline debug endpoint for vector DB preparation, a deterministic RAG vector-search debug endpoint, a hybrid retrieval debug endpoint that combines keyword and vector signals, an Agentic RAG debug graph with query analysis, query rewriting, hybrid retrieval, relevance grading, citation-aware answers, an Agentic RAG SSE streaming endpoint, an Agentic RAG answer verification debug endpoint, a SQLite-backed vector store debug layer for real vector database preparation, an EmbeddingProvider abstraction layer with an embedding debug endpoint, and a Chroma-backed persistent vector store debug endpoint.
 
 ## Current Status
 
 ```text
-Day1-Day30 completed.
-Current stage: EmbeddingProvider abstraction completed.
-Local pytest: 75 passed, 1 warning.
+Day1-Day31 completed.
+Current stage: Chroma persistent vector store debug completed.
+Local pytest: 78 passed, 1 warning.
 Git push: success.
 GitHub Actions CI: green.
-Next milestone: Day31 Chroma persistent vector database integration.
+Next milestone: Day32 Chroma-backed retrieval backend switch for Agentic RAG.
 ```
 
 ## Features
@@ -38,6 +38,7 @@ Current features:
 * `/rag/answer-verify-debug` Agentic RAG answer verification debug endpoint
 * `/rag/vector-store-debug` SQLite-backed vector store debug endpoint
 * `/rag/embedding-debug` embedding provider debug endpoint
+* `/rag/chroma-search-debug` Chroma persistent vector store debug endpoint
 * `/rag/eval-debug` RAG evaluation debug endpoint
 * `/observability/traces/{trace_id}` trace event lookup endpoint
 * `/observability/traces` recent trace list endpoint
@@ -76,6 +77,10 @@ Current features:
 * Embedding debug metadata: `provider`, `model`, `requested_embedding_dim`, `actual_embedding_dim`, `query_embedding_preview`, `query_embedding_norm`, and document embedding previews
 * Embedding debug observability event: `rag_embedding_debug`
 * Provider-aware vector store debug fields: `embedding_provider` and `embedding_model`
+* Chroma persistent vector store debug layer with `build_chroma_index()`, `query_chroma_store()`, and `debug_chroma_search()`
+* Chroma index statistics: `collection_name`, `persist_dir`, `loaded_chunks`, `upserted_count`, and `stored_count`
+* Chroma search result metadata: `distance`, `score`, `chunk_id`, `source`, `index`, `preview`, and `content_length`
+* Chroma search debug observability event: `rag_chroma_search_debug`
 * Local Markdown knowledge base under `knowledge/`
 * UTF-8 encoded knowledge base files for CI compatibility
 * Deterministic Router Agent route classification
@@ -115,8 +120,8 @@ Not implemented yet:
 * OpenAI provider
 * Replacing `/agent/chat` with the real LLM Agent as the default main route
 * Making Smart Chat the default production entry point
-* Vector database based RAG
-* Embedding-based retrieval
+* Production Agentic RAG retrieval backend switch
+* Document upload and parsing pipeline
 * Document upload and parsing pipeline
 * GraphRAG
 * Multi-Agent workflow
@@ -149,6 +154,7 @@ Not implemented yet:
 * Agentic RAG streaming layer
 * Agentic RAG answer verification layer
 * SQLite-backed vector store debug layer
+* ChromaDB persistent vector store debug layer
 * pytest
 * GitHub Actions
 * Server-Sent Events
@@ -198,7 +204,8 @@ agent-api/
 │   ├── DAY27.md
 │   ├── DAY28.md
 │   ├── DAY29.md
-│   └── DAY30.md
+│   ├── DAY30.md
+│   └── DAY31.md
 ├── knowledge/
 │   └── agent_basics.md
 ├── data/
@@ -238,6 +245,7 @@ agent-api/
 │       │   ├── agentic_streaming.py
 │       │   ├── answer_verifier.py
 │       │   ├── embedding_provider.py
+│       │   ├── chroma_store.py
 │       │   ├── vector_store.py
 │       │   └── retriever.py
 │       ├── llm/
@@ -1515,6 +1523,118 @@ event_type = rag_embedding_debug
 ```
 
 Day30 intentionally keeps the deterministic provider as the default so local pytest and GitHub Actions remain stable. Real semantic embeddings and Chroma integration are deferred to Day31.
+
+## Current Chroma Vector Store Debug Architecture
+
+Day31 added a Chroma-backed persistent vector store debug layer.
+
+```text
+/rag/chroma-search-debug
+  ↓
+debug_chroma_search()
+  ↓
+build_chroma_index()
+  ↓
+load_knowledge_chunks()
+  ↓
+get_embedding_provider()
+  ↓
+provider.embed_text(chunk)
+  ↓
+chromadb.PersistentClient(path="data/chroma")
+  ↓
+collection.upsert(ids, documents, metadatas, embeddings)
+  ↓
+query_chroma_store()
+  ↓
+provider.embed_text(query)
+  ↓
+collection.query(query_embeddings=[...])
+  ↓
+ranked Chroma results
+  ↓
+record_trace_event(event_type="rag_chroma_search_debug")
+```
+
+Current Chroma store file:
+
+```text
+src/app/rag/chroma_store.py
+```
+
+Current Chroma debug endpoint:
+
+```text
+POST /rag/chroma-search-debug
+```
+
+Current functions:
+
+```text
+build_chroma_collection_name()
+build_chroma_index()
+query_chroma_store()
+debug_chroma_search()
+reset_chroma_persist_dir()
+```
+
+The Chroma debug layer reuses:
+
+```text
+Day21: load_knowledge_chunks()
+Day30: get_embedding_provider()
+Day30: DeterministicEmbeddingProvider
+Day26: record_trace_event()
+```
+
+Current persistent directory:
+
+```text
+data/chroma
+```
+
+Returned index statistics:
+
+```text
+collection_name
+persist_dir
+source_filter
+max_chars
+embedding_dim
+embedding_provider
+embedding_model
+rebuild_index
+loaded_chunks
+upserted_count
+stored_count
+```
+
+Returned search result metadata:
+
+```text
+rank
+chunk_id
+source
+index
+distance
+score
+content
+preview
+content_length
+```
+
+The endpoint writes an observability event:
+
+```text
+event_type = rag_chroma_search_debug
+```
+
+Important implementation note:
+
+```text
+Day31 uses Chroma as a real persistent vector database, but still uses deterministic embeddings by default so pytest and GitHub Actions remain stable.
+The observed Chroma collection name is truncated to satisfy Chroma's collection name length constraint, so the full embedding_dim is reliably preserved in request metadata, index_stats, and collection metadata rather than relying only on the visible collection name.
+```
 
 ## Request Tracing
 
@@ -2957,6 +3077,76 @@ index_stats.inserted_count = 2
 index_stats.stored_count = 2
 ```
 
+### RAG Chroma Search Debug
+
+`/rag/chroma-search-debug` builds a Chroma persistent vector index and queries it with provider-generated query embeddings.
+
+```bash
+curl -s -X POST http://localhost:8000/rag/chroma-search-debug \
+  -H "Content-Type: application/json" \
+  -H "x-trace-id: day31-chroma-langgraph-001" \
+  -d '{"query":"LangGraph 是什么？","top_k":2,"source_filter":"agent_basics","max_chars":300,"embedding_dim":64,"embedding_provider":"deterministic","rebuild_index":true}' \
+  | python -m json.tool --no-ensure-ascii
+```
+
+Expected response fields:
+
+```text
+query = LangGraph 是什么？
+top_k = 2
+source_filter = agent_basics
+embedding_provider = deterministic
+embedding_model = deterministic-hash
+persist_dir = data/chroma
+total_indexed_chunks = 2
+index_stats.loaded_chunks = 2
+index_stats.upserted_count = 2
+index_stats.stored_count = 2
+results_count = 2
+trace_id = day31-chroma-langgraph-001
+```
+
+Trace lookup:
+
+```bash
+curl -s http://localhost:8000/observability/traces/day31-chroma-langgraph-001 \
+  | python -m json.tool --no-ensure-ascii
+```
+
+Expected trace fields:
+
+```text
+event_type = rag_chroma_search_debug
+payload.total_indexed_chunks = 2
+payload.results_count = 2
+payload.index_stats.stored_count = 2
+payload.embedding_provider = deterministic
+payload.embedding_model = deterministic-hash
+```
+
+RAG query:
+
+```bash
+curl -s -X POST http://localhost:8000/rag/chroma-search-debug \
+  -H "Content-Type: application/json" \
+  -H "x-trace-id: day31-chroma-rag-001" \
+  -d '{"query":"RAG 是什么？","top_k":2,"source_filter":"agent_basics","max_chars":300,"embedding_dim":64,"embedding_provider":"deterministic","rebuild_index":true}' \
+  | python -m json.tool --no-ensure-ascii
+```
+
+Expected response fields:
+
+```text
+total_indexed_chunks = 2
+index_stats.loaded_chunks = 2
+index_stats.upserted_count = 2
+index_stats.stored_count = 2
+results_count = 2
+distance >= 0
+score > 0
+trace_id = day31-chroma-rag-001
+```
+
 ## Tests
 
 Run tests:
@@ -2968,7 +3158,7 @@ pytest -q
 Current result:
 
 ```text
-75 passed, 1 warning
+78 passed, 1 warning
 ```
 
 Current test coverage includes:
@@ -3056,6 +3246,7 @@ tests/
 ├── test_rag_answer_verify.py
 ├── test_rag_vector_store.py
 ├── test_rag_embedding_provider.py
+├── test_rag_chroma_store.py
 ├── test_router_agent.py
 ├── test_router_delegation.py
 ├── test_router_stream.py
@@ -3087,7 +3278,7 @@ pytest -q
 Current CI status:
 
 ```text
-Day30: green
+Day31: green
 ```
 
 ## Runtime Data
@@ -3155,8 +3346,8 @@ mv /tmp/agent_basics.md knowledge/agent_basics.md
 
 Next milestones:
 
-* Day31: Add Chroma persistent vector database integration
-* Day32-Day35: Chroma-backed RAG engineering integration, backend switch, evaluation, and documentation
+* Day32: Add Chroma-backed retrieval backend switch for Agentic RAG
+* Day33-Day35: Chroma-backed RAG evaluation, backend comparison, and documentation
 * Later: Add vector database based RAG
 * Later: Add GraphRAG and Neo4j integration
 * Later: Add Multi-Agent Supervisor workflow

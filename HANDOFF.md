@@ -13,12 +13,12 @@ Project 2 has officially started and is now the main development line.
 Current `agent-api` status:
 
 ```text
-Day1-Day30 completed.
-Day30 completed: EmbeddingProvider abstraction.
-Local pytest: 75 passed, 1 warning.
+Day1-Day31 completed.
+Day31 completed: Chroma persistent vector store debug.
+Local pytest: 78 passed, 1 warning.
 Git push: success.
 GitHub Actions CI: green.
-Next: Day31 Chroma persistent vector database integration.
+Next: Day32 Chroma-backed retrieval backend switch for Agentic RAG.
 ```
 
 ## Project Goal
@@ -124,6 +124,9 @@ Current:
 - Reserved SentenceTransformersEmbeddingProvider for local semantic embeddings
 - RAG Embedding Debug endpoint
 - Provider-aware SQLite vector store debug endpoint
+- Chroma persistent vector store debug endpoint
+- ChromaDB PersistentClient based index and query path
+- Chroma search observability event
 - pytest
 - GitHub Actions CI
 
@@ -132,8 +135,8 @@ Not yet implemented:
 - OpenAI provider
 - Replacing `/agent/chat` with the real LLM Agent as the default route
 - Making Smart Chat the default production entry point
-- Vector database based RAG
-- Embedding-based retrieval
+- Production Agentic RAG retrieval backend switch
+- Document upload and parsing pipeline
 - Document upload and parsing pipeline
 - GraphRAG
 - Multi-Agent Supervisor
@@ -185,7 +188,8 @@ agent-api/
 │   ├── DAY27.md
 │   ├── DAY28.md
 │   ├── DAY29.md
-│   └── DAY30.md
+│   ├── DAY30.md
+│   └── DAY31.md
 ├── knowledge/
 │   └── agent_basics.md
 ├── data/
@@ -225,6 +229,7 @@ agent-api/
 │       │   ├── agentic_streaming.py
 │       │   ├── answer_verifier.py
 │       │   ├── embedding_provider.py
+│       │   ├── chroma_store.py
 │       │   ├── vector_store.py
 │       │   └── retriever.py
 │       ├── llm/
@@ -268,6 +273,7 @@ agent-api/
     ├── test_rag_answer_verify.py
     ├── test_rag_vector_store.py
     ├── test_rag_embedding_provider.py
+    ├── test_rag_chroma_store.py
     ├── test_router_agent.py
     ├── test_router_delegation.py
     ├── test_router_stream.py
@@ -397,6 +403,7 @@ POST /rag/agentic-stream
 POST /rag/answer-verify-debug
 POST /rag/vector-store-debug
 POST /rag/embedding-debug
+POST /rag/chroma-search-debug
 POST /rag/eval-debug
 GET /observability/traces/{trace_id}
 GET /observability/traces
@@ -1884,6 +1891,130 @@ New Day30 test file:
 
 ```text
 tests/test_rag_embedding_provider.py
+```
+
+---
+
+## Current Chroma Vector Store Strategy
+
+Day31 added a Chroma-backed persistent vector store debug layer.
+
+Current file:
+
+```text
+src/app/rag/chroma_store.py
+```
+
+Current endpoint:
+
+```text
+POST /rag/chroma-search-debug
+```
+
+Current functions:
+
+```text
+build_chroma_collection_name()
+build_chroma_index()
+query_chroma_store()
+debug_chroma_search()
+reset_chroma_persist_dir()
+```
+
+It reuses:
+
+```text
+load_knowledge_chunks()
+get_embedding_provider()
+record_trace_event()
+```
+
+Current Chroma persistent directory:
+
+```text
+data/chroma
+```
+
+Current request fields:
+
+```text
+query
+top_k
+source_filter
+max_chars
+embedding_dim
+embedding_provider
+embedding_model
+rebuild_index
+```
+
+Returned metadata:
+
+```text
+query
+top_k
+source_filter
+max_chars
+embedding_dim
+embedding_provider
+embedding_model
+collection_name
+persist_dir
+total_indexed_chunks
+rebuild_index
+index_stats
+results
+trace_id
+```
+
+Index statistics:
+
+```text
+collection_name
+persist_dir
+source_filter
+max_chars
+embedding_dim
+embedding_provider
+embedding_model
+rebuild_index
+loaded_chunks
+upserted_count
+stored_count
+```
+
+Result metadata:
+
+```text
+rank
+chunk_id
+source
+index
+distance
+score
+content
+preview
+content_length
+```
+
+Observability event:
+
+```text
+rag_chroma_search_debug
+```
+
+Important:
+
+```text
+Day31 uses Chroma as a real persistent vector store, but still uses deterministic embeddings by default for CI stability.
+The current Chroma path is a debug endpoint and does not yet replace Agentic RAG's retrieval backend.
+The observed collection name may be truncated by the collection-name length guard; use request metadata and index_stats as the source of truth for embedding_dim/provider/model.
+```
+
+New Day31 test file:
+
+```text
+tests/test_rag_chroma_store.py
 ```
 
 ---
@@ -3685,6 +3816,85 @@ The project still defaults to deterministic embeddings for CI stability. Day31 c
 
 ---
 
+## Day31 - Chroma Persistent Vector Store Debug
+
+### Completed
+
+- Added `chromadb` to `requirements.txt`
+- Added `src/app/rag/chroma_store.py`
+- Added `build_chroma_collection_name()`
+- Added `build_chroma_index()`
+- Added `query_chroma_store()`
+- Added `debug_chroma_search()`
+- Added `reset_chroma_persist_dir()`
+- Added `/rag/chroma-search-debug`
+- Reused Day21 `load_knowledge_chunks()`
+- Reused Day30 `EmbeddingProvider`
+- Used `chromadb.PersistentClient`
+- Used Chroma persistent path `data/chroma`
+- Added Chroma collection metadata for source/provider/model/dim
+- Supported `top_k`, `source_filter`, `max_chars`, `embedding_dim`, `embedding_provider`, `embedding_model`, and `rebuild_index`
+- Returned Chroma `index_stats`
+- Returned ranked Chroma search results with `distance` and normalized `score`
+- Added `rag_chroma_search_debug` observability event
+- Verified Python direct Chroma index/search calls
+- Verified `/rag/chroma-search-debug`
+- Verified `/observability/traces/{trace_id}` for Chroma search traces
+- Added `tests/test_rag_chroma_store.py`
+- Expanded pytest from 75 tests to 78 tests
+- Verified local pytest
+- Verified GitHub Actions CI
+- Git push succeeded
+
+### New Endpoint
+
+```text
+POST /rag/chroma-search-debug
+```
+
+### New Files
+
+```text
+src/app/rag/chroma_store.py
+tests/test_rag_chroma_store.py
+```
+
+### Modified Files
+
+```text
+requirements.txt
+src/app/routes/routes_rag.py
+src/app/schemas/rag.py
+```
+
+### Test Result
+
+```text
+78 passed, 1 warning
+```
+
+### CI Result
+
+```text
+GitHub Actions CI: green
+```
+
+### Commit
+
+```text
+747fed9 add chroma vector store debug
+```
+
+### Notes
+
+Day31 connects a real persistent vector database path through Chroma while preserving deterministic embeddings as the default provider.
+
+The current endpoint is intentionally debug-oriented. It proves index build, persistence, query, metadata, trace, and tests before wiring Chroma into the production Agentic RAG backend.
+
+The observed collection name is truncated to satisfy Chroma's collection name length limit, so metadata and index_stats should be treated as the reliable source for `embedding_dim`, `embedding_provider`, and `embedding_model`.
+
+---
+
 ## Known Issues / Notes
 
 ### SQLite runtime files
@@ -3741,7 +3951,7 @@ Agent response
 Local pytest currently shows:
 
 ```text
-75 passed, 1 warning
+78 passed, 1 warning
 ```
 
 The warning is:
@@ -3789,8 +3999,8 @@ It has a typo: `langraph` should be `langgraph`. This does not affect code and d
 Recommended next route:
 
 ```text
-Day31: Chroma persistent vector database integration
-Day32-Day35: Chroma-backed RAG engineering integration, backend switch, evaluation, and documentation
+Day32: Chroma-backed retrieval backend switch for Agentic RAG
+Day33-Day35: Chroma-backed RAG evaluation, backend comparison, and documentation
 Later: vector DB based RAG
 Later: GraphRAG + Neo4j + Multi-Agent Supervisor
 ```
@@ -4025,4 +4235,20 @@ Next:
 
 Next:
 
-- [ ] Day31 Chroma persistent vector database integration
+- [x] Day31 Chroma persistent vector store debug
+- [x] Day31 `chromadb` dependency
+- [x] Day31 `/rag/chroma-search-debug`
+- [x] Day31 `build_chroma_index()`
+- [x] Day31 `query_chroma_store()`
+- [x] Day31 `debug_chroma_search()`
+- [x] Day31 Chroma PersistentClient path
+- [x] Day31 Chroma index stats
+- [x] Day31 `rag_chroma_search_debug` trace event
+- [x] Day31 Chroma tests
+- [x] Day31 local pytest
+- [x] Day31 GitHub Actions CI
+- [x] Day31 Git push
+
+Next:
+
+- [ ] Day32 Chroma-backed retrieval backend switch for Agentic RAG
