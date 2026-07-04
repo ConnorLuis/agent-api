@@ -260,7 +260,10 @@ class RagVectorStoreDebugRequest(BaseModel):
     source_filter: str | None = None
     max_chars: int = 500
     embedding_dim: int = 64
+    embedding_provider: str = "deterministic"
+    embedding_model: str | None = None
     rebuild_index: bool = True
+
 
 
 class RagVectorStoreIndexStats(BaseModel):
@@ -268,6 +271,8 @@ class RagVectorStoreIndexStats(BaseModel):
     source_filter: str | None = None
     max_chars: int
     embedding_dim: int
+    embedding_provider: str
+    embedding_model: str
     rebuild_index: bool
     loaded_chunks: int
     inserted_count: int
@@ -292,6 +297,8 @@ class RagVectorStoreDebugResponse(BaseModel):
     source_filter: str | None = None
     max_chars: int
     embedding_dim: int
+    embedding_provider: str
+    embedding_model: str
     index_key: str
     total_indexed_chunks: int
     rebuild_index: bool
@@ -300,3 +307,29 @@ class RagVectorStoreDebugResponse(BaseModel):
     trace_id: str | None = None
 
 
+class RagEmbeddingDebugDocument(BaseModel):
+    text: str
+    embedding_dim: int
+    embedding_preview: list[float]
+    embedding_norm: float
+
+
+class RagEmbeddingDebugRequest(BaseModel):
+    query: str
+    documents: list[str] = Field(default_factory=list)
+    provider: str = "deterministic"
+    model_name: str | None = None
+    embedding_dim: int = 64
+
+
+class RagEmbeddingDebugResponse(BaseModel):
+    query: str
+    provider: str
+    model: str
+    requested_embedding_dim: int
+    actual_embedding_dim: int
+    query_embedding_preview: list[float]
+    query_embedding_norm: float
+    documents_count: int
+    documents: list[RagEmbeddingDebugDocument]
+    trace_id: str | None = None

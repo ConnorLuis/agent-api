@@ -5,7 +5,14 @@ from pathlib import Path
 from typing import Any
 
 from src.app.rag.chunking import DEFAULT_MAX_CHARS, load_knowledge_chunks
-from src.app.rag.vector_index import DEFAULT_EMBEDDING_DIM, build_deterministic_embedding, cosine_similarity
+from src.app.rag.embedding_provider import (
+    DEFAULT_EMBEDDING_PROVIDER,
+    get_embedding_provider,
+)
+from src.app.rag.vector_index import (
+    DEFAULT_EMBEDDING_DIM,
+    cosine_similarity,
+)
 
 
 DEFAULT_VECTOR_STORE_DB_PATH = Path("data/rag_vector_store.sqlite")
@@ -53,26 +60,46 @@ def init_vector_store(db_path: Path | str = DEFAULT_VECTOR_STORE_DB_PATH) -> Non
         )
 
 
-def _build_index_key(source_filter: str | None, max_chars: int, embedding_dim: int) -> str:
+def _build_index_key(
+    source_filter: str | None,
+    max_chars: int,
+    embedding_dim: int,
+    embedding_provider: str = DEFAULT_EMBEDDING_PROVIDER,
+    embedding_model: str | None = None,
+) -> str:
     normalized_source_filter = source_filter or "__all__"
+    normalized_embedding_model = embedding_model or "__default__"
 
     return (
         f"source_filter={normalized_source_filter}|"
         f"max_chars={max_chars}|"
-        f"embedding_dim={embedding_dim}"
+        f"embedding_dim={embedding_dim}|"
+        f"embedding_provider={embedding_provider}|"
+        f"embedding_model={normalized_embedding_model}"
     )
 
 
 def build_vector_store_index(
-        source_filter: str | None =  None,
-        max_chars: int = DEFAULT_MAX_CHARS,
-        embedding_dim: int = DEFAULT_EMBEDDING_DIM,
-        rebuild_index: bool = True,
-        db_path: Path | str = DEFAULT_VECTOR_STORE_DB_PATH,
+    source_filter: str | None = None,
+    max_chars: int = DEFAULT_MAX_CHARS,
+    embedding_dim: int = DEFAULT_EMBEDDING_DIM,
+    rebuild_index: bool = True,
+    embedding_provider: str = DEFAULT_EMBEDDING_PROVIDER,
+    embedding_model: str | None = None,
+    db_path: Path | str = DEFAULT_VECTOR_STORE_DB_PATH,
 ) -> dict[str, Any]:
     safe_dim = max(embedding_dim, 8)
-    index_key = _build_index_key(source_filter=source_filter, max_chars=max_chars, embedding_dim=safe_dim)
-
+    provider_instance = get_embedding_provider(
+        provider=embedding_provider,
+        model_name=embedding_model,
+    )
+    index_key = _build_index_key(
+        source_filter=source_filter,
+        max_chars=max_chars,
+        embedding_dim=safe_dim,
+        embedding_provider=provider_instance.provider,
+        embedding_model=provider_instance.model,
+    )
     init_vector_store(db_path=db_path)
 
     chunks = load_knowledge_chunks(source_filter=source_filter, max_chars=max_chars)
@@ -89,7 +116,10 @@ def build_vector_store_index(
         inserted_count = 0
 
         for chunk in chunks:
-            embedding = build_deterministic_embedding(text=chunk["content"], embedding_dim=safe_dim)
+            embedding = provider_instance.embed_text(
+                text=chunk["content"],
+                embedding_dim=safe_dim,
+            )
 
             connection.execute(
                 """
@@ -123,6 +153,8 @@ def build_vector_store_index(
         "source_filter": source_filter,
         "max_chars": max_chars,
         "embedding_dim": safe_dim,
+        "embedding_provider": provider_instance.provider,
+        "embedding_model": provider_instance.model,
         "rebuild_index": rebuild_index,
         "loaded_chunks": len(chunks),
         "inserted_count": inserted_count,
@@ -132,20 +164,26 @@ def build_vector_store_index(
 
 
 def query_vector_store(
-        query: str,
-        top_k: int = 3,
-        source_filter: str | None = None,
-        max_chars: int = DEFAULT_MAX_CHARS,
-        embedding_dim: int = DEFAULT_EMBEDDING_DIM,
-        db_path: Path | str = DEFAULT_VECTOR_STORE_DB_PATH,
+    query: str,
+    top_k: int = 3,
+    source_filter: str | None = None,
+    max_chars: int = DEFAULT_MAX_CHARS,
+    embedding_dim: int = DEFAULT_EMBEDDING_DIM,
+    embedding_provider: str = DEFAULT_EMBEDDING_PROVIDER,
+    embedding_model: str | None = None,
+    db_path: Path | str = DEFAULT_VECTOR_STORE_DB_PATH,
 ) -> dict[str, Any]:
     safe_top_k = max(top_k, 1)
     safe_dim = max(embedding_dim, 8)
-    index_key = _build_index_key(source_filter=source_filter, max_chars=max_chars, embedding_dim=safe_dim)
+    provider_instance = get_embedding_provider(
+        provider=embedding_provider,
+        model_name=embedding_model,
+    )
+    index_key = _build_index_key(source_filter=source_filter, max_chars=max_chars, embedding_dim=safe_dim, embedding_provider=provider_instance.provider, embedding_model=provider_instance.model)
 
     init_vector_store(db_path=db_path)
 
-    query_embedding = build_deterministic_embedding(text=query, embedding_dim=safe_dim)
+    query_embedding = provider_instance.embed_text(text=query, embedding_dim=safe_dim)
 
     with _connect(db_path=db_path) as connection:
         rows = connection.execute(
@@ -203,16 +241,28 @@ def query_vector_store(
         "source_filter": source_filter,
         "max_chars": max_chars,
         "embedding_dim": safe_dim,
+        "embedding_provider": provider_instance.provider,
+        "embedding_model": provider_instance.model,
         "index_key": index_key,
         "total_indexed_chunks": len(rows),
         "results": results,
     }
 
 
-def debug_vector_store_search(query: str, top_k: int = 3, source_filter: str | None = None, max_chars: int = DEFAULT_MAX_CHARS, embedding_dim: int = DEFAULT_EMBEDDING_DIM, rebuild_index: bool = True, db_path: Path | str = DEFAULT_VECTOR_STORE_DB_PATH):
-    index_stats = build_vector_store_index(source_filter=source_filter, max_chars=max_chars, embedding_dim=embedding_dim, rebuild_index=rebuild_index, db_path=db_path)
+def debug_vector_store_search(
+    query: str,
+    top_k: int = 3,
+    source_filter: str | None = None,
+    max_chars: int = DEFAULT_MAX_CHARS,
+    embedding_dim: int = DEFAULT_EMBEDDING_DIM,
+    rebuild_index: bool = True,
+    embedding_provider: str = DEFAULT_EMBEDDING_PROVIDER,
+    embedding_model: str | None = None,
+    db_path: Path | str = DEFAULT_VECTOR_STORE_DB_PATH,
+) -> dict[str, Any]:
+    index_stats = build_vector_store_index(source_filter=source_filter, max_chars=max_chars, embedding_dim=embedding_dim, rebuild_index=rebuild_index, db_path=db_path, embedding_provider=embedding_provider, embedding_model=embedding_model,)
 
-    search_result = query_vector_store(query=query, top_k=top_k, source_filter=source_filter, max_chars=max_chars, embedding_dim=embedding_dim, db_path=db_path)
+    search_result = query_vector_store(query=query, top_k=top_k, source_filter=source_filter, max_chars=max_chars, embedding_dim=embedding_dim, embedding_provider=embedding_provider, embedding_model=embedding_model, db_path=db_path,)
 
     return {
         **search_result,
