@@ -252,3 +252,51 @@ class RagAnswerVerifyDebugResponse(BaseModel):
     steps: list[str]
     verification: RagAnswerVerificationResult
     trace_id: str | None = None
+
+
+class RagVectorStoreDebugRequest(BaseModel):
+    query: str
+    top_k: int = 3
+    source_filter: str | None = None
+    max_chars: int = 500
+    embedding_dim: int = 64
+    rebuild_index: bool = True
+
+
+class RagVectorStoreIndexStats(BaseModel):
+    index_key: str
+    source_filter: str | None = None
+    max_chars: int
+    embedding_dim: int
+    rebuild_index: bool
+    loaded_chunks: int
+    inserted_count: int
+    stored_count: int
+    db_path: str
+
+
+class RagVectorStoreDebugResult(BaseModel):
+    rank: int
+    chunk_id: str
+    source: str
+    index: int
+    score: float
+    content: str
+    preview: str
+    content_length: int
+
+
+class RagVectorStoreDebugResponse(BaseModel):
+    query: str
+    top_k: int
+    source_filter: str | None = None
+    max_chars: int
+    embedding_dim: int
+    index_key: str
+    total_indexed_chunks: int
+    rebuild_index: bool
+    index_stats: RagVectorStoreIndexStats
+    results: list[RagVectorStoreDebugResult]
+    trace_id: str | None = None
+
+

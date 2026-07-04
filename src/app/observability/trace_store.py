@@ -48,7 +48,7 @@ def record_trace_event(trace_id: str, event_type: str, payload: dict[str, Any] |
     init_trace_store(db_path=db_path)
 
     created_at_ms = int(time.time() * 1000)
-    payload_json = json.dumps(payload or {}, ensure_ascii=False, sort_keys= True)
+    payload_json = json.dumps(payload or {}, ensure_ascii=False, sort_keys=True, default=str)
 
     with _connect(db_path) as connection:
         cursor = connection.execute(

@@ -12,11 +12,12 @@ from src.app.rag.hybrid import hybrid_search_knowledge
 from src.app.rag.agentic_graph import invoke_agentic_rag
 from src.app.observability.trace_store import record_trace_event
 from src.app.evaluation.rag_eval import evaluate_rag_cases
+from src.app.rag.vector_store import debug_vector_store_search
 from src.app.schemas.rag import RAGReaderRequest, RAGSearchResponse, RAGSearchResult, RagSearchDebugResponse, \
     RagSearchDebugRequest, RagChunksDebugResponse, RagChunksDebugRequest, RagVectorSearchDebugResponse, \
     RagVectorSearchDebugRequest, RagHybridSearchDebugResponse, RagHybridSearchDebugRequest, RagAgenticDebugResponse, \
     RagAgenticDebugRequest, RagEvalDebugResponse, RagEvalDebugRequest, RagAnswerVerifyDebugResponse, \
-    RagAnswerVerifyDebugRequest
+    RagAnswerVerifyDebugRequest, RagVectorStoreDebugResponse, RagVectorStoreDebugRequest
 
 router = APIRouter()
 
@@ -221,6 +222,43 @@ def rag_answer_verify_debug(
     )
 
     return RagAnswerVerifyDebugResponse(
+        **result,
+        trace_id=trace_id,
+    )
+
+
+@router.post("/vector-store-debug", response_model=RagVectorStoreDebugResponse)
+def rag_vector_store_debug(
+    request: RagVectorStoreDebugRequest,
+) -> RagVectorStoreDebugResponse:
+    result = debug_vector_store_search(
+        query=request.query,
+        top_k=request.top_k,
+        source_filter=request.source_filter,
+        max_chars=request.max_chars,
+        embedding_dim=request.embedding_dim,
+        rebuild_index=request.rebuild_index,
+    )
+
+    trace_id = get_trace_id()
+
+    record_trace_event(
+        trace_id=trace_id,
+        event_type="rag_vector_store_debug",
+        payload={
+            "query": result["query"],
+            "top_k": result["top_k"],
+            "source_filter": result["source_filter"],
+            "max_chars": result["max_chars"],
+            "embedding_dim": result["embedding_dim"],
+            "rebuild_index": result["rebuild_index"],
+            "total_indexed_chunks": result["total_indexed_chunks"],
+            "index_stats": result["index_stats"],
+            "results_count": len(result["results"]),
+        },
+    )
+
+    return RagVectorStoreDebugResponse(
         **result,
         trace_id=trace_id,
     )
