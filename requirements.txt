@@ -12,3 +12,4 @@ langgraph-checkpoint-sqlite
 pytest
 httpx
 typing_extensions
+chromadb

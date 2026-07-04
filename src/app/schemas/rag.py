@@ -333,3 +333,57 @@ class RagEmbeddingDebugResponse(BaseModel):
     documents_count: int
     documents: list[RagEmbeddingDebugDocument]
     trace_id: str | None = None
+
+
+class RagChromaSearchDebugRequest(BaseModel):
+    query: str
+    top_k: int = 3
+    source_filter: str | None = None
+    max_chars: int = 500
+    embedding_dim: int = 64
+    embedding_provider: str = "deterministic"
+    embedding_model: str | None = None
+    rebuild_index: bool = True
+
+
+class RagChromaIndexStats(BaseModel):
+    collection_name: str
+    persist_dir: str
+    source_filter: str | None = None
+    max_chars: int
+    embedding_dim: int
+    embedding_provider: str
+    embedding_model: str
+    rebuild_index: bool
+    loaded_chunks: int
+    upserted_count: int
+    stored_count: int
+
+
+class RagChromaSearchDebugResult(BaseModel):
+    rank: int
+    chunk_id: str
+    source: str
+    index: int
+    distance: float
+    score: float
+    content: str
+    preview: str
+    content_length: int
+
+
+class RagChromaSearchDebugResponse(BaseModel):
+    query: str
+    top_k: int
+    source_filter: str | None = None
+    max_chars: int
+    embedding_dim: int
+    embedding_provider: str
+    embedding_model: str
+    collection_name: str
+    persist_dir: str
+    total_indexed_chunks: int
+    rebuild_index: bool
+    index_stats: RagChromaIndexStats
+    results: list[RagChromaSearchDebugResult]
+    trace_id: str | None = None

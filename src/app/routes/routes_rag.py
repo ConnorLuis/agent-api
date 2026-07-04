@@ -14,12 +14,13 @@ from src.app.observability.trace_store import record_trace_event
 from src.app.evaluation.rag_eval import evaluate_rag_cases
 from src.app.rag.vector_store import debug_vector_store_search
 from src.app.rag.embedding_provider import debug_embeddings
+from src.app.rag.chroma_store import debug_chroma_search
 from src.app.schemas.rag import RAGReaderRequest, RAGSearchResponse, RAGSearchResult, RagSearchDebugResponse, \
     RagSearchDebugRequest, RagChunksDebugResponse, RagChunksDebugRequest, RagVectorSearchDebugResponse, \
     RagVectorSearchDebugRequest, RagHybridSearchDebugResponse, RagHybridSearchDebugRequest, RagAgenticDebugResponse, \
     RagAgenticDebugRequest, RagEvalDebugResponse, RagEvalDebugRequest, RagAnswerVerifyDebugResponse, \
     RagAnswerVerifyDebugRequest, RagVectorStoreDebugResponse, RagVectorStoreDebugRequest, RagEmbeddingDebugResponse, \
-    RagEmbeddingDebugRequest
+    RagEmbeddingDebugRequest, RagChromaSearchDebugResponse, RagChromaSearchDebugRequest
 
 router = APIRouter()
 
@@ -298,6 +299,49 @@ def rag_embedding_debug(
     )
 
     return RagEmbeddingDebugResponse(
+        **result,
+        trace_id=trace_id,
+    )
+
+
+@router.post("/chroma-search-debug", response_model=RagChromaSearchDebugResponse)
+def rag_chroma_search_debug(
+    request: RagChromaSearchDebugRequest,
+) -> RagChromaSearchDebugResponse:
+    result = debug_chroma_search(
+        query=request.query,
+        top_k=request.top_k,
+        source_filter=request.source_filter,
+        max_chars=request.max_chars,
+        embedding_dim=request.embedding_dim,
+        embedding_provider=request.embedding_provider,
+        embedding_model=request.embedding_model,
+        rebuild_index=request.rebuild_index,
+    )
+
+    trace_id = get_trace_id()
+
+    record_trace_event(
+        trace_id=trace_id,
+        event_type="rag_chroma_search_debug",
+        payload={
+            "query": result["query"],
+            "top_k": result["top_k"],
+            "source_filter": result["source_filter"],
+            "max_chars": result["max_chars"],
+            "embedding_dim": result["embedding_dim"],
+            "embedding_provider": result["embedding_provider"],
+            "embedding_model": result["embedding_model"],
+            "collection_name": result["collection_name"],
+            "persist_dir": result["persist_dir"],
+            "total_indexed_chunks": result["total_indexed_chunks"],
+            "rebuild_index": result["rebuild_index"],
+            "index_stats": result["index_stats"],
+            "results_count": len(result["results"]),
+        },
+    )
+
+    return RagChromaSearchDebugResponse(
         **result,
         trace_id=trace_id,
     )
