@@ -2,17 +2,17 @@
 
 `agent-api` is a FastAPI + LangGraph backend project for building an Agent service step by step.
 
-This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent, SQLite-based short-term memory, graph debug output, request tracing, LLM provider abstraction, a real Ollama-backed LLM Tool Calling Agent path, SSE streaming endpoints, a lightweight local RAG search tool, a RAG search-debug endpoint with explainability metadata, a deterministic Router Agent that delegates calculator and RAG routes to the existing Agent graph, a Router Agent SSE streaming endpoint, an initial LLM Router Agent endpoint with mock and Ollama router providers, a Smart Chat endpoint as a future unified Agent entry point preview, a Smart Chat SSE streaming endpoint, route validation metadata for Router and Smart Chat paths, and a RAG chunk pipeline debug endpoint for vector DB preparation, a deterministic RAG vector-search debug endpoint, a hybrid retrieval debug endpoint that combines keyword and vector signals, an Agentic RAG debug graph with query analysis, query rewriting, hybrid retrieval, relevance grading, citation-aware answers, an Agentic RAG SSE streaming endpoint, and an Agentic RAG answer verification debug endpoint.
+This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent, SQLite-based short-term memory, graph debug output, request tracing, LLM provider abstraction, a real Ollama-backed LLM Tool Calling Agent path, SSE streaming endpoints, a lightweight local RAG search tool, a RAG search-debug endpoint with explainability metadata, a deterministic Router Agent that delegates calculator and RAG routes to the existing Agent graph, a Router Agent SSE streaming endpoint, an initial LLM Router Agent endpoint with mock and Ollama router providers, a Smart Chat endpoint as a future unified Agent entry point preview, a Smart Chat SSE streaming endpoint, route validation metadata for Router and Smart Chat paths, and a RAG chunk pipeline debug endpoint for vector DB preparation, a deterministic RAG vector-search debug endpoint, a hybrid retrieval debug endpoint that combines keyword and vector signals, an Agentic RAG debug graph with query analysis, query rewriting, hybrid retrieval, relevance grading, citation-aware answers, an Agentic RAG SSE streaming endpoint, an Agentic RAG answer verification debug endpoint, and a SQLite-backed vector store debug layer for real vector database preparation.
 
 ## Current Status
 
 ```text
-Day1-Day28 completed.
-Current stage: Agentic RAG Answer Verification completed.
-Local pytest: 69 passed, 1 warning.
+Day1-Day29 completed.
+Current stage: SQLite Vector Store Debug completed.
+Local pytest: 72 passed, 1 warning.
 Git push: success.
-GitHub Actions CI: green.
-Next milestone: Day29 real embedding/vector DB preparation, richer observability, or streamed verification.
+GitHub Actions CI: not shown in the provided Day29 log; confirm from GitHub Actions.
+Next milestone: Day30 real embedding provider and real vector database integration.
 ```
 
 ## Features
@@ -36,6 +36,7 @@ Current features:
 * `/rag/agentic-debug` Agentic RAG debug graph endpoint
 * `/rag/agentic-stream` Agentic RAG SSE streaming endpoint
 * `/rag/answer-verify-debug` Agentic RAG answer verification debug endpoint
+* `/rag/vector-store-debug` SQLite-backed vector store debug endpoint
 * `/rag/eval-debug` RAG evaluation debug endpoint
 * `/observability/traces/{trace_id}` trace event lookup endpoint
 * `/observability/traces` recent trace list endpoint
@@ -67,6 +68,9 @@ Current features:
 * Agentic RAG streaming observability event: `rag_agentic_stream`
 * Agentic RAG answer verification metadata: `verification_mode`, `answer_supported`, `verification_pass`, `confidence`, `answer_has_citation`, `citation_coverage_pass`, `cited_in_answer`, `unsupported_citations`, `grounding_terms`, `matched_grounding_terms`, and `risk_flags`
 * Agentic RAG answer verification observability event: `rag_answer_verify_debug`
+* SQLite-backed vector store debug layer with `build_vector_store_index()`, `query_vector_store()`, and `debug_vector_store_search()`
+* Vector store index statistics: `index_key`, `loaded_chunks`, `inserted_count`, `stored_count`, and `db_path`
+* Vector store debug observability event: `rag_vector_store_debug`
 * Local Markdown knowledge base under `knowledge/`
 * UTF-8 encoded knowledge base files for CI compatibility
 * Deterministic Router Agent route classification
@@ -139,6 +143,7 @@ Not implemented yet:
 * Observability trace store
 * Agentic RAG streaming layer
 * Agentic RAG answer verification layer
+* SQLite-backed vector store debug layer
 * pytest
 * GitHub Actions
 * Server-Sent Events
@@ -186,7 +191,8 @@ agent-api/
 │   ├── DAY25.md
 │   ├── DAY26.md
 │   ├── DAY27.md
-│   └── DAY28.md
+│   ├── DAY28.md
+│   └── DAY29.md
 ├── knowledge/
 │   └── agent_basics.md
 ├── data/
@@ -225,6 +231,7 @@ agent-api/
 │       │   ├── agentic_graph.py
 │       │   ├── agentic_streaming.py
 │       │   ├── answer_verifier.py
+│       │   ├── vector_store.py
 │       │   └── retriever.py
 │       ├── llm/
 │       │   ├── base.py
@@ -1314,6 +1321,111 @@ event_type = rag_answer_verify_debug
 ```
 
 This makes the Agentic RAG answer post-checkable and helps identify unsupported or weakly grounded answers.
+
+## Current SQLite Vector Store Debug Architecture
+
+Day29 added a SQLite-backed vector store debug layer as preparation for real vector database integration.
+
+```text
+/rag/vector-store-debug
+  ↓
+debug_vector_store_search()
+  ↓
+build_vector_store_index()
+  ↓
+load_knowledge_chunks()
+  ↓
+build_deterministic_embedding()
+  ↓
+SQLite: data/rag_vector_store.sqlite
+  ↓
+query_vector_store()
+  ↓
+cosine_similarity()
+  ↓
+ranked vector-store results
+  ↓
+record_trace_event(event_type="rag_vector_store_debug")
+```
+
+Current vector store file:
+
+```text
+src/app/rag/vector_store.py
+```
+
+Current vector store debug endpoint:
+
+```text
+POST /rag/vector-store-debug
+```
+
+Current functions:
+
+```text
+init_vector_store()
+build_vector_store_index()
+query_vector_store()
+debug_vector_store_search()
+```
+
+The vector store debug layer reuses:
+
+```text
+Day21: load_knowledge_chunks()
+Day22: build_deterministic_embedding()
+Day22: cosine_similarity()
+Day26: record_trace_event()
+```
+
+Current SQLite database:
+
+```text
+data/rag_vector_store.sqlite
+```
+
+Current SQLite table:
+
+```text
+rag_chunk_vectors
+```
+
+Stored fields include:
+
+```text
+index_key
+chunk_id
+source
+chunk_index
+content
+preview
+content_length
+embedding_dim
+embedding_json
+created_at_ms
+```
+
+Returned index statistics:
+
+```text
+index_key
+source_filter
+max_chars
+embedding_dim
+rebuild_index
+loaded_chunks
+inserted_count
+stored_count
+db_path
+```
+
+The endpoint writes an observability event:
+
+```text
+event_type = rag_vector_store_debug
+```
+
+Day29 still uses deterministic hashed embeddings to keep local tests and CI stable. The purpose is to introduce a vector-store-shaped persistence and query abstraction that can later be replaced by Chroma, FAISS, Milvus, or Qdrant.
 
 ## Request Tracing
 
@@ -2618,6 +2730,75 @@ risk_flags = []
 trace_id = day28-answer-verify-direct-001
 ```
 
+### RAG Vector Store Debug
+
+`/rag/vector-store-debug` builds a SQLite-backed vector-store-like index and queries persisted chunk embeddings.
+
+LangGraph query:
+
+```bash
+curl -s -X POST http://localhost:8000/rag/vector-store-debug \
+  -H "Content-Type: application/json" \
+  -H "x-trace-id: day29-vector-store-langgraph-001" \
+  -d '{"query":"LangGraph 是什么？","top_k":2,"source_filter":"agent_basics","max_chars":300,"embedding_dim":64,"rebuild_index":true}' \
+  | python -m json.tool --no-ensure-ascii
+```
+
+Expected response fields:
+
+```text
+query = LangGraph 是什么？
+top_k = 2
+source_filter = agent_basics
+embedding_dim = 64
+rebuild_index = true
+total_indexed_chunks = 2
+index_stats.loaded_chunks = 2
+index_stats.inserted_count = 2
+index_stats.stored_count = 2
+index_stats.db_path = data/rag_vector_store.sqlite
+results_count = 2
+trace_id = day29-vector-store-langgraph-001
+```
+
+Trace lookup:
+
+```bash
+curl -s http://localhost:8000/observability/traces/day29-vector-store-langgraph-001 \
+  | python -m json.tool --no-ensure-ascii
+```
+
+Expected trace fields:
+
+```text
+event_type = rag_vector_store_debug
+payload.total_indexed_chunks = 2
+payload.results_count = 2
+payload.index_stats.inserted_count = 2
+payload.index_stats.stored_count = 2
+```
+
+RAG query:
+
+```bash
+curl -s -X POST http://localhost:8000/rag/vector-store-debug \
+  -H "Content-Type: application/json" \
+  -H "x-trace-id: day29-vector-store-rag-001" \
+  -d '{"query":"RAG 是什么？","top_k":2,"source_filter":"agent_basics","max_chars":300,"embedding_dim":64,"rebuild_index":true}' \
+  | python -m json.tool --no-ensure-ascii
+```
+
+Expected response fields:
+
+```text
+total_indexed_chunks = 2
+index_stats.loaded_chunks = 2
+index_stats.inserted_count = 2
+index_stats.stored_count = 2
+results_count = 2
+trace_id = day29-vector-store-rag-001
+```
+
 ## Tests
 
 Run tests:
@@ -2629,7 +2810,7 @@ pytest -q
 Current result:
 
 ```text
-69 passed, 1 warning
+72 passed, 1 warning
 ```
 
 Current test coverage includes:
@@ -2715,6 +2896,7 @@ tests/
 ├── test_observability.py
 ├── test_rag_agentic_stream.py
 ├── test_rag_answer_verify.py
+├── test_rag_vector_store.py
 ├── test_router_agent.py
 ├── test_router_delegation.py
 ├── test_router_stream.py
@@ -2746,7 +2928,8 @@ pytest -q
 Current CI status:
 
 ```text
-green
+Day28: green
+Day29: not shown in the provided log; confirm from GitHub Actions
 ```
 
 ## Runtime Data
@@ -2814,8 +2997,8 @@ mv /tmp/agent_basics.md knowledge/agent_basics.md
 
 Next milestones:
 
-* Day29: Add real embedding/vector DB preparation, richer observability, or streamed verification
-* Day30+: Add real embedding or vector database backed RAG
+* Day30: Add real embedding provider and real vector database integration
+* Day31-Day35: Chroma or another vector database backed RAG engineering integration
 * Later: Add vector database based RAG
 * Later: Add GraphRAG and Neo4j integration
 * Later: Add Multi-Agent Supervisor workflow

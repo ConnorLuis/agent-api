@@ -13,12 +13,12 @@ Project 2 has officially started and is now the main development line.
 Current `agent-api` status:
 
 ```text
-Day1-Day28 completed.
-Day28 completed: Agentic RAG Answer Verification.
-Local pytest: 69 passed, 1 warning.
+Day1-Day29 completed.
+Day29 completed: SQLite Vector Store Debug.
+Local pytest: 72 passed, 1 warning.
 Git push: success.
-GitHub Actions CI: green.
-Next: Day29 real embedding/vector DB preparation, richer observability, or streamed verification.
+GitHub Actions CI: not shown in the provided Day29 log; confirm from GitHub Actions.
+Next: Day30 real embedding provider and real vector database integration.
 ```
 
 ## Project Goal
@@ -117,6 +117,8 @@ Current:
 - Agentic RAG SSE events for retrieval and direct paths
 - Agentic RAG Answer Verification endpoint
 - Deterministic answer support, citation, grounding-term, and risk-flag checks
+- SQLite Vector Store Debug endpoint
+- SQLite-backed deterministic chunk embedding persistence for real vector DB preparation
 - pytest
 - GitHub Actions CI
 
@@ -176,7 +178,8 @@ agent-api/
 │   ├── DAY25.md
 │   ├── DAY26.md
 │   ├── DAY27.md
-│   └── DAY28.md
+│   ├── DAY28.md
+│   └── DAY29.md
 ├── knowledge/
 │   └── agent_basics.md
 ├── data/
@@ -215,6 +218,7 @@ agent-api/
 │       │   ├── agentic_graph.py
 │       │   ├── agentic_streaming.py
 │       │   ├── answer_verifier.py
+│       │   ├── vector_store.py
 │       │   └── retriever.py
 │       ├── llm/
 │       │   ├── base.py
@@ -255,6 +259,7 @@ agent-api/
     ├── test_observability.py
     ├── test_rag_agentic_stream.py
     ├── test_rag_answer_verify.py
+    ├── test_rag_vector_store.py
     ├── test_router_agent.py
     ├── test_router_delegation.py
     ├── test_router_stream.py
@@ -382,6 +387,7 @@ POST /rag/hybrid-search-debug
 POST /rag/agentic-debug
 POST /rag/agentic-stream
 POST /rag/answer-verify-debug
+POST /rag/vector-store-debug
 POST /rag/eval-debug
 GET /observability/traces/{trace_id}
 GET /observability/traces
@@ -1664,6 +1670,115 @@ New Day28 test file:
 
 ```text
 tests/test_rag_answer_verify.py
+```
+
+---
+
+## Current SQLite Vector Store Debug Strategy
+
+Day29 added a SQLite-backed vector store debug layer.
+
+Current file:
+
+```text
+src/app/rag/vector_store.py
+```
+
+Current endpoint:
+
+```text
+POST /rag/vector-store-debug
+```
+
+Current functions:
+
+```text
+init_vector_store()
+build_vector_store_index()
+query_vector_store()
+debug_vector_store_search()
+```
+
+It reuses:
+
+```text
+load_knowledge_chunks()
+build_deterministic_embedding()
+cosine_similarity()
+record_trace_event()
+```
+
+Current SQLite database:
+
+```text
+data/rag_vector_store.sqlite
+```
+
+Current SQLite table:
+
+```text
+rag_chunk_vectors
+```
+
+Current request fields:
+
+```text
+query
+top_k
+source_filter
+max_chars
+embedding_dim
+rebuild_index
+```
+
+Returned metadata:
+
+```text
+query
+top_k
+source_filter
+max_chars
+embedding_dim
+index_key
+total_indexed_chunks
+rebuild_index
+index_stats
+results
+trace_id
+```
+
+Index statistics:
+
+```text
+index_key
+source_filter
+max_chars
+embedding_dim
+rebuild_index
+loaded_chunks
+inserted_count
+stored_count
+db_path
+```
+
+Observability event:
+
+```text
+rag_vector_store_debug
+```
+
+Important:
+
+```text
+Day29 is not the final real vector database integration.
+It introduces a vector-store-shaped persistence and query layer using SQLite and deterministic embeddings.
+This keeps tests stable while preparing the codebase for Chroma, FAISS, Milvus, or Qdrant.
+```
+
+New Day29 test file:
+
+```text
+tests/test_rag_vector_store.py
 ```
 
 ---
@@ -3157,7 +3272,7 @@ rag_eval_debug
 ### Test Result
 
 ```text
-69 passed, 1 warning
+72 passed, 1 warning
 ```
 
 ### CI Result
@@ -3223,7 +3338,7 @@ tests/test_rag_agentic_stream.py
 ### Test Result
 
 ```text
-69 passed, 1 warning
+72 passed, 1 warning
 ```
 
 ### CI Result
@@ -3290,7 +3405,7 @@ tests/test_rag_answer_verify.py
 ### Test Result
 
 ```text
-69 passed, 1 warning
+72 passed, 1 warning
 ```
 
 ### CI Result
@@ -3308,6 +3423,85 @@ GitHub Actions CI: green
 ### Notes
 
 Day28 adds deterministic post-answer verification for Agentic RAG.
+
+---
+
+## Day29 - SQLite Vector Store Debug
+
+### Completed
+
+- Added `src/app/rag/vector_store.py`
+- Added `init_vector_store()`
+- Added `build_vector_store_index()`
+- Added `query_vector_store()`
+- Added `debug_vector_store_search()`
+- Added `/rag/vector-store-debug`
+- Reused Day21 `load_knowledge_chunks()`
+- Reused Day22 `build_deterministic_embedding()`
+- Reused Day22 `cosine_similarity()`
+- Reused Day26 `record_trace_event()`
+- Persisted chunk embeddings into SQLite
+- Added SQLite table `rag_chunk_vectors`
+- Returned `index_stats`
+- Returned ranked vector-store results
+- Supported `source_filter`
+- Supported `max_chars`
+- Supported `embedding_dim`
+- Supported `top_k`
+- Supported `rebuild_index`
+- Added `rag_vector_store_debug` observability event
+- Fixed JSON serialization issue by converting `db_path` to string and adding `default=str` in trace serialization
+- Fixed schema mismatch from `inserted_chunks` to `inserted_count`
+- Verified vector store Python direct calls
+- Verified `/rag/vector-store-debug`
+- Verified `/observability/traces/{trace_id}` for vector store traces
+- Added `tests/test_rag_vector_store.py`
+- Expanded pytest from 69 tests to 72 tests
+- Verified local pytest
+- Git push succeeded
+
+### New Endpoint
+
+```text
+POST /rag/vector-store-debug
+```
+
+### New Files
+
+```text
+src/app/rag/vector_store.py
+tests/test_rag_vector_store.py
+```
+
+### Modified Files
+
+```text
+src/app/observability/trace_store.py
+src/app/routes/routes_rag.py
+src/app/schemas/rag.py
+```
+
+### Test Result
+
+```text
+72 passed, 1 warning
+```
+
+### CI Result
+
+```text
+Not shown in the provided Day29 log. Confirm from GitHub Actions.
+```
+
+### Commit
+
+```text
+24bd5c0 add sqlite vector store debug
+```
+
+### Notes
+
+Day29 prepares the project for real vector database integration. It still uses deterministic embeddings for stable tests, but the storage/query shape is closer to a real vector store.
 
 ---
 
@@ -3415,8 +3609,8 @@ It has a typo: `langraph` should be `langgraph`. This does not affect code and d
 Recommended next route:
 
 ```text
-Day29: real embedding/vector DB preparation, richer observability, or streamed verification
-Day30+: real embedding or vector database backed RAG
+Day30: real embedding provider and real vector database integration
+Day31-Day35: Chroma or another vector database backed RAG engineering integration
 Later: vector DB based RAG
 Later: GraphRAG + Neo4j + Multi-Agent Supervisor
 ```
@@ -3621,4 +3815,18 @@ Next:
 
 Next:
 
-- [ ] Day29 real embedding/vector DB preparation, richer observability, or streamed verification
+- [x] Day29 SQLite Vector Store Debug
+- [x] Day29 `/rag/vector-store-debug`
+- [x] Day29 `build_vector_store_index()`
+- [x] Day29 `query_vector_store()`
+- [x] Day29 `debug_vector_store_search()`
+- [x] Day29 SQLite chunk embedding persistence
+- [x] Day29 `index_stats`
+- [x] Day29 `rag_vector_store_debug` trace event
+- [x] Day29 vector store tests
+- [x] Day29 local pytest
+- [x] Day29 Git push
+
+Next:
+
+- [ ] Day30 real embedding provider and real vector database integration
