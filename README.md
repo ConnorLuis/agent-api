@@ -2,17 +2,17 @@
 
 `agent-api` is a FastAPI + LangGraph backend project for building an Agent service step by step.
 
-This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent, SQLite-based short-term memory, graph debug output, request tracing, LLM provider abstraction, a real Ollama-backed LLM Tool Calling Agent path, SSE streaming endpoints, a lightweight local RAG search tool, a RAG search-debug endpoint with explainability metadata, a deterministic Router Agent that delegates calculator and RAG routes to the existing Agent graph, a Router Agent SSE streaming endpoint, an initial LLM Router Agent endpoint with mock and Ollama router providers, a Smart Chat endpoint as a future unified Agent entry point preview, a Smart Chat SSE streaming endpoint, route validation metadata for Router and Smart Chat paths, and a RAG chunk pipeline debug endpoint for vector DB preparation, a deterministic RAG vector-search debug endpoint, a hybrid retrieval debug endpoint that combines keyword and vector signals, an Agentic RAG debug graph with query analysis, query rewriting, hybrid retrieval, relevance grading, citation-aware answers, an Agentic RAG SSE streaming endpoint, an Agentic RAG answer verification debug endpoint, a SQLite-backed vector store debug layer for real vector database preparation, an EmbeddingProvider abstraction layer with an embedding debug endpoint, a Chroma-backed persistent vector store debug endpoint, an Agentic RAG retrieval backend switch that supports both hybrid and Chroma backends, and a backend-aware RAG evaluation comparison layer for hybrid-vs-Chroma metrics, refined backend comparison metrics, backend-aware Agentic RAG SSE streaming alignment, a reranker-ready retrieval backend extension with `chroma_rerank`, pairwise backend metric deltas for multi-backend comparison, and a multi-backend-aware comparison summary.
+This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent, SQLite-based short-term memory, graph debug output, request tracing, LLM provider abstraction, a real Ollama-backed LLM Tool Calling Agent path, SSE streaming endpoints, a lightweight local RAG search tool, a RAG search-debug endpoint with explainability metadata, a deterministic Router Agent that delegates calculator and RAG routes to the existing Agent graph, a Router Agent SSE streaming endpoint, an initial LLM Router Agent endpoint with mock and Ollama router providers, a Smart Chat endpoint as a future unified Agent entry point preview, a Smart Chat SSE streaming endpoint, route validation metadata for Router and Smart Chat paths, and a RAG chunk pipeline debug endpoint for vector DB preparation, a deterministic RAG vector-search debug endpoint, a hybrid retrieval debug endpoint that combines keyword and vector signals, an Agentic RAG debug graph with query analysis, query rewriting, hybrid retrieval, relevance grading, citation-aware answers, an Agentic RAG SSE streaming endpoint, an Agentic RAG answer verification debug endpoint, a SQLite-backed vector store debug layer for real vector database preparation, an EmbeddingProvider abstraction layer with an embedding debug endpoint, a Chroma-backed persistent vector store debug endpoint, an Agentic RAG retrieval backend switch that supports both hybrid and Chroma backends, and a backend-aware RAG evaluation comparison layer for hybrid-vs-Chroma metrics, refined backend comparison metrics, backend-aware Agentic RAG SSE streaming alignment, a reranker-ready retrieval backend extension with `chroma_rerank`, pairwise backend metric deltas for multi-backend comparison, a multi-backend-aware comparison summary, and local semantic embedding provider validation with a CI-safe fallback.
 
 ## Current Status
 
 ```text
-Day1-Day37 completed.
-Current stage: Multi-backend comparison summary refinement completed.
-Local pytest: 97 passed, 1 warning.
+Day1-Day38 completed.
+Current stage: Semantic embedding provider local validation completed.
+Local pytest: 98 passed, 1 warning.
 Git push: success.
 GitHub Actions CI: green.
-Next milestone: Day38 semantic embedding provider local validation or evaluation report polishing.
+Next milestone: Day39 evaluation report polishing or production retrieval backend selection.
 ```
 
 ## Features
@@ -112,6 +112,12 @@ Current features:
 * `comparison_summary.metric_rankings`
 * `comparison_summary.top_improvement_pairs`
 * Trace payload records the refined multi-backend comparison summary
+* Local semantic embedding validation for `sentence_transformers` with `/mnt/f/LLM/maidalun/bce-embedding-base_v1`
+* Day38 semantic embedding validation script: `scripts/validate_semantic_embedding_provider.py`
+* CI-safe semantic embedding provider test: `tests/test_rag_semantic_embedding_provider.py`
+* `/rag/embedding-debug` verified with `provider="sentence_transformers"` and local BCE model path
+* `/rag/chroma-search-debug`, `/rag/agentic-debug`, and `/rag/backend-eval-debug` verified with local semantic embeddings
+* Provider argument boundary normalized across `get_embedding_provider()`, `SentenceTransformersEmbeddingProvider`, Chroma store, and SQLite vector store
 * Local Markdown knowledge base under `knowledge/`
 * UTF-8 encoded knowledge base files for CI compatibility
 * Deterministic Router Agent route classification
@@ -186,6 +192,7 @@ Not implemented yet:
 * Agentic RAG answer verification layer
 * SQLite-backed vector store debug layer
 * ChromaDB persistent vector store debug layer
+* Optional local `sentence-transformers` semantic embedding validation
 * Agentic RAG retrieval backend switch
 * pytest
 * GitHub Actions
@@ -199,6 +206,8 @@ agent-api/
 ├── HANDOFF.md
 ├── requirements.txt
 ├── pytest.ini
+├── scripts/
+│   └── validate_semantic_embedding_provider.py
 ├── .env.example
 ├── .gitignore
 ├── .github/
@@ -243,7 +252,8 @@ agent-api/
 │   ├── DAY34.md
 │   ├── DAY35.md
 │   ├── DAY36.md
-│   └── DAY37.md
+│   ├── DAY37.md
+│   └── DAY38.md
 ├── knowledge/
 │   └── agent_basics.md
 ├── data/
@@ -1724,7 +1734,7 @@ sentence_transformers
 The reserved sentence-transformers model name is:
 
 ```text
-BAAI/bge-small-zh-v1.5
+/mnt/f/LLM/maidalun/bce-embedding-base_v1
 ```
 
 Day30 also upgraded `/rag/vector-store-debug` to be provider-aware. Vector store indexing and querying now use `get_embedding_provider()` instead of directly calling deterministic embedding functions.
@@ -2193,6 +2203,95 @@ New Day37 test file:
 
 ```text
 tests/test_rag_backend_comparison_summary.py
+```
+
+## Current Semantic Embedding Local Validation Architecture
+
+Day38 validated the reserved `sentence_transformers` embedding provider locally while preserving the deterministic embedding provider as the default CI-safe path.
+
+```text
+scripts/validate_semantic_embedding_provider.py
+  ↓
+get_embedding_provider(provider="sentence_transformers", embedding_model="/mnt/f/LLM/maidalun/bce-embedding-base_v1")
+  ↓
+SentenceTransformersEmbeddingProvider(model_name=local_model_path)
+  ↓
+provider.embed_text(...)
+  ↓
+/rag/embedding-debug
+/rag/chroma-search-debug
+/rag/agentic-debug
+/rag/backend-eval-debug
+```
+
+Current local semantic model:
+
+```text
+/mnt/f/LLM/maidalun/bce-embedding-base_v1
+```
+
+Current local semantic embedding dimension:
+
+```text
+768
+```
+
+Day38 validated these paths:
+
+```text
+Python direct semantic provider validation
+/rag/embedding-debug with provider="sentence_transformers"
+/rag/chroma-search-debug with embedding_provider="sentence_transformers"
+/rag/agentic-debug with retrieval_backend="chroma" and semantic embeddings
+/rag/backend-eval-debug comparing hybrid, chroma, and chroma_rerank with semantic embeddings
+/observability/traces/{trace_id} for rag_embedding_debug and rag_backend_eval_debug
+```
+
+Observed Day38 semantic backend comparison with the local BCE embedding model:
+
+```text
+hybrid:
+  pass_rate = 1.0
+  average_relevance_score = 0.235843
+
+chroma:
+  pass_rate = 1.0
+  average_relevance_score = 0.415862
+
+chroma_rerank:
+  pass_rate = 1.0
+  average_relevance_score = 0.491103
+```
+
+Observed Day38 summary:
+
+```text
+best_backend_by_pass_rate = hybrid
+best_backend_by_average_relevance = chroma_rerank
+pass_rate is tied by hybrid, chroma, and chroma_rerank
+average_relevance_score winner is chroma_rerank
+```
+
+Important compatibility behavior:
+
+```text
+The deterministic provider remains the default for CI.
+The sentence_transformers provider is validated locally through a script and a CI-safe skip test.
+CI skips the semantic provider test when the local model path is unavailable.
+No model download, GPU dependency, or Hugging Face network access is required in CI.
+```
+
+Day38 also fixed the embedding model parameter boundary:
+
+```text
+API/request level and store functions:
+  embedding_model
+
+get_embedding_provider():
+  embedding_model
+
+SentenceTransformersEmbeddingProvider.__init__():
+  model_name
 ```
 
 ## Request Tracing
@@ -3942,7 +4041,7 @@ tests/
 └── test_rag_chunks.py
 ```
 
-Ollama provider, real LLM tool calling, `/agent/llm-stream`, `/agent/llm-router-chat` with `router_provider="ollama"`, `/agent/smart-chat` with `router_provider="ollama"`, and `/agent/smart-stream` with `router_provider="ollama"` are manually tested locally and are not covered by CI, because CI should not depend on a local Ollama service. The deterministic `/agent/stream`, `/rag/search`, `/rag/search-debug`, `/rag/chunks-debug`, `/rag/vector-search-debug`, `/rag/hybrid-search-debug`, `/rag/agentic-debug`, deterministic RAG tool path, Router Agent path, Router delegation memory path, Router stream path, `/agent/llm-router-chat` mock path, `/agent/smart-chat` deterministic/mock paths, `/agent/smart-stream` deterministic/mock paths, route validation paths, chunk pipeline paths, deterministic vector-search paths, hybrid retrieval paths, and Agentic RAG debug paths are covered by local pytest. CI status should be confirmed from GitHub Actions.
+Ollama provider, real LLM tool calling, `/agent/llm-stream`, `/agent/llm-router-chat` with `router_provider="ollama"`, `/agent/smart-chat` with `router_provider="ollama"`, and `/agent/smart-stream` with `router_provider="ollama"` are manually tested locally and are not covered by CI, because CI should not depend on a local Ollama service. The deterministic `/agent/stream`, `/rag/search`, `/rag/search-debug`, `/rag/chunks-debug`, `/rag/vector-search-debug`, `/rag/hybrid-search-debug`, `/rag/agentic-debug`, deterministic RAG tool path, Router Agent path, Router delegation memory path, Router stream path, `/agent/llm-router-chat` mock path, `/agent/smart-chat` deterministic/mock paths, `/agent/smart-stream` deterministic/mock paths, route validation paths, chunk pipeline paths, deterministic vector-search paths, hybrid retrieval paths, and Agentic RAG debug paths are covered by local pytest. Day38 semantic embedding validation is covered by a local test that skips in CI when the local BCE model path is unavailable. CI status should be confirmed from GitHub Actions.
 
 ## CI
 
@@ -3963,7 +4062,7 @@ pytest -q
 Current CI status:
 
 ```text
-Day37: green
+Day38: green
 ```
 
 ## Runtime Data
@@ -4031,8 +4130,8 @@ mv /tmp/agent_basics.md knowledge/agent_basics.md
 
 Next milestones:
 
-* Day38: Semantic embedding provider local validation or evaluation report polishing
-* Day39: Documentation, cleanup, and optional production backend selection
+* Day39: Evaluation report polishing or production retrieval backend selection
+* Day40: Documentation cleanup and optional semantic retrieval evaluation expansion
 * Later: Add vector database based RAG
 * Later: Add GraphRAG and Neo4j integration
 * Later: Add Multi-Agent Supervisor workflow

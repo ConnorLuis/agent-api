@@ -13,12 +13,12 @@ Project 2 has officially started and is now the main development line.
 Current `agent-api` status:
 
 ```text
-Day1-Day37 completed.
-Day37 completed: Multi-backend comparison summary refinement.
-Local pytest: 97 passed, 1 warning.
+Day1-Day38 completed.
+Day38 completed: Semantic embedding provider local validation.
+Local pytest: 98 passed, 1 warning.
 Git push: success.
 GitHub Actions CI: green.
-Next: Day38 semantic embedding provider local validation or evaluation report polishing.
+Next: Day39 evaluation report polishing or production retrieval backend selection.
 ```
 
 ## Project Goal
@@ -155,6 +155,10 @@ Current:
 - `comparison_summary.metric_rankings`
 - `comparison_summary.top_improvement_pairs`
 - Trace payload records refined multi-backend `comparison_summary`
+- Local semantic embedding provider validation with `sentence_transformers`
+- Local BCE embedding model path: `/mnt/f/LLM/maidalun/bce-embedding-base_v1`
+- CI-safe semantic provider test that skips when the local model path is unavailable
+- Day38 validation script for semantic provider, Chroma, Agentic RAG, and backend comparison
 - pytest
 - GitHub Actions CI
 
@@ -177,6 +181,8 @@ agent-api/
 ├── HANDOFF.md
 ├── requirements.txt
 ├── pytest.ini
+├── scripts/
+│   └── validate_semantic_embedding_provider.py
 ├── .env.example
 ├── .gitignore
 ├── .github/
@@ -221,7 +227,8 @@ agent-api/
 │   ├── DAY34.md
 │   ├── DAY35.md
 │   ├── DAY36.md
-│   └── DAY37.md
+│   ├── DAY37.md
+│   └── DAY38.md
 ├── knowledge/
 │   └── agent_basics.md
 ├── data/
@@ -314,6 +321,7 @@ agent-api/
 ├── test_rag_reranker.py
 ├── test_rag_backend_pairwise_eval.py
 ├── test_rag_backend_comparison_summary.py
+├── test_rag_semantic_embedding_provider.py
     ├── test_router_agent.py
     ├── test_router_delegation.py
     ├── test_router_stream.py
@@ -1888,7 +1896,7 @@ sentence_transformers
 Reserved semantic embedding model:
 
 ```text
-BAAI/bge-small-zh-v1.5
+/mnt/f/LLM/maidalun/bce-embedding-base_v1
 ```
 
 Day30 also upgraded the SQLite vector store debug layer so `build_vector_store_index()` and `query_vector_store()` use `get_embedding_provider()` instead of directly depending on deterministic embedding functions.
@@ -5068,6 +5076,137 @@ Day37 closes the known Day36 limitation. The backend comparison summary is now a
 
 ---
 
+## Current Day38 Semantic Embedding Provider Local Validation Strategy
+
+Day38 validated the previously reserved `sentence_transformers` provider locally without making CI depend on model downloads, GPU, or Hugging Face network access.
+
+Current local semantic embedding configuration:
+
+```text
+provider = sentence_transformers
+model = /mnt/f/LLM/maidalun/bce-embedding-base_v1
+embedding_dim = 768
+```
+
+Current validation script:
+
+```text
+scripts/validate_semantic_embedding_provider.py
+```
+
+Current CI-safe test:
+
+```text
+tests/test_rag_semantic_embedding_provider.py
+```
+
+Validated paths:
+
+```text
+get_embedding_provider(provider="sentence_transformers", embedding_model=local_model_path)
+/rag/embedding-debug
+/rag/chroma-search-debug
+/rag/agentic-debug with retrieval_backend="chroma"
+/rag/backend-eval-debug with hybrid, chroma, and chroma_rerank
+/observability/traces/day38-local-embedding-debug-001
+/observability/traces/day38-local-backend-eval-001
+```
+
+Observed local semantic backend metrics:
+
+```text
+hybrid:
+  pass_rate = 1.0
+  average_relevance_score = 0.235843
+
+chroma:
+  pass_rate = 1.0
+  average_relevance_score = 0.415862
+
+chroma_rerank:
+  pass_rate = 1.0
+  average_relevance_score = 0.491103
+```
+
+Parameter boundary fixed in Day38:
+
+```text
+API and store-layer request fields:
+  embedding_model
+
+get_embedding_provider():
+  embedding_model
+
+SentenceTransformersEmbeddingProvider.__init__():
+  model_name
+```
+
+Important compatibility note:
+
+```text
+The deterministic provider remains the default.
+The local semantic provider is manually validated and covered by a skip-safe test.
+CI should skip the semantic provider test when `/mnt/f/LLM/maidalun/bce-embedding-base_v1` is unavailable.
+```
+
+## Day38 - Semantic Embedding Provider Local Validation
+
+### Completed
+
+- Added local validation script for the reserved `sentence_transformers` provider
+- Updated validation to use the local BCE embedding model path instead of remote Hugging Face model name
+- Validated local model loading from `/mnt/f/LLM/maidalun/bce-embedding-base_v1`
+- Validated `actual_embedding_dim = 768`
+- Validated `/rag/embedding-debug` with `provider="sentence_transformers"`
+- Validated `/rag/chroma-search-debug` with semantic embeddings
+- Validated `/rag/agentic-debug` with `retrieval_backend="chroma"` and semantic embeddings
+- Validated `/rag/backend-eval-debug` with `hybrid`, `chroma`, and `chroma_rerank`
+- Verified trace events for `rag_embedding_debug` and `rag_backend_eval_debug`
+- Added CI-safe semantic provider test that skips when `sentence-transformers` or the local model path is unavailable
+- Fixed provider argument naming across Chroma and SQLite vector store paths
+- Preserved deterministic embeddings as the default CI-safe provider
+- Verified local focused tests
+- Verified local full pytest
+- Verified GitHub Actions CI
+- Git push succeeded
+
+### New File
+
+```text
+tests/test_rag_semantic_embedding_provider.py
+```
+
+### New Script
+
+```text
+scripts/validate_semantic_embedding_provider.py
+```
+
+### Modified Files
+
+```text
+src/app/rag/embedding_provider.py
+src/app/rag/chroma_store.py
+src/app/rag/vector_store.py
+```
+
+### Test Result
+
+```text
+RAG focused tests: 28 passed, 1 warning
+Full local pytest: 98 passed, 1 warning
+```
+
+### CI Result
+
+```text
+GitHub Actions CI: green
+```
+
+### Notes
+
+Day38 proves that the project can switch from deterministic hash embeddings to a real local semantic embedding provider for Chroma-backed RAG paths while keeping CI deterministic and dependency-safe.
+
 ## Known Issues / Notes
 
 ### SQLite runtime files
@@ -5124,8 +5263,10 @@ Agent response
 Local pytest currently shows:
 
 ```text
-97 passed, 1 warning
+98 passed, 1 warning
 ```
+
+CI may show `97 passed, 1 skipped, 1 warning` because the Day38 local semantic embedding test skips when the local BCE model path is unavailable.
 
 The warning is:
 
@@ -5172,11 +5313,12 @@ It has a typo: `langraph` should be `langgraph`. This does not affect code and d
 Recommended next route:
 
 ```text
-Day34: Backend metrics refinement and optional stream/backend alignment
-Day35: Documentation, cleanup, and optional semantic embedding preparation
-Later: vector DB based RAG
+Day39: Evaluation report polishing or production retrieval backend selection
+Day40: Documentation cleanup and optional semantic retrieval evaluation expansion
+Later: Document upload and parsing pipeline
 Later: GraphRAG + Neo4j + Multi-Agent Supervisor
 ```
+
 
 ---
 
@@ -5511,4 +5653,17 @@ Next:
 
 Next:
 
-- [ ] Day38 Semantic embedding provider local validation or evaluation report polishing
+- [x] Day38 Semantic embedding provider local validation
+- [x] Day38 local semantic BCE model validation
+- [x] Day38 `/rag/embedding-debug` semantic provider validation
+- [x] Day38 `/rag/chroma-search-debug` semantic provider validation
+- [x] Day38 `/rag/agentic-debug` Chroma semantic validation
+- [x] Day38 `/rag/backend-eval-debug` semantic backend comparison
+- [x] Day38 semantic provider CI-safe skip test
+- [x] Day38 local pytest
+- [x] Day38 GitHub Actions CI
+- [x] Day38 Git push
+
+Next:
+
+- [ ] Day39 Evaluation report polishing or production retrieval backend selection
