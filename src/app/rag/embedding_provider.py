@@ -8,7 +8,7 @@ from src.app.rag.vector_index import (
 
 DEFAULT_EMBEDDING_PROVIDER = "deterministic"
 DEFAULT_DETERMINISTIC_EMBEDDING_MODEL = "deterministic-hash"
-DEFAULT_SENTENCE_TRANSFORMERS_MODEL = "BAAI/bge-small-zh-v1.5"
+DEFAULT_SENTENCE_TRANSFORMERS_MODEL = "/mnt/f/LLM/maidalun/bce-embedding-base_v1"
 
 
 class EmbeddingProvider(Protocol):
@@ -124,7 +124,7 @@ class SentenceTransformersEmbeddingProvider:
 
 def get_embedding_provider(
     provider: str = DEFAULT_EMBEDDING_PROVIDER,
-    model_name: str | None = None,
+    embedding_model: str | None = None,
 ) -> EmbeddingProvider:
     normalized_provider = provider.strip().lower()
 
@@ -133,7 +133,7 @@ def get_embedding_provider(
 
     if normalized_provider in {"sentence_transformers", "sentence-transformers", "local"}:
         return SentenceTransformersEmbeddingProvider(
-            model_name=model_name or DEFAULT_SENTENCE_TRANSFORMERS_MODEL,
+            model_name=embedding_model or DEFAULT_SENTENCE_TRANSFORMERS_MODEL,
         )
 
     raise ValueError(
@@ -150,7 +150,7 @@ def debug_embeddings(
 ) -> dict:
     embedding_provider = get_embedding_provider(
         provider=provider,
-        model_name=model_name,
+        embedding_model=model_name,
     )
 
     query_embedding = embedding_provider.embed_text(

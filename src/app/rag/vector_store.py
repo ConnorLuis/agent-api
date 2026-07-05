@@ -91,7 +91,7 @@ def build_vector_store_index(
     safe_dim = max(embedding_dim, 8)
     provider_instance = get_embedding_provider(
         provider=embedding_provider,
-        model_name=embedding_model,
+        embedding_model=embedding_model,
     )
     index_key = _build_index_key(
         source_filter=source_filter,
@@ -177,7 +177,7 @@ def query_vector_store(
     safe_dim = max(embedding_dim, 8)
     provider_instance = get_embedding_provider(
         provider=embedding_provider,
-        model_name=embedding_model,
+        embedding_model=embedding_model,
     )
     index_key = _build_index_key(source_filter=source_filter, max_chars=max_chars, embedding_dim=safe_dim, embedding_provider=provider_instance.provider, embedding_model=provider_instance.model)
 
