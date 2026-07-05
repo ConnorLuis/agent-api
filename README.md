@@ -2,17 +2,17 @@
 
 `agent-api` is a FastAPI + LangGraph backend project for building an Agent service step by step.
 
-This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent, SQLite-based short-term memory, graph debug output, request tracing, LLM provider abstraction, a real Ollama-backed LLM Tool Calling Agent path, SSE streaming endpoints, a lightweight local RAG search tool, a RAG search-debug endpoint with explainability metadata, a deterministic Router Agent that delegates calculator and RAG routes to the existing Agent graph, a Router Agent SSE streaming endpoint, an initial LLM Router Agent endpoint with mock and Ollama router providers, a Smart Chat endpoint as a future unified Agent entry point preview, a Smart Chat SSE streaming endpoint, route validation metadata for Router and Smart Chat paths, and a RAG chunk pipeline debug endpoint for vector DB preparation, a deterministic RAG vector-search debug endpoint, a hybrid retrieval debug endpoint that combines keyword and vector signals, an Agentic RAG debug graph with query analysis, query rewriting, hybrid retrieval, relevance grading, citation-aware answers, an Agentic RAG SSE streaming endpoint, an Agentic RAG answer verification debug endpoint, a SQLite-backed vector store debug layer for real vector database preparation, an EmbeddingProvider abstraction layer with an embedding debug endpoint, a Chroma-backed persistent vector store debug endpoint, an Agentic RAG retrieval backend switch that supports both hybrid and Chroma backends, and a backend-aware RAG evaluation comparison layer for hybrid-vs-Chroma metrics.
+This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent, SQLite-based short-term memory, graph debug output, request tracing, LLM provider abstraction, a real Ollama-backed LLM Tool Calling Agent path, SSE streaming endpoints, a lightweight local RAG search tool, a RAG search-debug endpoint with explainability metadata, a deterministic Router Agent that delegates calculator and RAG routes to the existing Agent graph, a Router Agent SSE streaming endpoint, an initial LLM Router Agent endpoint with mock and Ollama router providers, a Smart Chat endpoint as a future unified Agent entry point preview, a Smart Chat SSE streaming endpoint, route validation metadata for Router and Smart Chat paths, and a RAG chunk pipeline debug endpoint for vector DB preparation, a deterministic RAG vector-search debug endpoint, a hybrid retrieval debug endpoint that combines keyword and vector signals, an Agentic RAG debug graph with query analysis, query rewriting, hybrid retrieval, relevance grading, citation-aware answers, an Agentic RAG SSE streaming endpoint, an Agentic RAG answer verification debug endpoint, a SQLite-backed vector store debug layer for real vector database preparation, an EmbeddingProvider abstraction layer with an embedding debug endpoint, a Chroma-backed persistent vector store debug endpoint, an Agentic RAG retrieval backend switch that supports both hybrid and Chroma backends, and a backend-aware RAG evaluation comparison layer for hybrid-vs-Chroma metrics, refined backend comparison metrics, and backend-aware Agentic RAG SSE streaming alignment.
 
 ## Current Status
 
 ```text
-Day1-Day33 completed.
-Current stage: Chroma-backed RAG evaluation and backend comparison completed.
-Local pytest: 86 passed, 1 warning.
+Day1-Day34 completed.
+Current stage: Backend metrics refinement and Agentic RAG stream/backend alignment completed.
+Local pytest: 89 passed, 1 warning.
 Git push: success.
 GitHub Actions CI: green.
-Next milestone: Day34 Backend metrics refinement and optional stream/backend alignment.
+Next milestone: Day35 semantic embedding quality improvement or reranker-ready retrieval extension.
 ```
 
 ## Features
@@ -92,6 +92,11 @@ Current features:
 * `/rag/backend-eval-debug` hybrid-vs-Chroma backend comparison
 * RAG backend comparison metrics: `pass_rate`, `retrieval_decision_accuracy`, `expected_terms_hit_rate`, `citation_hit_rate`, and `average_relevance_score`
 * Backend comparison trace event: `rag_backend_eval_debug`
+* Refined backend comparison metrics: `metric_deltas`, `case_comparisons`, and `comparison_summary`
+* Backend comparison trace payload now records refined metrics and per-case backend comparisons
+* `/rag/agentic-stream` supports `retrieval_backend="hybrid"` and `retrieval_backend="chroma"`
+* Agentic RAG stream events include `retrieval_backend` and `retrieval_metadata`
+* Agentic RAG stream trace payload includes backend metadata
 * Local Markdown knowledge base under `knowledge/`
 * UTF-8 encoded knowledge base files for CI compatibility
 * Deterministic Router Agent route classification
@@ -119,7 +124,8 @@ Current features:
 * Mock LLM provider for deterministic tests and CI
 * Ollama LLM provider based on `langchain-ollama`
 * Ollama tool binding via `bind_tools()`
-* Server-Sent Events streaming response
+* Server-Sent Events
+* Backend-aware Agentic RAG streaming streaming response
 * SSE event helper with `ensure_ascii=False` for readable Chinese output
 * Environment-based LLM provider configuration
 * Request-level provider override for `/llm/chat`
@@ -217,7 +223,8 @@ agent-api/
 │   ├── DAY30.md
 │   ├── DAY31.md
 │   ├── DAY32.md
-│   └── DAY33.md
+│   ├── DAY33.md
+│   └── DAY34.md
 ├── knowledge/
 │   └── agent_basics.md
 ├── data/
@@ -1079,7 +1086,7 @@ This turns RAG from a single retrieval call into a controllable workflow that ca
 
 ## Current RAG Evaluation Architecture
 
-Day25 added a RAG evaluation debug layer. Day33 upgraded it into a backend-aware evaluation layer.
+Day25 added a RAG evaluation debug layer. Day33 upgraded it into a backend-aware evaluation layer. Day34 refined the backend comparison output.
 
 ```text
 eval_cases/rag_agentic_eval.jsonl
@@ -1092,7 +1099,11 @@ invoke_agentic_rag(retrieval_backend=...)
   ↓
 metrics + per-case backend-aware results
   ↓
-/rag/eval-debug
+compare_rag_retrieval_backends()
+  ↓
+metric_deltas + case_comparisons + comparison_summary
+  ↓
+/rag/backend-eval-debug
 ```
 
 Current evaluation files:
@@ -1102,6 +1113,7 @@ eval_cases/rag_agentic_eval.jsonl
 src/app/evaluation/rag_eval.py
 tests/test_rag_eval.py
 tests/test_rag_backend_eval.py
+tests/test_rag_agentic_stream_backend.py
 ```
 
 Current endpoints:
@@ -1131,90 +1143,83 @@ citation_hit_rate
 average_relevance_score
 ```
 
-Day33 keeps `/rag/eval-debug` backward-compatible. The default backend is still:
+Day34 refined backend comparison fields:
 
 ```text
-hybrid
+metric_deltas
+case_comparisons
+comparison_summary
 ```
 
-Day33 adds explicit backend selection:
+`metric_deltas` compares the second backend against the baseline backend.
+
+Observed Day34 metric deltas:
 
 ```text
-retrieval_backend = hybrid
-retrieval_backend = chroma
+baseline_backend = hybrid
+comparison_backend = chroma
+pass_rate_delta = -0.333333
+retrieval_decision_accuracy_delta = 0.0
+expected_terms_hit_rate_delta = -0.333333
+citation_hit_rate_delta = 0.0
+average_relevance_score_delta = 0.00101
 ```
 
-Observed hybrid result:
+`case_comparisons` shows case-level differences across backends.
+
+Observed Day34 case comparison summary:
 
 ```text
-total_cases = 3
-passed_cases = 3
-pass_rate = 1.0
-retrieval_decision_accuracy = 1.0
-expected_terms_hit_rate = 1.0
-citation_hit_rate = 1.0
-average_relevance_score = 0.278223
+rag_definition: winner_by_pass = tie, winner_by_relevance = hybrid
+langgraph_definition: winner_by_pass = hybrid, winner_by_relevance = chroma
+direct_chat: winner_by_pass = tie, winner_by_relevance = hybrid
 ```
 
-Observed Chroma result:
+`comparison_summary` gives a high-level interpretation.
 
-```text
-total_cases = 3
-passed_cases = 2
-pass_rate = 0.666667
-retrieval_decision_accuracy = 1.0
-expected_terms_hit_rate = 0.666667
-citation_hit_rate = 1.0
-average_relevance_score = 0.279233
-```
-
-Observed backend comparison:
+Observed Day34 summary:
 
 ```text
 best_backend_by_pass_rate = hybrid
 best_backend_by_average_relevance = chroma
+notes:
+  - hybrid has a higher pass_rate than chroma.
+  - chroma has a higher average_relevance_score than hybrid.
 ```
 
 Important interpretation:
 
 ```text
-Hybrid wins pass_rate on the current small eval set.
-Chroma slightly wins average_relevance_score, but it misses the LangGraph expected terms case because deterministic hash embeddings rank the RAG chunk above the LangGraph chunk for that query.
+Hybrid still wins pass_rate on the current small deterministic eval set.
+Chroma slightly wins average_relevance_score, but deterministic hash embeddings still make the LangGraph case retrieve the RAG chunk first.
+This is expected for the current toy eval set and does not indicate that Chroma integration failed.
 ```
 
-### RAG Eval Debug
-
-Hybrid backend:
-
-```bash
-curl -s -X POST http://localhost:8000/rag/eval-debug \
-  -H "Content-Type: application/json" \
-  -H "x-trace-id: day33-eval-hybrid-001" \
-  -d '{"source_filter":"agent_basics","max_chars":300,"embedding_dim":64,"keyword_weight":0.6,"vector_weight":0.4,"retrieval_backend":"hybrid"}' \
-  | python -m json.tool --no-ensure-ascii
-```
-
-Chroma backend:
-
-```bash
-curl -s -X POST http://localhost:8000/rag/eval-debug \
-  -H "Content-Type: application/json" \
-  -H "x-trace-id: day33-eval-chroma-001" \
-  -d '{"source_filter":"agent_basics","max_chars":300,"embedding_dim":64,"retrieval_backend":"chroma","embedding_provider":"deterministic","rebuild_index":true}' \
-  | python -m json.tool --no-ensure-ascii
-```
-
-Backend comparison:
+Example backend comparison request:
 
 ```bash
 curl -s -X POST http://localhost:8000/rag/backend-eval-debug \
   -H "Content-Type: application/json" \
-  -H "x-trace-id: day33-backend-eval-001" \
+  -H "x-trace-id: day34-backend-eval-refined-001" \
   -d '{"backends":["hybrid","chroma"],"source_filter":"agent_basics","max_chars":300,"embedding_dim":64,"keyword_weight":0.6,"vector_weight":0.4,"embedding_provider":"deterministic","rebuild_index":true}' \
   | python -m json.tool --no-ensure-ascii
 ```
 
+Trace lookup:
 
+```bash
+curl -s http://localhost:8000/observability/traces/day34-backend-eval-refined-001 \
+  | python -m json.tool --no-ensure-ascii
+```
+
+The `rag_backend_eval_debug` trace event now includes:
+
+```text
+backend_metrics
+metric_deltas
+case_comparisons
+comparison_summary
+```
 
 ## Current Observability Trace Store Architecture
 
@@ -1270,14 +1275,16 @@ Agentic RAG trace payload includes query, rewritten query, retrieval decision, r
 
 ## Current Agentic RAG Streaming Architecture
 
-Day27 added an Agentic RAG SSE streaming endpoint.
+Day27 added an Agentic RAG SSE streaming endpoint. Day34 aligned this streaming endpoint with the Day32 retrieval backend switch.
 
 ```text
 /rag/agentic-stream
   ↓
-stream_agentic_rag_events()
+stream_agentic_rag_events(retrieval_backend=...)
   ↓
-invoke_agentic_rag()
+invoke_agentic_rag(retrieval_backend=...)
+  ├── hybrid -> hybrid_retrieve
+  └── chroma -> chroma_retrieve
   ↓
 metadata
 decision
@@ -1305,8 +1312,9 @@ POST /rag/agentic-stream
 The streaming path reuses:
 
 ```text
-Day24: invoke_agentic_rag()
+Day24/Day32: invoke_agentic_rag()
 Day26: record_trace_event()
+Day32: retrieval_backend switch
 ```
 
 Retrieval path event sequence:
@@ -1321,25 +1329,72 @@ Direct path event sequence:
 metadata -> decision -> answer_chunk -> final -> done
 ```
 
-The stream writes an observability event:
+Day34 stream backend fields:
+
+```text
+retrieval_backend
+retrieval_metadata
+```
+
+These fields are included in:
+
+```text
+metadata event
+retrieval event
+final event
+rag_agentic_stream trace payload
+```
+
+Hybrid stream behavior:
+
+```text
+retrieval_backend = hybrid
+steps include hybrid_retrieve
+```
+
+Chroma stream behavior:
+
+```text
+retrieval_backend = chroma
+steps include chroma_retrieve
+retrieval_metadata.collection_name exists
+retrieval_metadata.total_indexed_chunks = 2
+```
+
+Observed Chroma stream trace fields:
 
 ```text
 event_type = rag_agentic_stream
+payload.retrieval_backend = chroma
+payload.retrieval_metadata.retrieval_backend = chroma
+payload.steps = query_analyzer -> query_rewriter -> chroma_retrieve -> relevance_grade -> answer_with_citations
+payload.retrieval_results_count = 2
 ```
 
-Stored stream trace payload includes:
+Example Chroma stream request:
+
+```bash
+curl -N -X POST http://localhost:8000/rag/agentic-stream \
+  -H "Content-Type: application/json" \
+  -H "x-trace-id: day34-agentic-stream-chroma-001" \
+  -d '{"query":"请搜索知识库：RAG 是什么？","top_k":2,"source_filter":"agent_basics","max_chars":300,"embedding_dim":64,"retrieval_backend":"chroma","embedding_provider":"deterministic","rebuild_index":true}'
+```
+
+Expected Chroma stream events:
 
 ```text
-query
-rewritten_query
-retrieval_needed
-relevance_score
-citations
-steps
-retrieval_results_count
+event: metadata      # retrieval_backend = chroma
+event: decision      # steps include chroma_retrieve
+event: rewrite
+event: retrieval     # retrieval_backend = chroma and Chroma retrieval metadata
+event: relevance
+event: citation
+event: answer_chunk
+event: final         # retrieval_backend = chroma and retrieval_metadata
+event: done
 ```
 
-This turns Agentic RAG from a single JSON debug response into a real-time event stream suitable for frontend step-by-step display.
+This keeps JSON debug and SSE streaming behavior aligned across retrieval backends.
 
 ## Current Agentic RAG Answer Verification Architecture
 
@@ -3420,7 +3475,7 @@ pytest -q
 Current result:
 
 ```text
-86 passed, 1 warning
+89 passed, 1 warning
 ```
 
 Current test coverage includes:
@@ -3547,7 +3602,7 @@ pytest -q
 Current CI status:
 
 ```text
-Day33: green
+Day34: green
 ```
 
 ## Runtime Data
@@ -3615,8 +3670,8 @@ mv /tmp/agent_basics.md knowledge/agent_basics.md
 
 Next milestones:
 
-* Day34: Backend metrics refinement and optional stream/backend alignment
-* Day35: Documentation, cleanup, and optional semantic embedding preparation
+* Day35: Semantic embedding quality improvement or reranker-ready retrieval extension
+* Day36: Documentation, cleanup, and optional production backend selection
 * Later: Add vector database based RAG
 * Later: Add GraphRAG and Neo4j integration
 * Later: Add Multi-Agent Supervisor workflow

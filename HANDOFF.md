@@ -13,12 +13,12 @@ Project 2 has officially started and is now the main development line.
 Current `agent-api` status:
 
 ```text
-Day1-Day33 completed.
-Day33 completed: Chroma-backed RAG evaluation and backend comparison.
-Local pytest: 86 passed, 1 warning.
+Day1-Day34 completed.
+Day34 completed: Backend metrics refinement and Agentic RAG stream/backend alignment.
+Local pytest: 89 passed, 1 warning.
 Git push: success.
 GitHub Actions CI: green.
-Next: Day34 Backend metrics refinement and optional stream/backend alignment.
+Next: Day35 semantic embedding quality improvement or reranker-ready retrieval extension.
 ```
 
 ## Project Goal
@@ -135,6 +135,11 @@ Current:
 - RAG backend evaluation comparison endpoint
 - Hybrid-vs-Chroma backend metrics comparison
 - Backend evaluation observability event
+- Refined backend comparison metrics: `metric_deltas`, `case_comparisons`, and `comparison_summary`
+- Backend comparison trace payload with refined metrics
+- Backend-aware Agentic RAG streaming endpoint
+- Chroma-backed Agentic RAG SSE stream path
+- Agentic RAG stream trace backend metadata
 - pytest
 - GitHub Actions CI
 
@@ -197,7 +202,8 @@ agent-api/
 │   ├── DAY30.md
 │   ├── DAY31.md
 │   ├── DAY32.md
-│   └── DAY33.md
+│   ├── DAY33.md
+│   └── DAY34.md
 ├── knowledge/
 │   └── agent_basics.md
 ├── data/
@@ -285,6 +291,7 @@ agent-api/
     ├── test_rag_chroma_store.py
     ├── test_rag_agentic_backend.py
     ├── test_rag_backend_eval.py
+├── test_rag_agentic_stream_backend.py
     ├── test_router_agent.py
     ├── test_router_delegation.py
     ├── test_router_stream.py
@@ -2239,6 +2246,103 @@ New Day33 test file:
 
 ```text
 tests/test_rag_backend_eval.py
+```
+
+---
+
+## Current Day34 Backend Metrics and Stream Alignment Strategy
+
+Day34 refined the backend comparison layer and aligned Agentic RAG streaming with the retrieval backend switch.
+
+Current files:
+
+```text
+src/app/evaluation/rag_eval.py
+src/app/rag/agentic_streaming.py
+src/app/routes/routes_rag.py
+src/app/schemas/rag.py
+tests/test_rag_backend_eval.py
+tests/test_rag_agentic_stream_backend.py
+```
+
+Current endpoints:
+
+```text
+POST /rag/backend-eval-debug
+POST /rag/agentic-stream
+```
+
+Backend comparison now returns:
+
+```text
+metric_deltas
+case_comparisons
+comparison_summary
+```
+
+Observed Day34 metric deltas:
+
+```text
+baseline_backend = hybrid
+comparison_backend = chroma
+pass_rate_delta = -0.333333
+retrieval_decision_accuracy_delta = 0.0
+expected_terms_hit_rate_delta = -0.333333
+citation_hit_rate_delta = 0.0
+average_relevance_score_delta = 0.00101
+```
+
+Observed comparison summary:
+
+```text
+best_backend_by_pass_rate = hybrid
+best_backend_by_average_relevance = chroma
+notes:
+  - hybrid has a higher pass_rate than chroma.
+  - chroma has a higher average_relevance_score than hybrid.
+```
+
+Observed case comparisons:
+
+```text
+rag_definition: winner_by_pass = tie, winner_by_relevance = hybrid
+langgraph_definition: winner_by_pass = hybrid, winner_by_relevance = chroma
+direct_chat: winner_by_pass = tie, winner_by_relevance = hybrid
+```
+
+Agentic RAG stream now supports:
+
+```text
+retrieval_backend = hybrid
+retrieval_backend = chroma
+```
+
+Chroma stream expected step path:
+
+```text
+query_analyzer -> query_rewriter -> chroma_retrieve -> relevance_grade -> answer_with_citations
+```
+
+Stream payload backend fields:
+
+```text
+retrieval_backend
+retrieval_metadata
+```
+
+These are present in:
+
+```text
+metadata event
+retrieval event
+final event
+rag_agentic_stream trace payload
+```
+
+New Day34 test file:
+
+```text
+tests/test_rag_agentic_stream_backend.py
 ```
 
 ---
@@ -4270,7 +4374,7 @@ src/app/schemas/rag.py
 ### Test Result
 
 ```text
-86 passed, 1 warning
+89 passed, 1 warning
 ```
 
 ### CI Result
@@ -4290,6 +4394,85 @@ GitHub Actions CI: green
 Day33 validates that the same evaluation cases can compare hybrid and Chroma retrieval backends through a common metrics contract.
 
 Observed result: hybrid has better pass_rate on the current small eval set, while Chroma has a slightly higher average relevance score. This is expected because the current Chroma path still uses deterministic hash embeddings, not a semantic embedding model.
+
+---
+
+## Day34 - Backend Metrics Refinement and Stream Backend Alignment
+
+### Completed
+
+- Refined backend comparison output from `/rag/backend-eval-debug`
+- Added `metric_deltas`
+- Added `case_comparisons`
+- Added `comparison_summary`
+- Added helper logic for per-metric deltas
+- Added helper logic for per-case backend comparisons
+- Added helper logic for comparison summary notes
+- Updated `RagBackendEvalDebugResponse`
+- Updated `rag_backend_eval_debug` trace payload with refined metrics
+- Aligned `/rag/agentic-stream` with `retrieval_backend`
+- Added `retrieval_backend`, `embedding_provider`, `embedding_model`, and `rebuild_index` support to stream payload builder
+- Passed backend parameters from route layer into `stream_agentic_rag_events()`
+- Fixed the route-layer `trace_id` argument for `stream_agentic_rag_events()`
+- Added `retrieval_backend` and `retrieval_metadata` to stream metadata event
+- Added `retrieval_backend` and `retrieval_metadata` to stream retrieval event
+- Added `retrieval_backend` and `retrieval_metadata` to stream final event
+- Added `retrieval_backend` and `retrieval_metadata` to `rag_agentic_stream` trace payload
+- Verified Chroma-backed Agentic RAG stream through curl
+- Verified Chroma-backed stream trace lookup
+- Added refined backend eval tests
+- Added stream backend test file
+- Expanded pytest from 86 tests to 89 tests
+- Verified local pytest
+- Verified GitHub Actions CI
+- Git push succeeded
+
+### New File
+
+```text
+tests/test_rag_agentic_stream_backend.py
+```
+
+### Modified Files
+
+```text
+src/app/evaluation/rag_eval.py
+src/app/rag/agentic_streaming.py
+src/app/routes/routes_rag.py
+src/app/schemas/rag.py
+tests/test_rag_backend_eval.py
+```
+
+### Test Result
+
+```text
+89 passed, 1 warning
+```
+
+### CI Result
+
+```text
+GitHub Actions CI: green
+```
+
+### Commit
+
+```text
+732742a refine rag backend metrics and stream backend support
+```
+
+### Notes
+
+Day34 makes backend comparison more explainable and keeps JSON debug and SSE streaming behavior aligned.
+
+Current backend comparison conclusion on the tiny deterministic eval set:
+
+```text
+best_backend_by_pass_rate = hybrid
+best_backend_by_average_relevance = chroma
+```
+
+The result is expected because deterministic hash embeddings make Chroma retrieve the RAG chunk before the LangGraph chunk for the LangGraph case. The Day34 goal is comparison observability and stream alignment, not proving Chroma quality superiority.
 
 ---
 
@@ -4349,7 +4532,7 @@ Agent response
 Local pytest currently shows:
 
 ```text
-86 passed, 1 warning
+89 passed, 1 warning
 ```
 
 The warning is:
@@ -4679,4 +4862,22 @@ Next:
 
 Next:
 
-- [ ] Day34 Backend metrics refinement and optional stream/backend alignment
+- [x] Day34 Backend metrics refinement and stream/backend alignment
+- [x] Day34 `metric_deltas`
+- [x] Day34 `case_comparisons`
+- [x] Day34 `comparison_summary`
+- [x] Day34 refined `rag_backend_eval_debug` trace payload
+- [x] Day34 `/rag/agentic-stream` supports `retrieval_backend="hybrid"`
+- [x] Day34 `/rag/agentic-stream` supports `retrieval_backend="chroma"`
+- [x] Day34 stream `metadata` event includes backend metadata
+- [x] Day34 stream `retrieval` event includes backend metadata
+- [x] Day34 stream `final` event includes backend metadata
+- [x] Day34 `rag_agentic_stream` trace includes backend metadata
+- [x] Day34 stream backend tests
+- [x] Day34 local pytest
+- [x] Day34 GitHub Actions CI
+- [x] Day34 Git push
+
+Next:
+
+- [ ] Day35 Semantic embedding quality improvement or reranker-ready retrieval extension
