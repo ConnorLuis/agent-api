@@ -219,6 +219,9 @@ def rag_backend_eval_debug(
             "best_backend_by_average_relevance": result[
                 "best_backend_by_average_relevance"
             ],
+            "metric_deltas": result["metric_deltas"],
+            "comparison_summary": result["comparison_summary"],
+            "case_comparisons": result["case_comparisons"],
             "backend_metrics": [
                 {
                     "retrieval_backend": item["retrieval_backend"],
@@ -251,6 +254,10 @@ def rag_agentic_stream(
             embedding_dim=request.embedding_dim,
             keyword_weight=request.keyword_weight,
             vector_weight=request.vector_weight,
+            retrieval_backend=request.retrieval_backend,
+            embedding_provider=request.embedding_provider,
+            embedding_model=request.embedding_model,
+            rebuild_index=request.rebuild_index,
         ),
         media_type="text/event-stream",
     )

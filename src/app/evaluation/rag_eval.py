@@ -242,6 +242,193 @@ def evaluate_rag_cases(
     }
 
 
+
+def _build_metric_deltas(
+    backend_results: list[dict[str, Any]],
+) -> dict[str, Any]:
+    if len(backend_results) < 2:
+        return {}
+
+    baseline = backend_results[0]
+    comparison = backend_results[1]
+
+    baseline_metrics = baseline["metrics"]
+    comparison_metrics = comparison["metrics"]
+
+    return {
+        "baseline_backend": baseline["retrieval_backend"],
+        "comparison_backend": comparison["retrieval_backend"],
+        "pass_rate_delta": round(
+            comparison_metrics["pass_rate"] - baseline_metrics["pass_rate"],
+            6,
+        ),
+        "retrieval_decision_accuracy_delta": round(
+            comparison_metrics["retrieval_decision_accuracy"]
+            - baseline_metrics["retrieval_decision_accuracy"],
+            6,
+        ),
+        "expected_terms_hit_rate_delta": round(
+            comparison_metrics["expected_terms_hit_rate"]
+            - baseline_metrics["expected_terms_hit_rate"],
+            6,
+        ),
+        "citation_hit_rate_delta": round(
+            comparison_metrics["citation_hit_rate"]
+            - baseline_metrics["citation_hit_rate"],
+            6,
+        ),
+        "average_relevance_score_delta": round(
+            comparison_metrics["average_relevance_score"]
+            - baseline_metrics["average_relevance_score"],
+            6,
+        ),
+    }
+
+
+def _build_case_comparisons(
+    backend_results: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    if not backend_results:
+        return []
+
+    case_ids: list[str] = []
+
+    for backend_result in backend_results:
+        for case in backend_result["cases"]:
+            case_id = str(case["case_id"])
+            if case_id not in case_ids:
+                case_ids.append(case_id)
+
+    comparisons: list[dict[str, Any]] = []
+
+    for case_id in case_ids:
+        backend_case_results: list[dict[str, Any]] = []
+
+        for backend_result in backend_results:
+            matched_case = next(
+                (
+                    case
+                    for case in backend_result["cases"]
+                    if str(case["case_id"]) == case_id
+                ),
+                None,
+            )
+
+            if matched_case is None:
+                continue
+
+            backend_case_results.append(
+                {
+                    "retrieval_backend": backend_result["retrieval_backend"],
+                    "passed": bool(matched_case["passed"]),
+                    "retrieval_decision_pass": bool(
+                        matched_case["retrieval_decision_pass"]
+                    ),
+                    "expected_terms_pass": bool(
+                        matched_case["expected_terms_pass"]
+                    ),
+                    "citation_pass": bool(matched_case["citation_pass"]),
+                    "relevance_score": float(matched_case["relevance_score"]),
+                    "citations": list(matched_case.get("citations", [])),
+                    "matched_expected_terms": list(
+                        matched_case.get("matched_expected_terms", [])
+                    ),
+                    "steps": list(matched_case.get("steps", [])),
+                }
+            )
+
+        passing_backends = [
+            item["retrieval_backend"]
+            for item in backend_case_results
+            if item["passed"]
+        ]
+
+        if len(passing_backends) == 1:
+            winner_by_pass = passing_backends[0]
+        elif len(passing_backends) > 1:
+            winner_by_pass = "tie"
+        else:
+            winner_by_pass = "none"
+
+        if backend_case_results:
+            winner_by_relevance = max(
+                backend_case_results,
+                key=lambda item: item["relevance_score"],
+            )["retrieval_backend"]
+        else:
+            winner_by_relevance = "none"
+
+        comparisons.append(
+            {
+                "case_id": case_id,
+                "winner_by_pass": winner_by_pass,
+                "winner_by_relevance": winner_by_relevance,
+                "backend_results": backend_case_results,
+            }
+        )
+
+    return comparisons
+
+
+def _build_comparison_summary(
+    backend_results: list[dict[str, Any]],
+    best_backend_by_pass_rate: str,
+    best_backend_by_average_relevance: str,
+) -> dict[str, Any]:
+    summary: dict[str, Any] = {
+        "total_backends": len(backend_results),
+        "best_backend_by_pass_rate": best_backend_by_pass_rate,
+        "best_backend_by_average_relevance": best_backend_by_average_relevance,
+        "notes": [],
+    }
+
+    if len(backend_results) < 2:
+        summary["notes"].append("Only one backend was evaluated.")
+        return summary
+
+    baseline = backend_results[0]
+    comparison = backend_results[1]
+
+    baseline_backend = baseline["retrieval_backend"]
+    comparison_backend = comparison["retrieval_backend"]
+
+    baseline_metrics = baseline["metrics"]
+    comparison_metrics = comparison["metrics"]
+
+    if comparison_metrics["pass_rate"] > baseline_metrics["pass_rate"]:
+        summary["notes"].append(
+            f"{comparison_backend} has a higher pass_rate than {baseline_backend}."
+        )
+    elif comparison_metrics["pass_rate"] < baseline_metrics["pass_rate"]:
+        summary["notes"].append(
+            f"{baseline_backend} has a higher pass_rate than {comparison_backend}."
+        )
+    else:
+        summary["notes"].append(
+            f"{baseline_backend} and {comparison_backend} have the same pass_rate."
+        )
+
+    if (
+        comparison_metrics["average_relevance_score"]
+        > baseline_metrics["average_relevance_score"]
+    ):
+        summary["notes"].append(
+            f"{comparison_backend} has a higher average_relevance_score than {baseline_backend}."
+        )
+    elif (
+        comparison_metrics["average_relevance_score"]
+        < baseline_metrics["average_relevance_score"]
+    ):
+        summary["notes"].append(
+            f"{baseline_backend} has a higher average_relevance_score than {comparison_backend}."
+        )
+    else:
+        summary["notes"].append(
+            f"{baseline_backend} and {comparison_backend} have the same average_relevance_score."
+        )
+
+    return summary
+
 def compare_rag_retrieval_backends(
     eval_file: Path | str = DEFAULT_RAG_EVAL_FILE,
     backends: list[str] | None = None,
@@ -284,6 +471,14 @@ def compare_rag_retrieval_backends(
         key=lambda item: item["metrics"]["average_relevance_score"],
     )["retrieval_backend"] if backend_results else ""
 
+    metric_deltas = _build_metric_deltas(backend_results)
+    case_comparisons = _build_case_comparisons(backend_results)
+    comparison_summary = _build_comparison_summary(
+        backend_results=backend_results,
+        best_backend_by_pass_rate=best_backend_by_pass_rate,
+        best_backend_by_average_relevance=best_backend_by_average_relevance,
+    )
+
     return {
         "eval_file": str(eval_file),
         "backends": selected_backends,
@@ -297,5 +492,8 @@ def compare_rag_retrieval_backends(
         "rebuild_index": rebuild_index,
         "best_backend_by_pass_rate": best_backend_by_pass_rate,
         "best_backend_by_average_relevance": best_backend_by_average_relevance,
+        "metric_deltas": metric_deltas,
+        "case_comparisons": case_comparisons,
+        "comparison_summary": comparison_summary,
         "results": backend_results,
     }

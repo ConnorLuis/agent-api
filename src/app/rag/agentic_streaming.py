@@ -16,6 +16,10 @@ def _build_agentic_stream_payload(
     embedding_dim: int,
     keyword_weight: float,
     vector_weight: float,
+    retrieval_backend: str,
+    embedding_provider: str,
+    embedding_model: str | None,
+    rebuild_index: bool,
     trace_id: str,
 ) -> dict[str, Any]:
     result = invoke_agentic_rag(
@@ -26,6 +30,10 @@ def _build_agentic_stream_payload(
         embedding_dim=embedding_dim,
         keyword_weight=keyword_weight,
         vector_weight=vector_weight,
+        retrieval_backend=retrieval_backend,
+        embedding_provider=embedding_provider,
+        embedding_model=embedding_model,
+        rebuild_index=rebuild_index,
     )
 
     return {
@@ -37,6 +45,11 @@ def _build_agentic_stream_payload(
         "embedding_dim": embedding_dim,
         "keyword_weight": keyword_weight,
         "vector_weight": vector_weight,
+        "retrieval_backend": result.get("retrieval_backend", retrieval_backend),
+        "retrieval_metadata": result.get("retrieval_metadata", {}),
+        "embedding_provider": embedding_provider,
+        "embedding_model": embedding_model,
+        "rebuild_index": rebuild_index,
     }
 
 
@@ -49,6 +62,10 @@ def stream_agentic_rag_events(
     embedding_dim: int = DEFAULT_EMBEDDING_DIM,
     keyword_weight: float = 0.6,
     vector_weight: float = 0.4,
+    retrieval_backend: str = "hybrid",
+    embedding_provider: str = "deterministic",
+    embedding_model: str | None = None,
+    rebuild_index: bool = True,
 ) -> Iterator[str]:
     payload = _build_agentic_stream_payload(
         query=query,
@@ -58,6 +75,10 @@ def stream_agentic_rag_events(
         embedding_dim=embedding_dim,
         keyword_weight=keyword_weight,
         vector_weight=vector_weight,
+        retrieval_backend=retrieval_backend,
+        embedding_provider=embedding_provider,
+        embedding_model=embedding_model,
+        rebuild_index=rebuild_index,
         trace_id=trace_id,
     )
 
@@ -72,6 +93,8 @@ def stream_agentic_rag_events(
             "citations": payload["citations"],
             "steps": payload["steps"],
             "retrieval_results_count": len(payload["retrieval_results"]),
+            "retrieval_backend": payload["retrieval_backend"],
+            "retrieval_metadata": payload["retrieval_metadata"],
         },
     )
 
@@ -82,6 +105,8 @@ def stream_agentic_rag_events(
             "query": payload["query"],
             "top_k": payload["top_k"],
             "source_filter": payload["source_filter"],
+            "retrieval_backend": payload["retrieval_backend"],
+            "retrieval_metadata": payload["retrieval_metadata"],
         },
     )
 
@@ -110,6 +135,8 @@ def stream_agentic_rag_events(
                 "trace_id": trace_id,
                 "total_results": len(payload["retrieval_results"]),
                 "results": payload["retrieval_results"],
+                "retrieval_backend": payload["retrieval_backend"],
+                "retrieval_metadata": payload["retrieval_metadata"],
             },
         )
 
@@ -149,6 +176,8 @@ def stream_agentic_rag_events(
             "retrieval_results": payload["retrieval_results"],
             "final_answer": payload["final_answer"],
             "steps": payload["steps"],
+            "retrieval_backend": payload["retrieval_backend"],
+            "retrieval_metadata": payload["retrieval_metadata"],
         },
     )
 

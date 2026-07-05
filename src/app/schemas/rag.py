@@ -431,5 +431,8 @@ class RagBackendEvalDebugResponse(BaseModel):
     rebuild_index: bool
     best_backend_by_pass_rate: str
     best_backend_by_average_relevance: str
+    metric_deltas: dict = Field(default_factory=dict)
+    case_comparisons: list[dict] = Field(default_factory=list)
+    comparison_summary: dict = Field(default_factory=dict)
     results: list[RagEvalDebugResponse]
     trace_id: str | None = None
