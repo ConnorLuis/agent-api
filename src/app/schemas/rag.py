@@ -158,6 +158,18 @@ class RagAgenticDebugResult(BaseModel):
     matched_terms: list[str]
     content_length: int
 
+    # Chroma-compatible optional fields.
+    score: float | None = None
+    distance: float | None = None
+    retrieval_backend: str | None = None
+
+    # Day35 reranker-compatible optional fields.
+    original_rank: int | None = None
+    original_score: float | None = None
+    rerank_score: float | None = None
+    rerank_keyword_score: float | None = None
+    rerank_matched_terms: list[str] = Field(default_factory=list)
+
 
 class RagAgenticDebugResponse(BaseModel):
     query: str

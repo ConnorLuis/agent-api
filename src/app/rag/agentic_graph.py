@@ -113,7 +113,12 @@ def retrieve_node(state: AgenticRagState) -> dict:
 
     backend = retrieval_result["retrieval_backend"]
 
-    step_name = "chroma_retrieve" if backend == "chroma" else "hybrid_retrieve"
+    if backend == "chroma":
+        step_name = "chroma_retrieve"
+    elif backend == "chroma_rerank":
+        step_name = "chroma_rerank_retrieve"
+    else:
+        step_name = "hybrid_retrieve"
 
     return {
         "retrieval_results": retrieval_result["results"],
@@ -155,6 +160,8 @@ def answer_node(state: AgenticRagState) -> dict[str, Any]:
 
         if retrieval_backend == "chroma":
             answer_prefix = "根据 Chroma 向量检索结果："
+        elif retrieval_backend == "chroma_rerank":
+            answer_prefix = "根据 Chroma 向量检索 + rerank 结果："
         else:
             answer_prefix = "根据混合检索结果："
 

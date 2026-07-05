@@ -9,12 +9,14 @@ from src.app.rag.chunking import DEFAULT_MAX_CHARS
 from src.app.rag.embedding_provider import DEFAULT_EMBEDDING_PROVIDER
 from src.app.rag.hybrid import hybrid_search_knowledge
 from src.app.rag.vector_index import DEFAULT_EMBEDDING_DIM
+from src.app.rag.reranker import rerank_retrieval_results
 
 DEFAULT_RETRIEVAL_BACKEND = "hybrid"
 
 SUPPORTED_RETRIEVAL_BACKENDS = {
     "hybrid",
     "chroma",
+    "chroma_rerank",
 }
 
 
@@ -28,6 +30,15 @@ def normalize_retrieval_backend(
 
     if normalized in {"chroma", "chromadb", "vector_db", "vector-db"}:
         return "chroma"
+
+    if normalized in {
+        "chroma_rerank",
+        "chroma-rerank",
+        "chromadb_rerank",
+        "vector_db_rerank",
+        "vector-db-rerank",
+    }:
+        return "chroma_rerank"
 
     raise ValueError(
         f"Unsupported retrieval backend: {retrieval_backend}"
@@ -158,6 +169,47 @@ def retrieve_agentic_context(
             "results": _normalize_chroma_results(result["results"]),
             "metadata": {
                 "retrieval_backend": "chroma",
+                "collection_name": result["collection_name"],
+                "persist_dir": result["persist_dir"],
+                "total_indexed_chunks": result["total_indexed_chunks"],
+                "embedding_provider": result["embedding_provider"],
+                "embedding_model": result["embedding_model"],
+                "embedding_dim": result["embedding_dim"],
+                "rebuild_index": result["rebuild_index"],
+                "index_stats": result["index_stats"],
+            },
+        }
+
+    if backend == "chroma_rerank":
+        result = debug_chroma_search(
+            query=query,
+            top_k=top_k,
+            source_filter=source_filter,
+            max_chars=max_chars,
+            embedding_dim=embedding_dim,
+            embedding_provider=embedding_provider,
+            embedding_model=embedding_model,
+            rebuild_index=rebuild_index,
+            persist_dir=chroma_persist_dir,
+        )
+
+        normalized_results = _normalize_chroma_results(result["results"])
+        reranked_results = rerank_retrieval_results(
+            query=query,
+            results=normalized_results,
+        )
+
+        for item in reranked_results:
+            item["retrieval_backend"] = "chroma_rerank"
+
+        return {
+            "retrieval_backend": "chroma_rerank",
+            "query": query,
+            "results": reranked_results,
+            "metadata": {
+                "retrieval_backend": "chroma_rerank",
+                "base_backend": "chroma",
+                "rerank_enabled": True,
                 "collection_name": result["collection_name"],
                 "persist_dir": result["persist_dir"],
                 "total_indexed_chunks": result["total_indexed_chunks"],
