@@ -2,17 +2,17 @@
 
 `agent-api` is a FastAPI + LangGraph backend project for building an Agent service step by step.
 
-This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent, SQLite-based short-term memory, graph debug output, request tracing, LLM provider abstraction, a real Ollama-backed LLM Tool Calling Agent path, SSE streaming endpoints, a lightweight local RAG search tool, a RAG search-debug endpoint with explainability metadata, a deterministic Router Agent that delegates calculator and RAG routes to the existing Agent graph, a Router Agent SSE streaming endpoint, an initial LLM Router Agent endpoint with mock and Ollama router providers, a Smart Chat endpoint as a future unified Agent entry point preview, a Smart Chat SSE streaming endpoint, route validation metadata for Router and Smart Chat paths, and a RAG chunk pipeline debug endpoint for vector DB preparation, a deterministic RAG vector-search debug endpoint, a hybrid retrieval debug endpoint that combines keyword and vector signals, an Agentic RAG debug graph with query analysis, query rewriting, hybrid retrieval, relevance grading, citation-aware answers, an Agentic RAG SSE streaming endpoint, an Agentic RAG answer verification debug endpoint, a SQLite-backed vector store debug layer for real vector database preparation, an EmbeddingProvider abstraction layer with an embedding debug endpoint, a Chroma-backed persistent vector store debug endpoint, an Agentic RAG retrieval backend switch that supports both hybrid and Chroma backends, and a backend-aware RAG evaluation comparison layer for hybrid-vs-Chroma metrics, refined backend comparison metrics, backend-aware Agentic RAG SSE streaming alignment, a reranker-ready retrieval backend extension with `chroma_rerank`, pairwise backend metric deltas for multi-backend comparison, a multi-backend-aware comparison summary, local semantic embedding provider validation with a CI-safe fallback, and a backend evaluation report layer that converts raw backend metrics into engineering selection guidance.
+This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent, SQLite-based short-term memory, graph debug output, request tracing, LLM provider abstraction, a real Ollama-backed LLM Tool Calling Agent path, SSE streaming endpoints, a lightweight local RAG search tool, a RAG search-debug endpoint with explainability metadata, a deterministic Router Agent that delegates calculator and RAG routes to the existing Agent graph, a Router Agent SSE streaming endpoint, an initial LLM Router Agent endpoint with mock and Ollama router providers, a Smart Chat endpoint as a future unified Agent entry point preview, a Smart Chat SSE streaming endpoint, route validation metadata for Router and Smart Chat paths, and a RAG chunk pipeline debug endpoint for vector DB preparation, a deterministic RAG vector-search debug endpoint, a hybrid retrieval debug endpoint that combines keyword and vector signals, an Agentic RAG debug graph with query analysis, query rewriting, hybrid retrieval, relevance grading, citation-aware answers, an Agentic RAG SSE streaming endpoint, an Agentic RAG answer verification debug endpoint, a SQLite-backed vector store debug layer for real vector database preparation, an EmbeddingProvider abstraction layer with an embedding debug endpoint, a Chroma-backed persistent vector store debug endpoint, an Agentic RAG retrieval backend switch that supports both hybrid and Chroma backends, and a backend-aware RAG evaluation comparison layer for hybrid-vs-Chroma metrics, refined backend comparison metrics, backend-aware Agentic RAG SSE streaming alignment, a reranker-ready retrieval backend extension with `chroma_rerank`, pairwise backend metric deltas for multi-backend comparison, a multi-backend-aware comparison summary, local semantic embedding provider validation with a CI-safe fallback, and a backend evaluation report layer that converts raw backend metrics into engineering selection guidance, with observability trace payload alignment for that report.
 
 ## Current Status
 
 ```text
-Day1-Day39 first stage completed.
-Current stage: Backend evaluation report layer completed.
-Local pytest: 100 passed, 1 warning.
+Day1-Day39 completed.
+Current stage: Backend evaluation report and trace payload alignment completed.
+Local pytest: 101 passed, 1 warning.
 Git push: success.
-GitHub Actions CI: not shown in provided Day39 log; confirm from GitHub Actions.
-Next milestone: Day39 second stage evaluation report polishing or production retrieval backend selection.
+GitHub Actions CI: green.
+Next milestone: Day40 production retrieval backend selection policy or evaluation dataset expansion.
 ```
 
 ## Features
@@ -113,7 +113,9 @@ Current features:
 * `comparison_summary.top_improvement_pairs`
 * Trace payload records the refined multi-backend comparison summary
 * Backend evaluation report builder through `build_backend_evaluation_report()`
+* Backend evaluation report trace payload alignment through `rag_backend_eval_debug`
 * `/rag/backend-eval-debug` returns `evaluation_report`
+* `rag_backend_eval_debug` trace payload records `evaluation_report`
 * Evaluation report fields: `recommended_backend`, `recommendation_reason`, `default_backend_should_change`, `metric_highlights`, `risk_notes`, and `backend_rank_summary`
 * Backend selection policy keeps `hybrid` as the default until larger eval data validates switching
 * Local semantic embedding validation for `sentence_transformers` with `/mnt/f/LLM/maidalun/bce-embedding-base_v1`
@@ -257,7 +259,8 @@ agent-api/
 │   ├── DAY35.md
 │   ├── DAY36.md
 │   ├── DAY37.md
-│   └── DAY38.md
+│   ├── DAY38.md
+│   └── DAY39.md
 ├── knowledge/
 │   └── agent_basics.md
 ├── data/
@@ -1121,7 +1124,7 @@ This turns RAG from a single retrieval call into a controllable workflow that ca
 
 ## Current RAG Evaluation Architecture
 
-Day25 added a RAG evaluation debug layer. Day33 upgraded it into a backend-aware evaluation layer. Day34 refined the backend comparison output. Day36 extended metric deltas from first-vs-second comparison to pairwise multi-backend comparison. Day37 made `comparison_summary` multi-backend-aware. Day39 added an engineering-facing `evaluation_report` layer for backend selection guidance.
+Day25 added a RAG evaluation debug layer. Day33 upgraded it into a backend-aware evaluation layer. Day34 refined the backend comparison output. Day36 extended metric deltas from first-vs-second comparison to pairwise multi-backend comparison. Day37 made `comparison_summary` multi-backend-aware. Day39 added an engineering-facing `evaluation_report` layer for backend selection guidance and aligned that report with the `rag_backend_eval_debug` trace payload.
 
 ```text
 eval_cases/rag_agentic_eval.jsonl
@@ -1320,7 +1323,7 @@ curl -s http://localhost:8000/observability/traces/day37-backend-summary-001 \
   | python -m json.tool --no-ensure-ascii
 ```
 
-The `rag_backend_eval_debug` trace event now includes the refined multi-backend `comparison_summary`.
+The `rag_backend_eval_debug` trace event now includes the refined multi-backend `comparison_summary` and the Day39 `evaluation_report`.
 
 ## Current Observability Trace Store Architecture
 
@@ -2307,7 +2310,7 @@ SentenceTransformersEmbeddingProvider.__init__():
 
 ## Current Backend Evaluation Report Architecture
 
-Day39 added a backend evaluation report layer on top of the existing backend comparison output.
+Day39 added a backend evaluation report layer on top of the existing backend comparison output, then aligned that report with the observability trace payload.
 
 ```text
 /rag/backend-eval-debug
@@ -2319,6 +2322,8 @@ metric_deltas + pairwise_metric_deltas + case_comparisons + comparison_summary
 build_backend_evaluation_report()
   ↓
 evaluation_report
+  ↓
+response payload + rag_backend_eval_debug trace payload
 ```
 
 Current report file:
@@ -2360,6 +2365,15 @@ evaluation_report.backend_rank_summary
 evaluation_report.interpretation
 ```
 
+The `rag_backend_eval_debug` trace payload now also records:
+
+```text
+payload.evaluation_report.recommended_backend
+payload.evaluation_report.default_backend_should_change
+payload.evaluation_report.risk_notes
+payload.evaluation_report.backend_rank_summary
+```
+
 Observed Day39 deterministic evaluation report:
 
 ```text
@@ -2390,13 +2404,25 @@ chroma:
   strength = comparison backend
 ```
 
+Observed Day39 trace alignment:
+
+```text
+trace_id = day39-backend-report-trace-manual-001
+event_type = rag_backend_eval_debug
+payload.evaluation_report.recommended_backend = chroma_rerank
+payload.evaluation_report.default_backend_should_change = false
+payload.evaluation_report.risk_notes exists
+```
+
 Important Day39 interpretation:
 
 ```text
 chroma_rerank is recommended as an experiment candidate on the current tiny deterministic eval set.
 The default backend should remain hybrid until a larger and more representative eval set validates a production switch.
 Deterministic embeddings are CI-safe but do not represent real semantic embedding quality.
+The recommendation is now visible both in the API response and in the observability trace payload.
 ```
+
 
 ## Request Tracing
 

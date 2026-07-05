@@ -13,12 +13,12 @@ Project 2 has officially started and is now the main development line.
 Current `agent-api` status:
 
 ```text
-Day1-Day39 first stage completed.
-Day39 first stage completed: Backend evaluation report layer.
-Local pytest: 100 passed, 1 warning.
+Day1-Day39 completed.
+Day39 completed: Backend evaluation report layer and trace payload alignment.
+Local pytest: 101 passed, 1 warning.
 Git push: success.
-GitHub Actions CI: not shown in provided Day39 log; confirm from GitHub Actions.
-Next: Day39 second stage evaluation report polishing or production retrieval backend selection.
+GitHub Actions CI: green.
+Next: Day40 production retrieval backend selection policy or evaluation dataset expansion.
 ```
 
 ## Project Goal
@@ -160,7 +160,9 @@ Current:
 - CI-safe semantic provider test that skips when the local model path is unavailable
 - Day38 validation script for semantic provider, Chroma, Agentic RAG, and backend comparison
 - Backend evaluation report builder for retrieval backend selection guidance
+- Backend evaluation report trace payload alignment through `rag_backend_eval_debug`
 - `/rag/backend-eval-debug` response-level `evaluation_report`
+- `rag_backend_eval_debug` trace payload includes `evaluation_report`
 - pytest
 - GitHub Actions CI
 
@@ -230,7 +232,8 @@ agent-api/
 │   ├── DAY35.md
 │   ├── DAY36.md
 │   ├── DAY37.md
-│   └── DAY38.md
+│   ├── DAY38.md
+│   └── DAY39.md
 ├── knowledge/
 │   └── agent_basics.md
 ├── data/
@@ -5155,7 +5158,7 @@ CI should skip the semantic provider test when `/mnt/f/LLM/maidalun/bce-embeddin
 
 ## Current Day39 Backend Evaluation Report Strategy
 
-Day39 added a backend evaluation report layer on top of the existing backend comparison output.
+Day39 added a backend evaluation report layer on top of the existing backend comparison output, then aligned that report with the observability trace payload.
 
 ```text
 /rag/backend-eval-debug
@@ -5167,6 +5170,8 @@ metric_deltas + pairwise_metric_deltas + case_comparisons + comparison_summary
 build_backend_evaluation_report()
   ↓
 evaluation_report
+  ↓
+response payload + rag_backend_eval_debug trace payload
 ```
 
 Current report file:
@@ -5208,6 +5213,15 @@ evaluation_report.backend_rank_summary
 evaluation_report.interpretation
 ```
 
+The `rag_backend_eval_debug` trace payload now also records:
+
+```text
+payload.evaluation_report.recommended_backend
+payload.evaluation_report.default_backend_should_change
+payload.evaluation_report.risk_notes
+payload.evaluation_report.backend_rank_summary
+```
+
 Observed Day39 deterministic evaluation report:
 
 ```text
@@ -5238,13 +5252,25 @@ chroma:
   strength = comparison backend
 ```
 
+Observed Day39 trace alignment:
+
+```text
+trace_id = day39-backend-report-trace-manual-001
+event_type = rag_backend_eval_debug
+payload.evaluation_report.recommended_backend = chroma_rerank
+payload.evaluation_report.default_backend_should_change = false
+payload.evaluation_report.risk_notes exists
+```
+
 Important Day39 interpretation:
 
 ```text
 chroma_rerank is recommended as an experiment candidate on the current tiny deterministic eval set.
 The default backend should remain hybrid until a larger and more representative eval set validates a production switch.
 Deterministic embeddings are CI-safe but do not represent real semantic embedding quality.
+The recommendation is now visible both in the API response and in the observability trace payload.
 ```
+
 
 ## Day38 - Semantic Embedding Provider Local Validation
 
