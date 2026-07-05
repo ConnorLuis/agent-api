@@ -444,6 +444,7 @@ class RagBackendEvalDebugResponse(BaseModel):
     best_backend_by_pass_rate: str
     best_backend_by_average_relevance: str
     metric_deltas: dict = Field(default_factory=dict)
+    pairwise_metric_deltas: list[dict] = Field(default_factory=list)
     case_comparisons: list[dict] = Field(default_factory=list)
     comparison_summary: dict = Field(default_factory=dict)
     results: list[RagEvalDebugResponse]

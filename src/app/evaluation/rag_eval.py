@@ -242,16 +242,10 @@ def evaluate_rag_cases(
     }
 
 
-
-def _build_metric_deltas(
-    backend_results: list[dict[str, Any]],
+def _calculate_metric_delta(
+    baseline: dict[str, Any],
+    comparison: dict[str, Any],
 ) -> dict[str, Any]:
-    if len(backend_results) < 2:
-        return {}
-
-    baseline = backend_results[0]
-    comparison = backend_results[1]
-
     baseline_metrics = baseline["metrics"]
     comparison_metrics = comparison["metrics"]
 
@@ -283,6 +277,34 @@ def _build_metric_deltas(
             6,
         ),
     }
+
+def _build_metric_deltas(
+    backend_results: list[dict[str, Any]],
+) -> dict[str, Any]:
+    if len(backend_results) < 2:
+        return {}
+
+    return _calculate_metric_delta(
+        baseline=backend_results[0],
+        comparison=backend_results[1],
+    )
+
+
+def _build_pairwise_metric_deltas(
+    backend_results: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    pairwise_deltas: list[dict[str, Any]] = []
+
+    for baseline_index, baseline in enumerate(backend_results):
+        for comparison in backend_results[baseline_index + 1:]:
+            pairwise_deltas.append(
+                _calculate_metric_delta(
+                    baseline=baseline,
+                    comparison=comparison,
+                )
+            )
+
+    return pairwise_deltas
 
 
 def _build_case_comparisons(
@@ -472,6 +494,7 @@ def compare_rag_retrieval_backends(
     )["retrieval_backend"] if backend_results else ""
 
     metric_deltas = _build_metric_deltas(backend_results)
+    pairwise_metric_deltas = _build_pairwise_metric_deltas(backend_results)
     case_comparisons = _build_case_comparisons(backend_results)
     comparison_summary = _build_comparison_summary(
         backend_results=backend_results,
@@ -493,6 +516,7 @@ def compare_rag_retrieval_backends(
         "best_backend_by_pass_rate": best_backend_by_pass_rate,
         "best_backend_by_average_relevance": best_backend_by_average_relevance,
         "metric_deltas": metric_deltas,
+        "pairwise_metric_deltas": pairwise_metric_deltas,
         "case_comparisons": case_comparisons,
         "comparison_summary": comparison_summary,
         "results": backend_results,

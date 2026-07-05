@@ -219,6 +219,7 @@ def rag_backend_eval_debug(
             "best_backend_by_average_relevance": result[
                 "best_backend_by_average_relevance"
             ],
+            "pairwise_metric_deltas": result["pairwise_metric_deltas"],
             "metric_deltas": result["metric_deltas"],
             "comparison_summary": result["comparison_summary"],
             "case_comparisons": result["case_comparisons"],
