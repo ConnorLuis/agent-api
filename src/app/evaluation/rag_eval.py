@@ -5,6 +5,7 @@ from typing import Any
 from src.app.rag.agentic_graph import invoke_agentic_rag
 from src.app.rag.embedding_provider import DEFAULT_EMBEDDING_PROVIDER
 from src.app.rag.retrieval_backend import DEFAULT_RETRIEVAL_BACKEND
+from src.app.evaluation.rag_report import build_backend_evaluation_report
 
 
 DEFAULT_RAG_EVAL_FILE = Path("eval_cases/rag_agentic_eval.jsonl")
@@ -669,8 +670,8 @@ def compare_rag_retrieval_backends(
         pairwise_metric_deltas=pairwise_metric_deltas,
     )
 
-    return {
-        "eval_file": str(eval_file),
+    comparison_result = {
+        "eval_file": eval_file,
         "backends": selected_backends,
         "source_filter": source_filter,
         "max_chars": max_chars,
@@ -688,3 +689,9 @@ def compare_rag_retrieval_backends(
         "comparison_summary": comparison_summary,
         "results": backend_results,
     }
+
+    comparison_result["evaluation_report"] = build_backend_evaluation_report(
+        comparison_result
+    )
+
+    return comparison_result

@@ -1,3 +1,5 @@
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 
@@ -447,5 +449,6 @@ class RagBackendEvalDebugResponse(BaseModel):
     pairwise_metric_deltas: list[dict] = Field(default_factory=list)
     case_comparisons: list[dict] = Field(default_factory=list)
     comparison_summary: dict = Field(default_factory=dict)
+    evaluation_report: dict[str, Any]
     results: list[RagEvalDebugResponse]
     trace_id: str | None = None
