@@ -175,11 +175,15 @@ class RagAgenticDebugResponse(BaseModel):
 
 class RagEvalDebugRequest(BaseModel):
     eval_file: str = "eval_cases/rag_agentic_eval.jsonl"
-    source_filter: str | None = "agent_basics"
+    source_filter: str | None = None
     max_chars: int = 500
     embedding_dim: int = 64
     keyword_weight: float = 0.6
     vector_weight: float = 0.4
+    retrieval_backend: str = "hybrid"
+    embedding_provider: str = "deterministic"
+    embedding_model: str | None = None
+    rebuild_index: bool = True
 
 
 class RagEvalMetrics(BaseModel):
@@ -205,7 +209,9 @@ class RagEvalCaseResult(BaseModel):
     citations: list[str]
     citation_pass: bool
     relevance_score: float
-    steps: list[str]
+    retrieval_backend: str | None = None
+    retrieval_metadata: dict = Field(default_factory=dict)
+    steps: list[str] = Field(default_factory=list)
     final_answer_preview: str
     passed: bool
 
@@ -220,6 +226,10 @@ class RagEvalDebugResponse(BaseModel):
     metrics: RagEvalMetrics
     cases: list[RagEvalCaseResult]
     trace_id: str | None = None
+    retrieval_backend: str = "hybrid"
+    embedding_provider: str = "deterministic"
+    embedding_model: str | None = None
+    rebuild_index: bool = True
 
 
 
@@ -392,4 +402,34 @@ class RagChromaSearchDebugResponse(BaseModel):
     rebuild_index: bool
     index_stats: RagChromaIndexStats
     results: list[RagChromaSearchDebugResult]
+    trace_id: str | None = None
+
+
+class RagBackendEvalDebugRequest(BaseModel):
+    eval_file: str = "eval_cases/rag_agentic_eval.jsonl"
+    backends: list[str] = Field(default_factory=lambda: ["hybrid", "chroma"])
+    source_filter: str | None = None
+    max_chars: int = 500
+    embedding_dim: int = 64
+    keyword_weight: float = 0.6
+    vector_weight: float = 0.4
+    embedding_provider: str = "deterministic"
+    embedding_model: str | None = None
+    rebuild_index: bool = True
+
+
+class RagBackendEvalDebugResponse(BaseModel):
+    eval_file: str
+    backends: list[str]
+    source_filter: str | None = None
+    max_chars: int
+    embedding_dim: int
+    keyword_weight: float
+    vector_weight: float
+    embedding_provider: str
+    embedding_model: str | None = None
+    rebuild_index: bool
+    best_backend_by_pass_rate: str
+    best_backend_by_average_relevance: str
+    results: list[RagEvalDebugResponse]
     trace_id: str | None = None

@@ -11,7 +11,7 @@ from src.app.rag.vector_index import vector_search_knowledge
 from src.app.rag.hybrid import hybrid_search_knowledge
 from src.app.rag.agentic_graph import invoke_agentic_rag
 from src.app.observability.trace_store import record_trace_event
-from src.app.evaluation.rag_eval import evaluate_rag_cases
+from src.app.evaluation.rag_eval import evaluate_rag_cases, compare_rag_retrieval_backends
 from src.app.rag.vector_store import debug_vector_store_search
 from src.app.rag.embedding_provider import debug_embeddings
 from src.app.rag.chroma_store import debug_chroma_search
@@ -20,7 +20,8 @@ from src.app.schemas.rag import RAGReaderRequest, RAGSearchResponse, RAGSearchRe
     RagVectorSearchDebugRequest, RagHybridSearchDebugResponse, RagHybridSearchDebugRequest, RagAgenticDebugResponse, \
     RagAgenticDebugRequest, RagEvalDebugResponse, RagEvalDebugRequest, RagAnswerVerifyDebugResponse, \
     RagAnswerVerifyDebugRequest, RagVectorStoreDebugResponse, RagVectorStoreDebugRequest, RagEmbeddingDebugResponse, \
-    RagEmbeddingDebugRequest, RagChromaSearchDebugResponse, RagChromaSearchDebugRequest
+    RagEmbeddingDebugRequest, RagChromaSearchDebugResponse, RagChromaSearchDebugRequest, RagBackendEvalDebugResponse, \
+    RagBackendEvalDebugRequest
 
 router = APIRouter()
 
@@ -158,6 +159,10 @@ def rag_eval_debug(
         embedding_dim=request.embedding_dim,
         keyword_weight=request.keyword_weight,
         vector_weight=request.vector_weight,
+        retrieval_backend=request.retrieval_backend,
+        embedding_provider=request.embedding_provider,
+        embedding_model=request.embedding_model,
+        rebuild_index=request.rebuild_index,
     )
 
     trace_id = get_trace_id()
@@ -170,10 +175,61 @@ def rag_eval_debug(
             "source_filter": result["source_filter"],
             "metrics": result["metrics"],
             "case_count": len(result["cases"]),
+            "retrieval_backend": result["retrieval_backend"],
+            "embedding_provider": result["embedding_provider"],
+            "embedding_model": result["embedding_model"],
+            "rebuild_index": result["rebuild_index"],
         },
     )
 
     return RagEvalDebugResponse(
+        **result,
+        trace_id=trace_id,
+    )
+
+
+@router.post("/backend-eval-debug", response_model=RagBackendEvalDebugResponse)
+def rag_backend_eval_debug(
+    request: RagBackendEvalDebugRequest,
+) -> RagBackendEvalDebugResponse:
+    result = compare_rag_retrieval_backends(
+        eval_file=request.eval_file,
+        backends=request.backends,
+        source_filter=request.source_filter,
+        max_chars=request.max_chars,
+        embedding_dim=request.embedding_dim,
+        keyword_weight=request.keyword_weight,
+        vector_weight=request.vector_weight,
+        embedding_provider=request.embedding_provider,
+        embedding_model=request.embedding_model,
+        rebuild_index=request.rebuild_index,
+    )
+
+    trace_id = get_trace_id()
+
+    record_trace_event(
+        trace_id=trace_id,
+        event_type="rag_backend_eval_debug",
+        payload={
+            "eval_file": result["eval_file"],
+            "backends": result["backends"],
+            "source_filter": result["source_filter"],
+            "embedding_dim": result["embedding_dim"],
+            "best_backend_by_pass_rate": result["best_backend_by_pass_rate"],
+            "best_backend_by_average_relevance": result[
+                "best_backend_by_average_relevance"
+            ],
+            "backend_metrics": [
+                {
+                    "retrieval_backend": item["retrieval_backend"],
+                    "metrics": item["metrics"],
+                }
+                for item in result["results"]
+            ],
+        },
+    )
+
+    return RagBackendEvalDebugResponse(
         **result,
         trace_id=trace_id,
     )
