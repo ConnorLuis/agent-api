@@ -107,3 +107,49 @@ def test_backend_eval_debug_returns_evaluation_report(client):
     risk_text = " ".join(report["risk_notes"]).lower()
     assert "deterministic" in risk_text or "ci-safe" in risk_text
     assert "small" in risk_text or "tiny" in risk_text
+
+
+def test_backend_eval_debug_trace_contains_evaluation_report(client):
+    trace_id = "day39-backend-report-trace-001"
+
+    response = client.post(
+        "/rag/backend-eval-debug",
+        headers={"x-trace-id": trace_id},
+        json={
+            "backends": ["hybrid", "chroma", "chroma_rerank"],
+            "source_filter": "agent_basics",
+            "max_chars": 300,
+            "embedding_dim": 64,
+            "keyword_weight": 0.6,
+            "vector_weight": 0.4,
+            "embedding_provider": "deterministic",
+            "rebuild_index": True,
+        },
+    )
+
+    assert response.status_code == 200
+
+    trace_response = client.get(f"/observability/traces/{trace_id}")
+
+    assert trace_response.status_code == 200
+
+    trace_data = trace_response.json()
+    events = trace_data["events"] if isinstance(trace_data, dict) else trace_data
+
+    backend_eval_events = [
+        event
+        for event in events
+        if event["event_type"] == "rag_backend_eval_debug"
+    ]
+
+    assert backend_eval_events
+
+    payload = backend_eval_events[-1]["payload"]
+
+    assert "evaluation_report" in payload
+
+    report = payload["evaluation_report"]
+
+    assert report["recommended_backend"]
+    assert report["default_backend_should_change"] is False
+    assert isinstance(report["risk_notes"], list)

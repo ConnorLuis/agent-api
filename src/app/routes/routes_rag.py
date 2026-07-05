@@ -222,6 +222,7 @@ def rag_backend_eval_debug(
             "pairwise_metric_deltas": result["pairwise_metric_deltas"],
             "metric_deltas": result["metric_deltas"],
             "comparison_summary": result["comparison_summary"],
+            "evaluation_report": result.get("evaluation_report", {}),
             "case_comparisons": result["case_comparisons"],
             "backend_metrics": [
                 {
