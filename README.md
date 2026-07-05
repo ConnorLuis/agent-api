@@ -2,17 +2,17 @@
 
 `agent-api` is a FastAPI + LangGraph backend project for building an Agent service step by step.
 
-This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent, SQLite-based short-term memory, graph debug output, request tracing, LLM provider abstraction, a real Ollama-backed LLM Tool Calling Agent path, SSE streaming endpoints, a lightweight local RAG search tool, a RAG search-debug endpoint with explainability metadata, a deterministic Router Agent that delegates calculator and RAG routes to the existing Agent graph, a Router Agent SSE streaming endpoint, an initial LLM Router Agent endpoint with mock and Ollama router providers, a Smart Chat endpoint as a future unified Agent entry point preview, a Smart Chat SSE streaming endpoint, route validation metadata for Router and Smart Chat paths, and a RAG chunk pipeline debug endpoint for vector DB preparation, a deterministic RAG vector-search debug endpoint, a hybrid retrieval debug endpoint that combines keyword and vector signals, an Agentic RAG debug graph with query analysis, query rewriting, hybrid retrieval, relevance grading, citation-aware answers, an Agentic RAG SSE streaming endpoint, an Agentic RAG answer verification debug endpoint, a SQLite-backed vector store debug layer for real vector database preparation, an EmbeddingProvider abstraction layer with an embedding debug endpoint, and a Chroma-backed persistent vector store debug endpoint.
+This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent, SQLite-based short-term memory, graph debug output, request tracing, LLM provider abstraction, a real Ollama-backed LLM Tool Calling Agent path, SSE streaming endpoints, a lightweight local RAG search tool, a RAG search-debug endpoint with explainability metadata, a deterministic Router Agent that delegates calculator and RAG routes to the existing Agent graph, a Router Agent SSE streaming endpoint, an initial LLM Router Agent endpoint with mock and Ollama router providers, a Smart Chat endpoint as a future unified Agent entry point preview, a Smart Chat SSE streaming endpoint, route validation metadata for Router and Smart Chat paths, and a RAG chunk pipeline debug endpoint for vector DB preparation, a deterministic RAG vector-search debug endpoint, a hybrid retrieval debug endpoint that combines keyword and vector signals, an Agentic RAG debug graph with query analysis, query rewriting, hybrid retrieval, relevance grading, citation-aware answers, an Agentic RAG SSE streaming endpoint, an Agentic RAG answer verification debug endpoint, a SQLite-backed vector store debug layer for real vector database preparation, an EmbeddingProvider abstraction layer with an embedding debug endpoint, a Chroma-backed persistent vector store debug endpoint, and an Agentic RAG retrieval backend switch that supports both hybrid and Chroma backends.
 
 ## Current Status
 
 ```text
-Day1-Day31 completed.
-Current stage: Chroma persistent vector store debug completed.
-Local pytest: 78 passed, 1 warning.
+Day1-Day32 completed.
+Current stage: Agentic RAG retrieval backend switch completed.
+Local pytest: 82 passed, 1 warning.
 Git push: success.
-GitHub Actions CI: green.
-Next milestone: Day32 Chroma-backed retrieval backend switch for Agentic RAG.
+GitHub Actions CI: not shown in the provided Day32 log; confirm from GitHub Actions.
+Next milestone: Day33 Chroma-backed RAG evaluation and backend comparison.
 ```
 
 ## Features
@@ -81,6 +81,11 @@ Current features:
 * Chroma index statistics: `collection_name`, `persist_dir`, `loaded_chunks`, `upserted_count`, and `stored_count`
 * Chroma search result metadata: `distance`, `score`, `chunk_id`, `source`, `index`, `preview`, and `content_length`
 * Chroma search debug observability event: `rag_chroma_search_debug`
+* Agentic RAG retrieval backend switch with `retrieval_backend="hybrid"` and `retrieval_backend="chroma"`
+* Chroma collection naming with short readable tokens plus a stable hash suffix
+* Backend-normalized retrieval results for Agentic RAG
+* Agentic RAG backend metadata: `retrieval_backend` and `retrieval_metadata`
+* Agentic RAG trace payload records retrieval backend and retrieval metadata
 * Local Markdown knowledge base under `knowledge/`
 * UTF-8 encoded knowledge base files for CI compatibility
 * Deterministic Router Agent route classification
@@ -120,8 +125,7 @@ Not implemented yet:
 * OpenAI provider
 * Replacing `/agent/chat` with the real LLM Agent as the default main route
 * Making Smart Chat the default production entry point
-* Production Agentic RAG retrieval backend switch
-* Document upload and parsing pipeline
+* RAG backend evaluation comparison across hybrid and Chroma
 * Document upload and parsing pipeline
 * GraphRAG
 * Multi-Agent workflow
@@ -155,6 +159,7 @@ Not implemented yet:
 * Agentic RAG answer verification layer
 * SQLite-backed vector store debug layer
 * ChromaDB persistent vector store debug layer
+* Agentic RAG retrieval backend switch
 * pytest
 * GitHub Actions
 * Server-Sent Events
@@ -205,7 +210,8 @@ agent-api/
 │   ├── DAY28.md
 │   ├── DAY29.md
 │   ├── DAY30.md
-│   └── DAY31.md
+│   ├── DAY31.md
+│   └── DAY32.md
 ├── knowledge/
 │   └── agent_basics.md
 ├── data/
@@ -246,6 +252,7 @@ agent-api/
 │       │   ├── answer_verifier.py
 │       │   ├── embedding_provider.py
 │       │   ├── chroma_store.py
+│       │   ├── retrieval_backend.py
 │       │   ├── vector_store.py
 │       │   └── retriever.py
 │       ├── llm/
@@ -1635,6 +1642,64 @@ Important implementation note:
 Day31 uses Chroma as a real persistent vector database, but still uses deterministic embeddings by default so pytest and GitHub Actions remain stable.
 The observed Chroma collection name is truncated to satisfy Chroma's collection name length constraint, so the full embedding_dim is reliably preserved in request metadata, index_stats, and collection metadata rather than relying only on the visible collection name.
 ```
+
+## Current Agentic RAG Retrieval Backend Switch
+
+Day32 added a retrieval backend abstraction for Agentic RAG.
+
+```text
+/rag/agentic-debug
+  ↓
+invoke_agentic_rag(retrieval_backend=...)
+  ↓
+retrieve_agentic_context()
+  ├── hybrid -> hybrid_search_knowledge()
+  └── chroma -> debug_chroma_search()
+  ↓
+normalized retrieval results
+  ↓
+relevance_grade
+  ↓
+answer_with_citations
+  ↓
+record_trace_event(event_type="rag_agentic_debug")
+```
+
+Current backend switch file:
+
+```text
+src/app/rag/retrieval_backend.py
+```
+
+Supported backends:
+
+```text
+hybrid
+chroma
+```
+
+The default backend remains `hybrid` for compatibility and CI stability.
+
+Day32 also optimized Chroma collection names. The new collection name uses a short readable prefix and a stable SHA1 hash suffix based on source filter, embedding provider, embedding model, and embedding dimension.
+
+Observed examples:
+
+```text
+agent_api_rag_agent_basics_deterministi_d64_5aeff12d
+agent_api_rag_agent_basics_deterministi_d128_72a03a28
+```
+
+Chroma retrieval results are normalized to include hybrid-compatible fields:
+
+```text
+hybrid_score = score
+keyword_score = 0.0
+vector_score = score
+distance = Chroma distance
+retrieval_backend = chroma
+```
+
+This keeps existing Agentic RAG schemas, answer verification, and historical tests compatible.
 
 ## Request Tracing
 
@@ -3147,6 +3212,60 @@ score > 0
 trace_id = day31-chroma-rag-001
 ```
 
+### Agentic RAG Backend Switch
+
+Day32 lets `/rag/agentic-debug` use either the existing hybrid backend or the Chroma backend.
+
+Hybrid backend:
+
+```bash
+curl -s -X POST http://localhost:8000/rag/agentic-debug \
+  -H "Content-Type: application/json" \
+  -H "x-trace-id: day32-agentic-hybrid-001" \
+  -d '{"query":"请搜索知识库：LangGraph 是什么？","top_k":2,"source_filter":"agent_basics","max_chars":300,"embedding_dim":64,"keyword_weight":0.6,"vector_weight":0.4,"retrieval_backend":"hybrid"}' \
+  | python -m json.tool --no-ensure-ascii
+```
+
+Expected hybrid fields:
+
+```text
+retrieval_backend = hybrid
+steps = query_analyzer -> query_rewriter -> hybrid_retrieve -> relevance_grade -> answer_with_citations
+retrieval_metadata.retrieval_backend = hybrid
+retrieval_metadata.total_chunks = 2
+citations include knowledge/agent_basics.md::chunk-1
+```
+
+Chroma backend:
+
+```bash
+curl -s -X POST http://localhost:8000/rag/agentic-debug \
+  -H "Content-Type: application/json" \
+  -H "x-trace-id: day32-agentic-chroma-001" \
+  -d '{"query":"请搜索知识库：RAG 是什么？","top_k":2,"source_filter":"agent_basics","max_chars":300,"embedding_dim":64,"retrieval_backend":"chroma","embedding_provider":"deterministic","rebuild_index":true}' \
+  | python -m json.tool --no-ensure-ascii
+```
+
+Expected Chroma fields:
+
+```text
+retrieval_backend = chroma
+steps = query_analyzer -> query_rewriter -> chroma_retrieve -> relevance_grade -> answer_with_citations
+retrieval_metadata.retrieval_backend = chroma
+retrieval_metadata.total_indexed_chunks = 2
+retrieval_metadata.collection_name exists
+citations include knowledge/agent_basics.md::chunk-2
+```
+
+Trace lookup:
+
+```bash
+curl -s http://localhost:8000/observability/traces/day32-agentic-chroma-001 \
+  | python -m json.tool --no-ensure-ascii
+```
+
+If the same trace id was reused during debugging, multiple events may appear. The latest event should contain the corrected citations and the non-duplicated step list.
+
 ## Tests
 
 Run tests:
@@ -3158,7 +3277,7 @@ pytest -q
 Current result:
 
 ```text
-78 passed, 1 warning
+82 passed, 1 warning
 ```
 
 Current test coverage includes:
@@ -3221,6 +3340,11 @@ Current test coverage includes:
 * `invoke_agentic_rag()` retrieval path with citations
 * `invoke_agentic_rag()` direct path without retrieval
 * `/rag/agentic-debug` Agentic RAG metadata and trace id
+* Chroma collection name short hash and dimension behavior
+* `retrieve_agentic_context()` hybrid backend behavior
+* `retrieve_agentic_context()` Chroma backend behavior
+* `invoke_agentic_rag()` with `retrieval_backend="chroma"`
+* `/rag/agentic-debug` Chroma backend response and trace event
 
 Current test organization:
 
@@ -3247,6 +3371,7 @@ tests/
 ├── test_rag_vector_store.py
 ├── test_rag_embedding_provider.py
 ├── test_rag_chroma_store.py
+├── test_rag_agentic_backend.py
 ├── test_router_agent.py
 ├── test_router_delegation.py
 ├── test_router_stream.py
@@ -3278,7 +3403,7 @@ pytest -q
 Current CI status:
 
 ```text
-Day31: green
+Day32: not shown in the provided log; confirm from GitHub Actions
 ```
 
 ## Runtime Data
@@ -3346,8 +3471,8 @@ mv /tmp/agent_basics.md knowledge/agent_basics.md
 
 Next milestones:
 
-* Day32: Add Chroma-backed retrieval backend switch for Agentic RAG
-* Day33-Day35: Chroma-backed RAG evaluation, backend comparison, and documentation
+* Day33: Add Chroma-backed RAG evaluation and backend comparison
+* Day34-Day35: Backend metrics, docs, and optional stream/backend alignment
 * Later: Add vector database based RAG
 * Later: Add GraphRAG and Neo4j integration
 * Later: Add Multi-Agent Supervisor workflow
