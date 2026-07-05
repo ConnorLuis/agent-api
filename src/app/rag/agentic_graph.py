@@ -6,6 +6,11 @@ from langgraph.graph import END, START, StateGraph
 from src.app.rag.chunking import DEFAULT_MAX_CHARS
 from src.app.rag.hybrid import hybrid_search_knowledge
 from src.app.rag.vector_index import DEFAULT_EMBEDDING_DIM
+from src.app.rag.retrieval_backend import (
+    DEFAULT_RETRIEVAL_BACKEND,
+    retrieve_agentic_context,
+)
+from src.app.rag.embedding_provider import DEFAULT_EMBEDDING_PROVIDER
 
 
 class AgenticRagState(TypedDict, total=False):
@@ -24,6 +29,12 @@ class AgenticRagState(TypedDict, total=False):
     citations: list[str]
     final_answer: str
     steps: Annotated[list[str], operator.add]
+
+    retrieval_backend: str
+    retrieval_metadata: dict[str, Any]
+    embedding_provider: str
+    embedding_model: str | None
+    rebuild_index: bool
 
 
 def _normalize_query(query: str) -> str:
@@ -83,66 +94,81 @@ def query_rewriter_node(state: AgenticRagState) -> dict[str, Any]:
     }
 
 
-def retrieve_node(state: AgenticRagState) -> dict[str, Any]:
-    query = state.get("rewritten_query") or state["query"]
+def retrieve_node(state: AgenticRagState) -> dict:
+    rewritten_query = state.get("rewritten_query") or state["query"]
 
-    result = hybrid_search_knowledge(
-        query=query,
+    retrieval_result = retrieve_agentic_context(
+        query=rewritten_query,
         top_k=state.get("top_k", 3),
         source_filter=state.get("source_filter"),
-        max_chars=state.get("max_chars", DEFAULT_MAX_CHARS),
-        embedding_dim=state.get("embedding_dim", DEFAULT_EMBEDDING_DIM),
+        max_chars=state.get("max_chars", 500),
+        embedding_dim=state.get("embedding_dim", 64),
         keyword_weight=state.get("keyword_weight", 0.6),
         vector_weight=state.get("vector_weight", 0.4),
+        retrieval_backend=state.get("retrieval_backend", DEFAULT_RETRIEVAL_BACKEND),
+        embedding_provider=state.get("embedding_provider", DEFAULT_EMBEDDING_PROVIDER),
+        embedding_model=state.get("embedding_model"),
+        rebuild_index=state.get("rebuild_index", True),
     )
 
+    backend = retrieval_result["retrieval_backend"]
+
+    step_name = "chroma_retrieve" if backend == "chroma" else "hybrid_retrieve"
+
     return {
-        "retrieval_results": result["results"],
-        "steps": ["hybrid_retrieve"],
+        "retrieval_results": retrieval_result["results"],
+        "retrieval_backend": backend,
+        "retrieval_metadata": retrieval_result["metadata"],
+        "steps": [step_name],
     }
 
 
 def relevance_grade_node(state: AgenticRagState) -> dict[str, Any]:
-    results = state.get("retrieval_results", [])
+    retrieval_results = state.get("retrieval_results", [])
 
-    if not results:
-        return {
-            "relevance_score": 0.0,
-            "citations": [],
-            "steps": ["relevance_grade"],
-        }
-
-    top_result = results[0]
-    relevance_score = float(top_result.get("hybrid_score", 0.0))
-
-    citations = [
-        item["chunk_id"]
-        for item in results
-        if item.get("hybrid_score", 0.0) > 0
+    scores = [
+        float(result.get("hybrid_score", result.get("score", 0.0)))
+        for result in retrieval_results
     ]
+
+    relevance_score = round(
+        max(scores, default=0.0),
+        6,
+    )
 
     return {
         "relevance_score": relevance_score,
-        "citations": citations,
         "steps": ["relevance_grade"],
     }
 
 
 def answer_node(state: AgenticRagState) -> dict[str, Any]:
     results = state.get("retrieval_results", [])
+    retrieval_backend = state.get("retrieval_backend", DEFAULT_RETRIEVAL_BACKEND)
 
     if not results or state.get("relevance_score", 0.0) <= 0:
         final_answer = "未找到足够相关的知识库内容，暂时无法基于知识库回答。"
+        citations: list[str] = []
     else:
         top_result = results[0]
+        top_chunk_id = str(top_result["chunk_id"])
+
+        if retrieval_backend == "chroma":
+            answer_prefix = "根据 Chroma 向量检索结果："
+        else:
+            answer_prefix = "根据混合检索结果："
+
         final_answer = (
-            "根据混合检索结果：\n"
+            f"{answer_prefix}\n"
             f"{top_result['content']}\n\n"
-            f"引用来源：{top_result['chunk_id']}"
+            f"引用来源：{top_chunk_id}"
         )
+
+        citations = [top_chunk_id]
 
     return {
         "final_answer": final_answer,
+        "citations": citations,
         "steps": ["answer_with_citations"],
     }
 
@@ -203,6 +229,10 @@ def invoke_agentic_rag(
         embedding_dim: int = DEFAULT_EMBEDDING_DIM,
         keyword_weight: float = 0.6,
         vector_weight: float = 0.4,
+        retrieval_backend: str = DEFAULT_RETRIEVAL_BACKEND,
+        embedding_provider: str = DEFAULT_EMBEDDING_PROVIDER,
+        embedding_model: str | None = None,
+        rebuild_index: bool = True,
 ) -> dict[str, Any]:
     initial_state: AgenticRagState = {
         "query": query,
@@ -212,6 +242,11 @@ def invoke_agentic_rag(
         "embedding_dim": embedding_dim,
         "keyword_weight": keyword_weight,
         "vector_weight": vector_weight,
+        "retrieval_backend": retrieval_backend,
+        "retrieval_metadata": {},
+        "embedding_provider": embedding_provider,
+        "embedding_model": embedding_model,
+        "rebuild_index": rebuild_index,
         "steps": [],
     }
 
@@ -225,5 +260,7 @@ def invoke_agentic_rag(
         "citations": result.get("citations", []),
         "retrieval_results": result.get("retrieval_results", []),
         "final_answer": result.get("final_answer", ""),
+        "retrieval_backend": result.get("retrieval_backend", retrieval_backend),
+        "retrieval_metadata": result.get("retrieval_metadata", {}),
         "steps": result.get("steps", []),
     }

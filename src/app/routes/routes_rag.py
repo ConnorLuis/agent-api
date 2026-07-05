@@ -117,6 +117,10 @@ def rag_agentic_debug(
         embedding_dim=request.embedding_dim,
         keyword_weight=request.keyword_weight,
         vector_weight=request.vector_weight,
+        retrieval_backend=request.retrieval_backend,
+        embedding_provider=request.embedding_provider,
+        embedding_model=request.embedding_model,
+        rebuild_index=request.rebuild_index,
     )
 
     trace_id = get_trace_id()
@@ -132,6 +136,8 @@ def rag_agentic_debug(
             "citations": result["citations"],
             "steps": result["steps"],
             "retrieval_results_count": len(result["retrieval_results"]),
+            "retrieval_backend": result.get("retrieval_backend"),
+            "retrieval_metadata": result.get("retrieval_metadata", {}),
         },
     )
 

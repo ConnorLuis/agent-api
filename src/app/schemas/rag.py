@@ -139,6 +139,10 @@ class RagAgenticDebugRequest(BaseModel):
     embedding_dim: int = 64
     keyword_weight: float = 0.6
     vector_weight: float = 0.4
+    retrieval_backend: str = "hybrid"
+    embedding_provider: str = "deterministic"
+    embedding_model: str | None = None
+    rebuild_index: bool = True
 
 
 class RagAgenticDebugResult(BaseModel):
@@ -165,6 +169,8 @@ class RagAgenticDebugResponse(BaseModel):
     final_answer: str
     steps: list[str]
     trace_id: str | None = None
+    retrieval_backend: str = "hybrid"
+    retrieval_metadata: dict = Field(default_factory=dict)
 
 
 class RagEvalDebugRequest(BaseModel):

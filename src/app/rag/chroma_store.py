@@ -1,5 +1,6 @@
 import re
 import shutil
+import hashlib
 from pathlib import Path
 from typing import Any
 
@@ -29,20 +30,31 @@ def build_chroma_collection_name(
     embedding_model: str,
     embedding_dim: int,
 ) -> str:
-    source_token = _safe_collection_token(source_filter or "all")
-    provider_token = _safe_collection_token(embedding_provider)
-    model_token = _safe_collection_token(embedding_model)
-    dim_token = str(max(embedding_dim, 8))
+    safe_dim = max(embedding_dim, 8)
+
+    source_token = _safe_collection_token(source_filter or "all")[:16]
+    provider_token = _safe_collection_token(embedding_provider)[:12]
+    dim_token = f"d{safe_dim}"
+
+    raw_identity = (
+        f"source_filter={source_filter or '__all__'}|"
+        f"embedding_provider={embedding_provider}|"
+        f"embedding_model={embedding_model}|"
+        f"embedding_dim={safe_dim}"
+    )
+
+    digest = hashlib.sha1(
+        raw_identity.encode("utf-8")
+    ).hexdigest()[:8]
 
     name = (
         f"{DEFAULT_CHROMA_COLLECTION_PREFIX}_"
         f"{source_token}_"
         f"{provider_token}_"
-        f"{model_token}_"
-        f"dim{dim_token}"
+        f"{dim_token}_"
+        f"{digest}"
     )
 
-    # Chroma collection names must be reasonably short.
     return name[:63].strip("_")
 
 
