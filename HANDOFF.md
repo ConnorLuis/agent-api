@@ -13,12 +13,12 @@ Project 2 has officially started and is now the main development line.
 Current `agent-api` status:
 
 ```text
-Day1-Day38 completed.
-Day38 completed: Semantic embedding provider local validation.
-Local pytest: 98 passed, 1 warning.
+Day1-Day39 first stage completed.
+Day39 first stage completed: Backend evaluation report layer.
+Local pytest: 100 passed, 1 warning.
 Git push: success.
-GitHub Actions CI: green.
-Next: Day39 evaluation report polishing or production retrieval backend selection.
+GitHub Actions CI: not shown in provided Day39 log; confirm from GitHub Actions.
+Next: Day39 second stage evaluation report polishing or production retrieval backend selection.
 ```
 
 ## Project Goal
@@ -159,6 +159,8 @@ Current:
 - Local BCE embedding model path: `/mnt/f/LLM/maidalun/bce-embedding-base_v1`
 - CI-safe semantic provider test that skips when the local model path is unavailable
 - Day38 validation script for semantic provider, Chroma, Agentic RAG, and backend comparison
+- Backend evaluation report builder for retrieval backend selection guidance
+- `/rag/backend-eval-debug` response-level `evaluation_report`
 - pytest
 - GitHub Actions CI
 
@@ -254,7 +256,8 @@ agent-api/
 │       │   └── routes_observability.py
 │       ├── evaluation/
 │       │   ├── __init__.py
-│       │   └── rag_eval.py
+│       │   ├── rag_eval.py
+│       │   └── rag_report.py
 │       ├── observability/
 │       │   ├── __init__.py
 │       │   └── trace_store.py
@@ -322,6 +325,7 @@ agent-api/
 ├── test_rag_backend_pairwise_eval.py
 ├── test_rag_backend_comparison_summary.py
 ├── test_rag_semantic_embedding_provider.py
+├── test_rag_backend_report.py
     ├── test_router_agent.py
     ├── test_router_delegation.py
     ├── test_router_stream.py
@@ -5149,6 +5153,99 @@ The local semantic provider is manually validated and covered by a skip-safe tes
 CI should skip the semantic provider test when `/mnt/f/LLM/maidalun/bce-embedding-base_v1` is unavailable.
 ```
 
+## Current Day39 Backend Evaluation Report Strategy
+
+Day39 added a backend evaluation report layer on top of the existing backend comparison output.
+
+```text
+/rag/backend-eval-debug
+  ↓
+compare_rag_retrieval_backends()
+  ↓
+metric_deltas + pairwise_metric_deltas + case_comparisons + comparison_summary
+  ↓
+build_backend_evaluation_report()
+  ↓
+evaluation_report
+```
+
+Current report file:
+
+```text
+src/app/evaluation/rag_report.py
+```
+
+Current report builder:
+
+```text
+build_backend_evaluation_report(comparison: dict) -> dict
+```
+
+The report builder is intentionally pure:
+
+```text
+No FastAPI dependency
+No Chroma dependency
+No embedding model loading
+No evaluation re-run
+```
+
+The backend evaluation response now includes:
+
+```text
+evaluation_report.recommended_backend
+evaluation_report.recommendation_reason
+evaluation_report.default_backend
+evaluation_report.default_backend_should_change
+evaluation_report.selection_policy
+evaluation_report.embedding_provider
+evaluation_report.embedding_model
+evaluation_report.eval_file
+evaluation_report.eval_case_count
+evaluation_report.metric_highlights
+evaluation_report.risk_notes
+evaluation_report.backend_rank_summary
+evaluation_report.interpretation
+```
+
+Observed Day39 deterministic evaluation report:
+
+```text
+recommended_backend = chroma_rerank
+default_backend = hybrid
+default_backend_should_change = false
+selection_policy = keep_default_hybrid_until_larger_eval_set
+embedding_provider = deterministic
+eval_case_count = 3
+```
+
+Observed Day39 backend ranking:
+
+```text
+chroma_rerank:
+  pass_rate = 1.0
+  average_relevance_score = 0.394302
+  strength = recommended candidate on current evaluation
+
+hybrid:
+  pass_rate = 1.0
+  average_relevance_score = 0.278223
+  strength = top pass-rate group
+
+chroma:
+  pass_rate = 0.666667
+  average_relevance_score = 0.279233
+  strength = comparison backend
+```
+
+Important Day39 interpretation:
+
+```text
+chroma_rerank is recommended as an experiment candidate on the current tiny deterministic eval set.
+The default backend should remain hybrid until a larger and more representative eval set validates a production switch.
+Deterministic embeddings are CI-safe but do not represent real semantic embedding quality.
+```
+
 ## Day38 - Semantic Embedding Provider Local Validation
 
 ### Completed
@@ -5207,6 +5304,108 @@ GitHub Actions CI: green
 
 Day38 proves that the project can switch from deterministic hash embeddings to a real local semantic embedding provider for Chroma-backed RAG paths while keeping CI deterministic and dependency-safe.
 
+## Day39 - Backend Evaluation Report
+
+### Completed
+
+- Added backend evaluation report builder
+- Added `src/app/evaluation/rag_report.py`
+- Added pure function `build_backend_evaluation_report(comparison: dict) -> dict`
+- Integrated `evaluation_report` into `compare_rag_retrieval_backends()`
+- Added `evaluation_report` to `RagBackendEvalDebugResponse`
+- Preserved existing backend comparison fields:
+  - `metric_deltas`
+  - `pairwise_metric_deltas`
+  - `case_comparisons`
+  - `comparison_summary`
+  - `results`
+- Added report-level recommendation fields:
+  - `recommended_backend`
+  - `recommendation_reason`
+  - `default_backend`
+  - `default_backend_should_change`
+  - `selection_policy`
+- Added report-level evidence fields:
+  - `metric_highlights`
+  - `risk_notes`
+  - `backend_rank_summary`
+  - `interpretation`
+- Added deterministic embedding risk note
+- Added small/tiny eval set caveat
+- Added default-backend safety policy that keeps `hybrid` as the default until a larger eval set validates switching
+- Added `tests/test_rag_backend_report.py`
+- Verified focused backend report tests
+- Verified backend evaluation related tests
+- Verified RAG related tests
+- Verified full local pytest
+- Verified `/rag/backend-eval-debug` returns `evaluation_report`
+- Git push succeeded
+
+### New File
+
+```text
+src/app/evaluation/rag_report.py
+tests/test_rag_backend_report.py
+```
+
+### Modified Files
+
+```text
+src/app/evaluation/rag_eval.py
+src/app/schemas/rag.py
+```
+
+### Test Result
+
+```text
+Backend report focused tests: 2 passed, 1 warning
+Backend eval related tests: 12 passed, 1 warning
+RAG related tests: 30 passed, 1 warning
+Full local pytest: 100 passed, 1 warning
+```
+
+### API Verification
+
+```text
+POST /rag/backend-eval-debug
+```
+
+Observed `evaluation_report`:
+
+```text
+recommended_backend = chroma_rerank
+recommendation_reason = chroma_rerank is the current experiment candidate, but the default backend should remain hybrid until larger and more representative evaluation data is available.
+default_backend = hybrid
+default_backend_should_change = false
+selection_policy = keep_default_hybrid_until_larger_eval_set
+embedding_provider = deterministic
+eval_case_count = 3
+```
+
+Observed report risk notes:
+
+```text
+The current eval set is small/tiny, so the report should be treated as a regression and debugging signal rather than a production-level benchmark.
+The current run uses deterministic embeddings, which are CI-safe but do not represent real semantic embedding quality.
+chroma_rerank is recommended as an experiment candidate, but the default backend should remain hybrid until a larger eval set validates the change.
+```
+
+### Commit
+
+```text
+1312c5f add rag backend evaluation report
+```
+
+### CI Result
+
+```text
+Not shown in the provided Day39 log. Confirm from GitHub Actions.
+```
+
+### Notes
+
+Day39 first stage is complete locally. The project now converts raw backend comparison metrics into an engineering-facing retrieval backend selection report. This keeps the existing debug/eval output available while adding a safer decision layer that distinguishes experiment candidates from production default backend changes.
+
 ## Known Issues / Notes
 
 ### SQLite runtime files
@@ -5263,7 +5462,7 @@ Agent response
 Local pytest currently shows:
 
 ```text
-98 passed, 1 warning
+100 passed, 1 warning
 ```
 
 CI may show `97 passed, 1 skipped, 1 warning` because the Day38 local semantic embedding test skips when the local BCE model path is unavailable.
@@ -5666,4 +5865,22 @@ Next:
 
 Next:
 
-- [ ] Day39 Evaluation report polishing or production retrieval backend selection
+- [x] Day39 Backend evaluation report layer
+- [x] Day39 `src/app/evaluation/rag_report.py`
+- [x] Day39 `build_backend_evaluation_report()`
+- [x] Day39 `/rag/backend-eval-debug` returns `evaluation_report`
+- [x] Day39 `evaluation_report.recommended_backend`
+- [x] Day39 `evaluation_report.metric_highlights`
+- [x] Day39 `evaluation_report.risk_notes`
+- [x] Day39 `evaluation_report.backend_rank_summary`
+- [x] Day39 `tests/test_rag_backend_report.py`
+- [x] Day39 focused backend report tests
+- [x] Day39 backend evaluation related tests
+- [x] Day39 RAG related tests
+- [x] Day39 full local pytest
+- [x] Day39 Git push
+- [ ] Day39 GitHub Actions CI confirmation
+
+Next:
+
+- [ ] Day39 second stage evaluation report polishing or production retrieval backend selection
