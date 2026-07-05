@@ -95,7 +95,7 @@ def build_chroma_index(
 
     provider_instance = get_embedding_provider(
         provider=embedding_provider,
-        model_name=embedding_model,
+        embedding_model=embedding_model,
     )
 
     collection_name = build_chroma_collection_name(
@@ -197,7 +197,7 @@ def query_chroma_store(
 
     provider_instance = get_embedding_provider(
         provider=embedding_provider,
-        model_name=embedding_model,
+        embedding_model=embedding_model,
     )
 
     collection_name = build_chroma_collection_name(
