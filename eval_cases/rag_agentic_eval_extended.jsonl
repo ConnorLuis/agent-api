@@ -1,0 +1,12 @@
+{"case_id":"rag_definition","query":"请搜索知识库：RAG 是什么？","expected_retrieval_needed":true,"expected_terms":["retrieval-augmented generation","检索"],"expected_citation_keywords":["knowledge/agent_basics.md"]}
+{"case_id":"langgraph_definition","query":"请搜索知识库：LangGraph 是什么？","expected_retrieval_needed":true,"expected_terms":["langgraph","图结构"],"expected_citation_keywords":["knowledge/agent_basics.md"]}
+{"case_id":"agent_definition","query":"请搜索知识库：Agent 是什么？","expected_retrieval_needed":true,"expected_terms":["agent","推理"],"expected_citation_keywords":["knowledge/agent_basics.md"]}
+{"case_id":"agent_components","query":"请搜索知识库：Agent 通常由哪些部分组成？","expected_retrieval_needed":true,"expected_terms":["llm","tools","memory"],"expected_citation_keywords":["knowledge/agent_basics.md"]}
+{"case_id":"agent_tools","query":"请搜索知识库：Agent 中 Tools 的作用是什么？","expected_retrieval_needed":true,"expected_terms":["外部能力","api"],"expected_citation_keywords":["knowledge/agent_basics.md"]}
+{"case_id":"agent_memory","query":"请搜索知识库：Agent 中 Memory 的作用是什么？","expected_retrieval_needed":true,"expected_terms":["对话历史","长期用户偏好"],"expected_citation_keywords":["knowledge/agent_basics.md"]}
+{"case_id":"agent_graph_flow","query":"请搜索知识库：Agent 工具调用图的流程是什么？","expected_retrieval_needed":true,"expected_terms":["start","tools","end"],"expected_citation_keywords":["knowledge/agent_basics.md"]}
+{"case_id":"rag_core_flow","query":"请搜索知识库：RAG 的核心流程包括什么？","expected_retrieval_needed":true,"expected_terms":["文档加载","文本切分","索引构建"],"expected_citation_keywords":["knowledge/agent_basics.md"]}
+{"case_id":"rag_retrieval_reason","query":"请搜索知识库：RAG 为什么需要先检索知识库？","expected_retrieval_needed":true,"expected_terms":["检索相关内容","llm"],"expected_citation_keywords":["knowledge/agent_basics.md"]}
+{"case_id":"langgraph_workflow","query":"请搜索知识库：LangGraph 为什么适合表达 Agent 工作流？","expected_retrieval_needed":true,"expected_terms":["langgraph","图结构"],"expected_citation_keywords":["knowledge/agent_basics.md"]}
+{"case_id":"direct_chat_greeting","query":"你好，介绍一下你自己","expected_retrieval_needed":false,"expected_terms":["不需要检索知识库"],"expected_citation_keywords":[]}
+{"case_id":"direct_chat_casual","query":"今天心情不错，和我聊两句","expected_retrieval_needed":false,"expected_terms":["不需要检索知识库"],"expected_citation_keywords":[]}
