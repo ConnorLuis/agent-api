@@ -13,13 +13,114 @@ Project 2 has officially started and is now the main development line.
 Current `agent-api` status:
 
 ```text
-Day1-Day39 completed.
-Day39 completed: Backend evaluation report layer and trace payload alignment.
-Local pytest: 101 passed, 1 warning.
+Day1-Day40 first stage completed.
+Day40 first stage completed: Extended RAG evaluation dataset.
+Local pytest: 104 passed, 1 warning.
+Git commit: 3792cac add extended rag evaluation dataset.
 Git push: success.
 GitHub Actions CI: green.
-Next: Day40 production retrieval backend selection policy or evaluation dataset expansion.
+Next: Day40 second stage extended backend evaluation analysis and selection policy refinement.
 ```
+
+## Day40 First Stage - Extended RAG Evaluation Dataset
+
+Day40 first stage expands the backend evaluation dataset without replacing the original default regression dataset.
+
+New files:
+
+```text
+eval_cases/rag_agentic_eval_extended.jsonl
+tests/test_rag_eval_extended_dataset.py
+```
+
+Commit:
+
+```text
+3792cac add extended rag evaluation dataset
+```
+
+Validation:
+
+```text
+pytest tests/test_rag_eval_extended_dataset.py -q
+3 passed, 1 warning
+
+pytest tests/test_rag_backend_eval.py \
+       tests/test_rag_backend_pairwise_eval.py \
+       tests/test_rag_backend_comparison_summary.py \
+       tests/test_rag_backend_report.py \
+       tests/test_rag_eval_extended_dataset.py -q
+16 passed, 1 warning
+
+pytest -q
+104 passed, 1 warning
+```
+
+Observed extended backend comparison:
+
+```text
+eval_file = eval_cases/rag_agentic_eval_extended.jsonl
+eval_case_count = 12
+best_backend_by_pass_rate = hybrid
+best_backend_by_average_relevance = chroma_rerank
+
+hybrid:
+  passed_cases = 10 / 12
+  pass_rate = 0.833333
+  average_relevance_score = 0.407461
+
+chroma:
+  passed_cases = 9 / 12
+  pass_rate = 0.75
+  average_relevance_score = 0.412151
+
+chroma_rerank:
+  passed_cases = 10 / 12
+  pass_rate = 0.833333
+  average_relevance_score = 0.529049
+```
+
+Observed evaluation report:
+
+```text
+recommended_backend = chroma_rerank
+default_backend = hybrid
+default_backend_should_change = false
+selection_policy = keep_default_hybrid_until_larger_eval_set
+```
+
+Interpretation:
+
+```text
+The extended dataset removes the small/tiny eval-set risk note because the eval case count is now 12.
+The deterministic embedding caveat remains.
+`chroma_rerank` remains the strongest experiment candidate by average relevance score.
+The default backend should still remain `hybrid` until Day40 second stage defines a stronger backend selection policy.
+```
+
+Next phase:
+
+```text
+Day40 second stage should analyze the extended backend result, identify failed cases, and refine the backend selection policy without prematurely switching the production default.
+```
+
+
+## Day40 First Stage Checklist
+
+Completed:
+
+```text
+✅ Added eval_cases/rag_agentic_eval_extended.jsonl
+✅ Added tests/test_rag_eval_extended_dataset.py
+✅ Verified extended eval case count = 12
+✅ Verified backend eval response uses extended eval_file
+✅ Verified evaluation_report.eval_case_count = 12
+✅ Verified deterministic embedding caveat remains
+✅ Verified small/tiny eval-set caveat is removed for extended eval
+✅ Local pytest: 104 passed, 1 warning
+✅ GitHub Actions CI: green
+```
+
 
 ## Project Goal
 
@@ -133,6 +234,7 @@ Current:
 - Backend-normalized retrieval results for Agentic RAG
 - Backend-aware RAG evaluation debug endpoint
 - RAG backend evaluation comparison endpoint
+- Extended RAG evaluation dataset with 12 cases
 - Hybrid-vs-Chroma backend metrics comparison
 - Backend evaluation observability event
 - Refined backend comparison metrics: `metric_deltas`, `case_comparisons`, and `comparison_summary`
@@ -163,6 +265,7 @@ Current:
 - Backend evaluation report trace payload alignment through `rag_backend_eval_debug`
 - `/rag/backend-eval-debug` response-level `evaluation_report`
 - `rag_backend_eval_debug` trace payload includes `evaluation_report`
+- Extended eval dataset test for response and trace report behavior
 - pytest
 - GitHub Actions CI
 
@@ -193,7 +296,8 @@ agent-api/
 │   └── workflows/
 │       └── ci.yml
 ├── eval_cases/
-│   └── rag_agentic_eval.jsonl
+│   ├── rag_agentic_eval.jsonl
+│   └── rag_agentic_eval_extended.jsonl
 ├── docs/
 │   ├── DAY01.md
 │   ├── DAY02.md
@@ -234,6 +338,7 @@ agent-api/
 │   ├── DAY37.md
 │   ├── DAY38.md
 │   └── DAY39.md
+│       # Note: docs/DAY40.md has not been generated yet; Day40 is currently recorded in README/HANDOFF.
 ├── knowledge/
 │   └── agent_basics.md
 ├── data/
@@ -329,6 +434,7 @@ agent-api/
 ├── test_rag_backend_comparison_summary.py
 ├── test_rag_semantic_embedding_provider.py
 ├── test_rag_backend_report.py
+├── test_rag_eval_extended_dataset.py
     ├── test_router_agent.py
     ├── test_router_delegation.py
     ├── test_router_stream.py
@@ -5330,7 +5436,7 @@ GitHub Actions CI: green
 
 Day38 proves that the project can switch from deterministic hash embeddings to a real local semantic embedding provider for Chroma-backed RAG paths while keeping CI deterministic and dependency-safe.
 
-## Day39 - Backend Evaluation Report
+## Day39 - Backend Evaluation Report and Trace Alignment
 
 ### Completed
 
@@ -5357,14 +5463,17 @@ Day38 proves that the project can switch from deterministic hash embeddings to a
   - `backend_rank_summary`
   - `interpretation`
 - Added deterministic embedding risk note
-- Added small/tiny eval set caveat
+- Added small/tiny eval set caveat for the original 3-case eval set
 - Added default-backend safety policy that keeps `hybrid` as the default until a larger eval set validates switching
+- Added `evaluation_report` to `rag_backend_eval_debug` trace payload
+- Verified `/rag/backend-eval-debug` response includes `evaluation_report`
+- Verified `/observability/traces/{trace_id}` shows `payload.evaluation_report`
 - Added `tests/test_rag_backend_report.py`
 - Verified focused backend report tests
 - Verified backend evaluation related tests
 - Verified RAG related tests
 - Verified full local pytest
-- Verified `/rag/backend-eval-debug` returns `evaluation_report`
+- Verified GitHub Actions CI
 - Git push succeeded
 
 ### New File
@@ -5378,29 +5487,29 @@ tests/test_rag_backend_report.py
 
 ```text
 src/app/evaluation/rag_eval.py
+src/app/routes/routes_rag.py
 src/app/schemas/rag.py
 ```
 
 ### Test Result
 
 ```text
-Backend report focused tests: 2 passed, 1 warning
-Backend eval related tests: 12 passed, 1 warning
-RAG related tests: 30 passed, 1 warning
-Full local pytest: 100 passed, 1 warning
+Backend report focused tests: 3 passed, 1 warning
+Backend eval related tests: 13 passed, 1 warning
+Full local pytest: 101 passed, 1 warning
 ```
 
-### API Verification
+### API and Trace Verification
 
 ```text
 POST /rag/backend-eval-debug
+GET /observability/traces/{trace_id}
 ```
 
 Observed `evaluation_report`:
 
 ```text
 recommended_backend = chroma_rerank
-recommendation_reason = chroma_rerank is the current experiment candidate, but the default backend should remain hybrid until larger and more representative evaluation data is available.
 default_backend = hybrid
 default_backend_should_change = false
 selection_policy = keep_default_hybrid_until_larger_eval_set
@@ -5408,29 +5517,124 @@ embedding_provider = deterministic
 eval_case_count = 3
 ```
 
-Observed report risk notes:
+Observed trace alignment:
 
 ```text
-The current eval set is small/tiny, so the report should be treated as a regression and debugging signal rather than a production-level benchmark.
-The current run uses deterministic embeddings, which are CI-safe but do not represent real semantic embedding quality.
-chroma_rerank is recommended as an experiment candidate, but the default backend should remain hybrid until a larger eval set validates the change.
+event_type = rag_backend_eval_debug
+payload.evaluation_report.recommended_backend = chroma_rerank
+payload.evaluation_report.default_backend_should_change = false
+payload.evaluation_report.risk_notes exists
+payload.evaluation_report.backend_rank_summary exists
 ```
 
-### Commit
+### Commits
 
 ```text
 1312c5f add rag backend evaluation report
+0c2f7af add rag backend report trace payload
 ```
 
 ### CI Result
 
 ```text
-Not shown in the provided Day39 log. Confirm from GitHub Actions.
+GitHub Actions CI: green
 ```
 
 ### Notes
 
-Day39 first stage is complete locally. The project now converts raw backend comparison metrics into an engineering-facing retrieval backend selection report. This keeps the existing debug/eval output available while adding a safer decision layer that distinguishes experiment candidates from production default backend changes.
+Day39 converts raw backend comparison metrics into an engineering-facing retrieval backend selection report and makes that report observable through trace lookup. The default backend remains `hybrid` because the original eval set is tiny and deterministic embeddings are CI-safe but not semantically representative.
+
+## Day40 First Stage - Extended RAG Evaluation Dataset
+
+### Completed
+
+- Added an extended RAG evaluation dataset while preserving the original 3-case regression eval set
+- Added `eval_cases/rag_agentic_eval_extended.jsonl`
+- Added `tests/test_rag_eval_extended_dataset.py`
+- Kept default `eval_cases/rag_agentic_eval.jsonl` unchanged for fast CI regression checks
+- Verified extended eval case count is 12
+- Verified `/rag/backend-eval-debug` accepts `eval_file="eval_cases/rag_agentic_eval_extended.jsonl"`
+- Verified extended `evaluation_report.eval_case_count = 12`
+- Verified extended report no longer emits the small/tiny eval-set caveat
+- Verified deterministic embedding caveat remains
+- Verified `rag_backend_eval_debug` trace payload still includes `evaluation_report`
+- Verified local pytest
+- Verified GitHub Actions CI
+- Git push succeeded
+
+### New Files
+
+```text
+eval_cases/rag_agentic_eval_extended.jsonl
+tests/test_rag_eval_extended_dataset.py
+```
+
+### Validation
+
+```text
+pytest tests/test_rag_eval_extended_dataset.py -q
+3 passed, 1 warning
+
+pytest tests/test_rag_backend_eval.py \
+       tests/test_rag_backend_pairwise_eval.py \
+       tests/test_rag_backend_comparison_summary.py \
+       tests/test_rag_backend_report.py \
+       tests/test_rag_eval_extended_dataset.py -q
+16 passed, 1 warning
+
+pytest -q
+104 passed, 1 warning
+```
+
+### Observed Extended Backend Comparison
+
+```text
+eval_file = eval_cases/rag_agentic_eval_extended.jsonl
+eval_case_count = 12
+best_backend_by_pass_rate = hybrid
+best_backend_by_average_relevance = chroma_rerank
+
+hybrid:
+  passed_cases = 10 / 12
+  pass_rate = 0.833333
+  average_relevance_score = 0.407461
+
+chroma:
+  passed_cases = 9 / 12
+  pass_rate = 0.75
+  average_relevance_score = 0.412151
+
+chroma_rerank:
+  passed_cases = 10 / 12
+  pass_rate = 0.833333
+  average_relevance_score = 0.529049
+```
+
+### Observed Evaluation Report
+
+```text
+recommended_backend = chroma_rerank
+default_backend = hybrid
+default_backend_should_change = false
+selection_policy = keep_default_hybrid_until_larger_eval_set
+eval_case_count = 12
+```
+
+### Commit
+
+```text
+3792cac add extended rag evaluation dataset
+```
+
+### CI Result
+
+```text
+GitHub Actions CI: green
+```
+
+### Notes
+
+Day40 first stage resolves the most obvious Day39 caveat by adding a broader 12-case evaluation file. `chroma_rerank` remains the strongest experiment candidate by average relevance score, while `hybrid` remains the production default until Day40 second stage defines a stronger selection policy and analyzes failed cases.
 
 ## Known Issues / Notes
 
@@ -5488,10 +5692,10 @@ Agent response
 Local pytest currently shows:
 
 ```text
-100 passed, 1 warning
+104 passed, 1 warning
 ```
 
-CI may show `97 passed, 1 skipped, 1 warning` because the Day38 local semantic embedding test skips when the local BCE model path is unavailable.
+CI may show one skipped semantic embedding test when the local BCE model path is unavailable.
 
 The warning is:
 
@@ -5538,8 +5742,8 @@ It has a typo: `langraph` should be `langgraph`. This does not affect code and d
 Recommended next route:
 
 ```text
-Day39: Evaluation report polishing or production retrieval backend selection
-Day40: Documentation cleanup and optional semantic retrieval evaluation expansion
+Day40 second stage: extended backend evaluation analysis and selection policy refinement
+Day41: production retrieval backend selection policy implementation, only after the policy is backed by stronger evaluation evidence
 Later: Document upload and parsing pipeline
 Later: GraphRAG + Neo4j + Multi-Agent Supervisor
 ```
@@ -5895,6 +6099,7 @@ Next:
 - [x] Day39 `src/app/evaluation/rag_report.py`
 - [x] Day39 `build_backend_evaluation_report()`
 - [x] Day39 `/rag/backend-eval-debug` returns `evaluation_report`
+- [x] Day39 `rag_backend_eval_debug` trace payload includes `evaluation_report`
 - [x] Day39 `evaluation_report.recommended_backend`
 - [x] Day39 `evaluation_report.metric_highlights`
 - [x] Day39 `evaluation_report.risk_notes`
@@ -5902,11 +6107,26 @@ Next:
 - [x] Day39 `tests/test_rag_backend_report.py`
 - [x] Day39 focused backend report tests
 - [x] Day39 backend evaluation related tests
-- [x] Day39 RAG related tests
 - [x] Day39 full local pytest
+- [x] Day39 GitHub Actions CI
 - [x] Day39 Git push
-- [ ] Day39 GitHub Actions CI confirmation
 
 Next:
 
-- [ ] Day39 second stage evaluation report polishing or production retrieval backend selection
+- [x] Day40 first stage Extended RAG evaluation dataset
+- [x] Day40 `eval_cases/rag_agentic_eval_extended.jsonl`
+- [x] Day40 `tests/test_rag_eval_extended_dataset.py`
+- [x] Day40 extended eval case count = 12
+- [x] Day40 `/rag/backend-eval-debug` supports extended eval file
+- [x] Day40 `evaluation_report.eval_case_count = 12`
+- [x] Day40 extended report removes small/tiny eval-set caveat
+- [x] Day40 extended trace payload includes `evaluation_report`
+- [x] Day40 focused extended eval tests
+- [x] Day40 backend evaluation related tests
+- [x] Day40 full local pytest
+- [x] Day40 GitHub Actions CI
+- [x] Day40 Git push
+
+Next:
+
+- [ ] Day40 second stage extended backend evaluation analysis and selection policy refinement
