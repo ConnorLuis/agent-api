@@ -13,12 +13,12 @@ Project 2 has officially started and is now the main development line.
 Current `agent-api` status:
 
 ```text
-Day1-Day32 completed.
-Day32 completed: Agentic RAG retrieval backend switch.
-Local pytest: 82 passed, 1 warning.
+Day1-Day33 completed.
+Day33 completed: Chroma-backed RAG evaluation and backend comparison.
+Local pytest: 86 passed, 1 warning.
 Git push: success.
-GitHub Actions CI: not shown in the provided Day32 log; confirm from GitHub Actions.
-Next: Day33 Chroma-backed RAG evaluation and backend comparison.
+GitHub Actions CI: green.
+Next: Day34 Backend metrics refinement and optional stream/backend alignment.
 ```
 
 ## Project Goal
@@ -131,6 +131,10 @@ Current:
 - Chroma-backed Agentic RAG debug path
 - Chroma collection naming with short stable hash suffix
 - Backend-normalized retrieval results for Agentic RAG
+- Backend-aware RAG evaluation debug endpoint
+- RAG backend evaluation comparison endpoint
+- Hybrid-vs-Chroma backend metrics comparison
+- Backend evaluation observability event
 - pytest
 - GitHub Actions CI
 
@@ -139,7 +143,6 @@ Not yet implemented:
 - OpenAI provider
 - Replacing `/agent/chat` with the real LLM Agent as the default route
 - Making Smart Chat the default production entry point
-- RAG backend evaluation comparison across hybrid and Chroma
 - Document upload and parsing pipeline
 - GraphRAG
 - Multi-Agent Supervisor
@@ -193,7 +196,8 @@ agent-api/
 │   ├── DAY29.md
 │   ├── DAY30.md
 │   ├── DAY31.md
-│   └── DAY32.md
+│   ├── DAY32.md
+│   └── DAY33.md
 ├── knowledge/
 │   └── agent_basics.md
 ├── data/
@@ -280,6 +284,7 @@ agent-api/
     ├── test_rag_embedding_provider.py
     ├── test_rag_chroma_store.py
     ├── test_rag_agentic_backend.py
+    ├── test_rag_backend_eval.py
     ├── test_router_agent.py
     ├── test_router_delegation.py
     ├── test_router_stream.py
@@ -411,6 +416,7 @@ POST /rag/vector-store-debug
 POST /rag/embedding-debug
 POST /rag/chroma-search-debug
 POST /rag/eval-debug
+POST /rag/backend-eval-debug
 GET /observability/traces/{trace_id}
 GET /observability/traces
 ```
@@ -2126,6 +2132,113 @@ New Day32 test file:
 
 ```text
 tests/test_rag_agentic_backend.py
+```
+
+---
+
+## Current RAG Backend Evaluation Strategy
+
+Day33 upgraded the RAG evaluation layer into a backend-aware evaluation and comparison layer.
+
+Current files:
+
+```text
+src/app/evaluation/rag_eval.py
+tests/test_rag_backend_eval.py
+```
+
+Current endpoints:
+
+```text
+POST /rag/eval-debug
+POST /rag/backend-eval-debug
+```
+
+Current functions:
+
+```text
+evaluate_rag_cases()
+compare_rag_retrieval_backends()
+```
+
+`/rag/eval-debug` now supports:
+
+```text
+retrieval_backend
+embedding_provider
+embedding_model
+rebuild_index
+```
+
+Supported evaluation backends:
+
+```text
+hybrid
+chroma
+```
+
+Default backend remains:
+
+```text
+hybrid
+```
+
+`/rag/backend-eval-debug` compares multiple backends on the same JSONL eval set and returns:
+
+```text
+best_backend_by_pass_rate
+best_backend_by_average_relevance
+results[*].metrics
+results[*].cases
+```
+
+Current observed metrics:
+
+```text
+hybrid:
+  total_cases = 3
+  passed_cases = 3
+  pass_rate = 1.0
+  retrieval_decision_accuracy = 1.0
+  expected_terms_hit_rate = 1.0
+  citation_hit_rate = 1.0
+  average_relevance_score = 0.278223
+
+chroma:
+  total_cases = 3
+  passed_cases = 2
+  pass_rate = 0.666667
+  retrieval_decision_accuracy = 1.0
+  expected_terms_hit_rate = 0.666667
+  citation_hit_rate = 1.0
+  average_relevance_score = 0.279233
+```
+
+Current backend comparison result:
+
+```text
+best_backend_by_pass_rate = hybrid
+best_backend_by_average_relevance = chroma
+```
+
+Current trace event:
+
+```text
+rag_backend_eval_debug
+```
+
+Important interpretation:
+
+```text
+Hybrid wins pass_rate on the current tiny deterministic eval set.
+Chroma slightly wins average_relevance_score, but deterministic hash embeddings cause the LangGraph query to retrieve the RAG chunk first, so Chroma misses the expected LangGraph terms in one case.
+This is acceptable for Day33 because the goal is backend comparison infrastructure, not proving Chroma is better on this toy dataset.
+```
+
+New Day33 test file:
+
+```text
+tests/test_rag_backend_eval.py
 ```
 
 ---
@@ -4090,6 +4203,96 @@ The trace lookup for `day32-agentic-chroma-001` contains multiple events because
 
 ---
 
+## Day33 - Chroma-backed RAG Evaluation and Backend Comparison
+
+### Completed
+
+- Extended `evaluate_rag_cases()` with backend-aware evaluation parameters
+- Added `retrieval_backend` support to `/rag/eval-debug`
+- Added `embedding_provider`, `embedding_model`, and `rebuild_index` support to `/rag/eval-debug`
+- Preserved default hybrid backend behavior for compatibility
+- Added Chroma backend evaluation path
+- Added `compare_rag_retrieval_backends()`
+- Added `/rag/backend-eval-debug`
+- Added backend comparison response fields
+- Added `best_backend_by_pass_rate`
+- Added `best_backend_by_average_relevance`
+- Added backend metrics list in trace payload
+- Added `rag_backend_eval_debug` observability event
+- Preserved Day25 case schema fields:
+  - `matched_expected_terms`
+  - `expected_citation_keywords`
+  - `final_answer_preview`
+  - `passed`
+- Added backend-aware case fields:
+  - `retrieval_backend`
+  - `retrieval_metadata`
+  - `steps`
+- Verified direct Python hybrid evaluation
+- Verified direct Python Chroma evaluation
+- Verified direct Python backend comparison
+- Verified `/rag/eval-debug` hybrid backend
+- Verified `/rag/eval-debug` Chroma backend
+- Verified `/rag/backend-eval-debug`
+- Verified `/observability/traces/{trace_id}` for backend comparison traces
+- Added `tests/test_rag_backend_eval.py`
+- Expanded pytest from 82 tests to 86 tests
+- Verified local pytest
+- Verified GitHub Actions CI
+- Git push succeeded
+
+### New Endpoint
+
+```text
+POST /rag/backend-eval-debug
+```
+
+### Updated Endpoint
+
+```text
+POST /rag/eval-debug
+```
+
+### New File
+
+```text
+tests/test_rag_backend_eval.py
+```
+
+### Modified Files
+
+```text
+src/app/evaluation/rag_eval.py
+src/app/routes/routes_rag.py
+src/app/schemas/rag.py
+```
+
+### Test Result
+
+```text
+86 passed, 1 warning
+```
+
+### CI Result
+
+```text
+GitHub Actions CI: green
+```
+
+### Commit
+
+```text
+9ecc589 add rag backend evaluation comparison
+```
+
+### Notes
+
+Day33 validates that the same evaluation cases can compare hybrid and Chroma retrieval backends through a common metrics contract.
+
+Observed result: hybrid has better pass_rate on the current small eval set, while Chroma has a slightly higher average relevance score. This is expected because the current Chroma path still uses deterministic hash embeddings, not a semantic embedding model.
+
+---
+
 ## Known Issues / Notes
 
 ### SQLite runtime files
@@ -4146,7 +4349,7 @@ Agent response
 Local pytest currently shows:
 
 ```text
-82 passed, 1 warning
+86 passed, 1 warning
 ```
 
 The warning is:
@@ -4194,8 +4397,8 @@ It has a typo: `langraph` should be `langgraph`. This does not affect code and d
 Recommended next route:
 
 ```text
-Day33: Chroma-backed RAG evaluation and backend comparison
-Day34-Day35: Backend metrics, docs, and optional stream/backend alignment
+Day34: Backend metrics refinement and optional stream/backend alignment
+Day35: Documentation, cleanup, and optional semantic embedding preparation
 Later: vector DB based RAG
 Later: GraphRAG + Neo4j + Multi-Agent Supervisor
 ```
@@ -4462,4 +4665,18 @@ Next:
 
 Next:
 
-- [ ] Day33 Chroma-backed RAG evaluation and backend comparison
+- [x] Day33 Chroma-backed RAG evaluation and backend comparison
+- [x] Day33 `/rag/eval-debug` backend-aware evaluation
+- [x] Day33 `/rag/backend-eval-debug`
+- [x] Day33 `compare_rag_retrieval_backends()`
+- [x] Day33 hybrid evaluation metrics
+- [x] Day33 Chroma evaluation metrics
+- [x] Day33 backend comparison trace event
+- [x] Day33 backend eval tests
+- [x] Day33 local pytest
+- [x] Day33 GitHub Actions CI
+- [x] Day33 Git push
+
+Next:
+
+- [ ] Day34 Backend metrics refinement and optional stream/backend alignment
