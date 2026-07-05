@@ -2,17 +2,17 @@
 
 `agent-api` is a FastAPI + LangGraph backend project for building an Agent service step by step.
 
-This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent, SQLite-based short-term memory, graph debug output, request tracing, LLM provider abstraction, a real Ollama-backed LLM Tool Calling Agent path, SSE streaming endpoints, a lightweight local RAG search tool, a RAG search-debug endpoint with explainability metadata, a deterministic Router Agent that delegates calculator and RAG routes to the existing Agent graph, a Router Agent SSE streaming endpoint, an initial LLM Router Agent endpoint with mock and Ollama router providers, a Smart Chat endpoint as a future unified Agent entry point preview, a Smart Chat SSE streaming endpoint, route validation metadata for Router and Smart Chat paths, and a RAG chunk pipeline debug endpoint for vector DB preparation, a deterministic RAG vector-search debug endpoint, a hybrid retrieval debug endpoint that combines keyword and vector signals, an Agentic RAG debug graph with query analysis, query rewriting, hybrid retrieval, relevance grading, citation-aware answers, an Agentic RAG SSE streaming endpoint, an Agentic RAG answer verification debug endpoint, a SQLite-backed vector store debug layer for real vector database preparation, an EmbeddingProvider abstraction layer with an embedding debug endpoint, a Chroma-backed persistent vector store debug endpoint, an Agentic RAG retrieval backend switch that supports both hybrid and Chroma backends, and a backend-aware RAG evaluation comparison layer for hybrid-vs-Chroma metrics, refined backend comparison metrics, and backend-aware Agentic RAG SSE streaming alignment.
+This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent, SQLite-based short-term memory, graph debug output, request tracing, LLM provider abstraction, a real Ollama-backed LLM Tool Calling Agent path, SSE streaming endpoints, a lightweight local RAG search tool, a RAG search-debug endpoint with explainability metadata, a deterministic Router Agent that delegates calculator and RAG routes to the existing Agent graph, a Router Agent SSE streaming endpoint, an initial LLM Router Agent endpoint with mock and Ollama router providers, a Smart Chat endpoint as a future unified Agent entry point preview, a Smart Chat SSE streaming endpoint, route validation metadata for Router and Smart Chat paths, and a RAG chunk pipeline debug endpoint for vector DB preparation, a deterministic RAG vector-search debug endpoint, a hybrid retrieval debug endpoint that combines keyword and vector signals, an Agentic RAG debug graph with query analysis, query rewriting, hybrid retrieval, relevance grading, citation-aware answers, an Agentic RAG SSE streaming endpoint, an Agentic RAG answer verification debug endpoint, a SQLite-backed vector store debug layer for real vector database preparation, an EmbeddingProvider abstraction layer with an embedding debug endpoint, a Chroma-backed persistent vector store debug endpoint, an Agentic RAG retrieval backend switch that supports both hybrid and Chroma backends, and a backend-aware RAG evaluation comparison layer for hybrid-vs-Chroma metrics, refined backend comparison metrics, backend-aware Agentic RAG SSE streaming alignment, and a reranker-ready retrieval backend extension with `chroma_rerank`.
 
 ## Current Status
 
 ```text
-Day1-Day34 completed.
-Current stage: Backend metrics refinement and Agentic RAG stream/backend alignment completed.
-Local pytest: 89 passed, 1 warning.
+Day1-Day35 completed.
+Current stage: Reranker-ready retrieval backend extension completed.
+Local pytest: 93 passed, 1 warning.
 Git push: success.
 GitHub Actions CI: green.
-Next milestone: Day35 semantic embedding quality improvement or reranker-ready retrieval extension.
+Next milestone: Day36 semantic embedding provider local validation or reranker comparison refinement.
 ```
 
 ## Features
@@ -97,6 +97,11 @@ Current features:
 * `/rag/agentic-stream` supports `retrieval_backend="hybrid"` and `retrieval_backend="chroma"`
 * Agentic RAG stream events include `retrieval_backend` and `retrieval_metadata`
 * Agentic RAG stream trace payload includes backend metadata
+* Deterministic reranker layer for CI-safe rerank experiments
+* `retrieval_backend="chroma_rerank"` for Chroma retrieval followed by lightweight reranking
+* Rerank metadata: `original_rank`, `original_score`, `rerank_score`, `rerank_keyword_score`, and `rerank_matched_terms`
+* Reranker-ready Agentic RAG path step: `chroma_rerank_retrieve`
+* Backend evaluation can compare `hybrid`, `chroma`, and `chroma_rerank`
 * Local Markdown knowledge base under `knowledge/`
 * UTF-8 encoded knowledge base files for CI compatibility
 * Deterministic Router Agent route classification
@@ -125,7 +130,8 @@ Current features:
 * Ollama LLM provider based on `langchain-ollama`
 * Ollama tool binding via `bind_tools()`
 * Server-Sent Events
-* Backend-aware Agentic RAG streaming streaming response
+* Backend-aware Agentic RAG streaming response
+* Reranker-ready retrieval backend
 * SSE event helper with `ensure_ascii=False` for readable Chinese output
 * Environment-based LLM provider configuration
 * Request-level provider override for `/llm/chat`
@@ -224,7 +230,8 @@ agent-api/
 │   ├── DAY31.md
 │   ├── DAY32.md
 │   ├── DAY33.md
-│   └── DAY34.md
+│   ├── DAY34.md
+│   └── DAY35.md
 ├── knowledge/
 │   └── agent_basics.md
 ├── data/
@@ -266,6 +273,7 @@ agent-api/
 │       │   ├── embedding_provider.py
 │       │   ├── chroma_store.py
 │       │   ├── retrieval_backend.py
+│       │   ├── reranker.py
 │       │   ├── vector_store.py
 │       │   └── retriever.py
 │       ├── llm/
@@ -1114,6 +1122,7 @@ src/app/evaluation/rag_eval.py
 tests/test_rag_eval.py
 tests/test_rag_backend_eval.py
 tests/test_rag_agentic_stream_backend.py
+tests/test_rag_reranker.py
 ```
 
 Current endpoints:
@@ -1778,7 +1787,7 @@ The observed Chroma collection name is truncated to satisfy Chroma's collection 
 
 ## Current Agentic RAG Retrieval Backend Switch
 
-Day32 added a retrieval backend abstraction for Agentic RAG.
+Day32 added a retrieval backend abstraction for Agentic RAG. Day35 extended it with a reranker-ready Chroma path.
 
 ```text
 /rag/agentic-debug
@@ -1786,8 +1795,9 @@ Day32 added a retrieval backend abstraction for Agentic RAG.
 invoke_agentic_rag(retrieval_backend=...)
   ↓
 retrieve_agentic_context()
-  ├── hybrid -> hybrid_search_knowledge()
-  └── chroma -> debug_chroma_search()
+  ├── hybrid        -> hybrid_search_knowledge()
+  ├── chroma        -> debug_chroma_search()
+  └── chroma_rerank -> debug_chroma_search() -> rerank_retrieval_results()
   ↓
 normalized retrieval results
   ↓
@@ -1798,10 +1808,11 @@ answer_with_citations
 record_trace_event(event_type="rag_agentic_debug")
 ```
 
-Current backend switch file:
+Current backend switch files:
 
 ```text
 src/app/rag/retrieval_backend.py
+src/app/rag/reranker.py
 ```
 
 Supported backends:
@@ -1809,30 +1820,145 @@ Supported backends:
 ```text
 hybrid
 chroma
+chroma_rerank
 ```
 
 The default backend remains `hybrid` for compatibility and CI stability.
 
-Day32 also optimized Chroma collection names. The new collection name uses a short readable prefix and a stable SHA1 hash suffix based on source filter, embedding provider, embedding model, and embedding dimension.
+`chroma_rerank` keeps Chroma as the first-stage retriever, then applies a deterministic lightweight reranker over the retrieved results.
 
-Observed examples:
-
-```text
-agent_api_rag_agent_basics_deterministi_d64_5aeff12d
-agent_api_rag_agent_basics_deterministi_d128_72a03a28
-```
-
-Chroma retrieval results are normalized to include hybrid-compatible fields:
+Current reranker fields:
 
 ```text
-hybrid_score = score
-keyword_score = 0.0
-vector_score = score
-distance = Chroma distance
-retrieval_backend = chroma
+original_rank
+original_score
+rerank_score
+rerank_keyword_score
+rerank_matched_terms
 ```
 
-This keeps existing Agentic RAG schemas, answer verification, and historical tests compatible.
+Observed Day35 LangGraph rerank behavior:
+
+```text
+Before rerank:
+  chunk-2 had original_rank = 1 and original_score = 0.392506
+  chunk-1 had original_rank = 2 and original_score = 0.387532
+
+After rerank:
+  chunk-1 becomes rank 1
+  rerank_score = 0.571272
+  rerank_matched_terms = ["langgraph"]
+  citation = knowledge/agent_basics.md::chunk-1
+```
+
+Agentic RAG retrieval path with `chroma_rerank`:
+
+```text
+query_analyzer -> query_rewriter -> chroma_rerank_retrieve -> relevance_grade -> answer_with_citations
+```
+
+Important compatibility detail:
+
+```text
+The deterministic reranker is CI-safe.
+It does not introduce model downloads, GPU requirements, external services, or flaky semantic embedding dependencies.
+It creates a reranker-ready interface that can later be replaced by a cross-encoder reranker, BGE reranker, or LLM-based reranker.
+```
+
+## Current Reranker-ready Retrieval Extension
+
+Day35 added a deterministic reranker layer.
+
+Current reranker file:
+
+```text
+src/app/rag/reranker.py
+```
+
+Current reranker functions:
+
+```text
+extract_rerank_terms()
+calculate_keyword_rerank_score()
+rerank_retrieval_results()
+```
+
+Current reranker scoring:
+
+```text
+rerank_score = 0.7 * original_score + 0.3 * keyword_score
+```
+
+Current backend comparison result on the tiny deterministic eval set:
+
+```text
+hybrid:
+  pass_rate = 1.0
+  average_relevance_score = 0.278223
+
+chroma:
+  pass_rate = 0.666667
+  average_relevance_score = 0.279233
+
+chroma_rerank:
+  pass_rate = 1.0
+  average_relevance_score = 0.394302
+```
+
+Current best backend summary:
+
+```text
+best_backend_by_pass_rate = hybrid
+best_backend_by_average_relevance = chroma_rerank
+```
+
+The `best_backend_by_pass_rate` is `hybrid` because `hybrid` and `chroma_rerank` both reach `pass_rate = 1.0`, and the current comparison function returns the first max backend.
+
+Important Day35 interpretation:
+
+```text
+chroma_rerank fixes the Day33/Day34 LangGraph case miss by promoting the LangGraph chunk back to rank 1.
+The goal is not to prove a production reranker is better; the goal is to create a CI-safe reranker-ready retrieval architecture.
+```
+
+Example Agentic RAG request:
+
+```bash
+curl -s -X POST http://localhost:8000/rag/agentic-debug \
+  -H "Content-Type: application/json" \
+  -H "x-trace-id: day35-agentic-chroma-rerank-001" \
+  -d '{"query":"请搜索知识库：LangGraph 是什么？","top_k":2,"source_filter":"agent_basics","max_chars":300,"embedding_dim":64,"retrieval_backend":"chroma_rerank","embedding_provider":"deterministic","rebuild_index":true}' \
+  | python -m json.tool --no-ensure-ascii
+```
+
+Expected fields:
+
+```text
+retrieval_backend = chroma_rerank
+steps include chroma_rerank_retrieve
+citations include knowledge/agent_basics.md::chunk-1
+retrieval_results[0].rerank_score exists
+retrieval_results[0].rerank_matched_terms contains langgraph
+```
+
+Example backend comparison request:
+
+```bash
+curl -s -X POST http://localhost:8000/rag/backend-eval-debug \
+  -H "Content-Type: application/json" \
+  -H "x-trace-id: day35-backend-eval-rerank-001" \
+  -d '{"backends":["hybrid","chroma","chroma_rerank"],"source_filter":"agent_basics","max_chars":300,"embedding_dim":64,"keyword_weight":0.6,"vector_weight":0.4,"embedding_provider":"deterministic","rebuild_index":true}' \
+  | python -m json.tool --no-ensure-ascii
+```
+
+Note:
+
+```text
+Day35 keeps the existing `metric_deltas` behavior from Day34.
+`metric_deltas` compares backend_results[0] against backend_results[1].
+When passing ["hybrid", "chroma", "chroma_rerank"], the deltas still compare hybrid vs chroma.
+Day36 can refine this into multi-backend pairwise deltas.
+```
 
 ## Request Tracing
 
@@ -3475,7 +3601,7 @@ pytest -q
 Current result:
 
 ```text
-89 passed, 1 warning
+93 passed, 1 warning
 ```
 
 Current test coverage includes:
@@ -3602,7 +3728,7 @@ pytest -q
 Current CI status:
 
 ```text
-Day34: green
+Day35: green
 ```
 
 ## Runtime Data
@@ -3670,8 +3796,8 @@ mv /tmp/agent_basics.md knowledge/agent_basics.md
 
 Next milestones:
 
-* Day35: Semantic embedding quality improvement or reranker-ready retrieval extension
-* Day36: Documentation, cleanup, and optional production backend selection
+* Day36: Semantic embedding provider local validation or reranker comparison refinement
+* Day37: Documentation, cleanup, and optional production backend selection
 * Later: Add vector database based RAG
 * Later: Add GraphRAG and Neo4j integration
 * Later: Add Multi-Agent Supervisor workflow

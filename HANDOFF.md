@@ -13,12 +13,12 @@ Project 2 has officially started and is now the main development line.
 Current `agent-api` status:
 
 ```text
-Day1-Day34 completed.
-Day34 completed: Backend metrics refinement and Agentic RAG stream/backend alignment.
-Local pytest: 89 passed, 1 warning.
+Day1-Day35 completed.
+Day35 completed: Reranker-ready retrieval backend extension.
+Local pytest: 93 passed, 1 warning.
 Git push: success.
 GitHub Actions CI: green.
-Next: Day35 semantic embedding quality improvement or reranker-ready retrieval extension.
+Next: Day36 semantic embedding provider local validation or reranker comparison refinement.
 ```
 
 ## Project Goal
@@ -140,6 +140,11 @@ Current:
 - Backend-aware Agentic RAG streaming endpoint
 - Chroma-backed Agentic RAG SSE stream path
 - Agentic RAG stream trace backend metadata
+- Deterministic reranker layer for CI-safe rerank experiments
+- `retrieval_backend="chroma_rerank"`
+- Chroma retrieval followed by lightweight keyword-aware reranking
+- Reranker metadata fields for Agentic RAG retrieval results
+- Backend evaluation comparison across `hybrid`, `chroma`, and `chroma_rerank`
 - pytest
 - GitHub Actions CI
 
@@ -203,7 +208,8 @@ agent-api/
 │   ├── DAY31.md
 │   ├── DAY32.md
 │   ├── DAY33.md
-│   └── DAY34.md
+│   ├── DAY34.md
+│   └── DAY35.md
 ├── knowledge/
 │   └── agent_basics.md
 ├── data/
@@ -245,6 +251,7 @@ agent-api/
 │       │   ├── embedding_provider.py
 │       │   ├── chroma_store.py
 │       │   ├── retrieval_backend.py
+│       │   ├── reranker.py
 │       │   ├── vector_store.py
 │       │   └── retriever.py
 │       ├── llm/
@@ -292,6 +299,7 @@ agent-api/
     ├── test_rag_agentic_backend.py
     ├── test_rag_backend_eval.py
 ├── test_rag_agentic_stream_backend.py
+├── test_rag_reranker.py
     ├── test_router_agent.py
     ├── test_router_delegation.py
     ├── test_router_stream.py
@@ -2347,6 +2355,129 @@ tests/test_rag_agentic_stream_backend.py
 
 ---
 
+## Current Day35 Reranker-ready Retrieval Strategy
+
+Day35 added a deterministic reranker-ready retrieval backend.
+
+Current files:
+
+```text
+src/app/rag/reranker.py
+src/app/rag/retrieval_backend.py
+src/app/rag/agentic_graph.py
+src/app/schemas/rag.py
+tests/test_rag_reranker.py
+```
+
+Current new backend:
+
+```text
+retrieval_backend = chroma_rerank
+```
+
+Supported Agentic RAG retrieval backends now include:
+
+```text
+hybrid
+chroma
+chroma_rerank
+```
+
+Default backend remains:
+
+```text
+hybrid
+```
+
+Chroma rerank path:
+
+```text
+retrieve_agentic_context()
+  ↓
+debug_chroma_search()
+  ↓
+_normalize_chroma_results()
+  ↓
+rerank_retrieval_results()
+  ↓
+Agentic RAG
+```
+
+Current reranker functions:
+
+```text
+extract_rerank_terms()
+calculate_keyword_rerank_score()
+rerank_retrieval_results()
+```
+
+Current deterministic scoring:
+
+```text
+rerank_score = 0.7 * original_score + 0.3 * keyword_score
+```
+
+Returned rerank metadata:
+
+```text
+original_rank
+original_score
+rerank_score
+rerank_keyword_score
+rerank_matched_terms
+```
+
+Agentic RAG step path with Chroma rerank:
+
+```text
+query_analyzer -> query_rewriter -> chroma_rerank_retrieve -> relevance_grade -> answer_with_citations
+```
+
+Observed LangGraph case behavior:
+
+```text
+chroma:
+  citation = knowledge/agent_basics.md::chunk-2
+  expected_terms_pass = false
+
+chroma_rerank:
+  citation = knowledge/agent_basics.md::chunk-1
+  expected_terms_pass = true
+  rerank_matched_terms = ["langgraph"]
+```
+
+Observed backend metrics:
+
+```text
+hybrid:
+  pass_rate = 1.0
+  average_relevance_score = 0.278223
+
+chroma:
+  pass_rate = 0.666667
+  average_relevance_score = 0.279233
+
+chroma_rerank:
+  pass_rate = 1.0
+  average_relevance_score = 0.394302
+```
+
+Important note:
+
+```text
+Day35 keeps the reranker deterministic and CI-safe.
+It is a placeholder architecture for future cross-encoder, BGE reranker, or LLM reranker integration.
+Day36 can refine multi-backend metric deltas or add a local semantic embedding validation path.
+```
+
+New Day35 test file:
+
+```text
+tests/test_rag_reranker.py
+```
+
+---
+
 ## Day1 - Project Initialization
 
 ### Completed
@@ -4374,7 +4505,7 @@ src/app/schemas/rag.py
 ### Test Result
 
 ```text
-89 passed, 1 warning
+93 passed, 1 warning
 ```
 
 ### CI Result
@@ -4446,7 +4577,7 @@ tests/test_rag_backend_eval.py
 ### Test Result
 
 ```text
-89 passed, 1 warning
+93 passed, 1 warning
 ```
 
 ### CI Result
@@ -4473,6 +4604,85 @@ best_backend_by_average_relevance = chroma
 ```
 
 The result is expected because deterministic hash embeddings make Chroma retrieve the RAG chunk before the LangGraph chunk for the LangGraph case. The Day34 goal is comparison observability and stream alignment, not proving Chroma quality superiority.
+
+---
+
+## Day35 - Reranker-ready Retrieval Backend Extension
+
+### Completed
+
+- Added deterministic reranker layer
+- Added `src/app/rag/reranker.py`
+- Added `extract_rerank_terms()`
+- Added `calculate_keyword_rerank_score()`
+- Added `rerank_retrieval_results()`
+- Added `retrieval_backend="chroma_rerank"`
+- Added backend aliases for Chroma rerank
+- Updated `retrieve_agentic_context()` to support Chroma retrieval followed by reranking
+- Preserved default backend as `hybrid`
+- Added Chroma rerank metadata: `base_backend`, `rerank_enabled`, and Chroma index metadata
+- Updated Agentic RAG step name to `chroma_rerank_retrieve`
+- Updated Agentic RAG answer prefix for Chroma rerank
+- Extended `RagAgenticDebugResult` with reranker-compatible optional fields
+- Verified standalone reranker promotes keyword-matching result
+- Verified `retrieve_agentic_context(retrieval_backend="chroma_rerank")`
+- Verified `invoke_agentic_rag(retrieval_backend="chroma_rerank")`
+- Verified `/rag/agentic-debug` with Chroma rerank backend
+- Verified `/rag/backend-eval-debug` can compare `hybrid`, `chroma`, and `chroma_rerank`
+- Verified `chroma_rerank` fixes the LangGraph expected-terms miss from plain Chroma
+- Added `tests/test_rag_reranker.py`
+- Expanded pytest from 89 tests to 93 tests
+- Verified local pytest
+- Verified GitHub Actions CI
+- Git push succeeded
+
+### New Files
+
+```text
+src/app/rag/reranker.py
+tests/test_rag_reranker.py
+```
+
+### Modified Files
+
+```text
+src/app/rag/agentic_graph.py
+src/app/rag/retrieval_backend.py
+src/app/schemas/rag.py
+```
+
+### Test Result
+
+```text
+93 passed, 1 warning
+```
+
+### CI Result
+
+```text
+GitHub Actions CI: green
+```
+
+### Commit
+
+```text
+19a8462 add reranker ready retrieval backend
+```
+
+### Notes
+
+Day35 adds reranker-ready retrieval without introducing a heavy model dependency.
+
+The deterministic reranker is intentionally simple and CI-safe. It fixes the current LangGraph case by promoting the chunk that matches the rewritten query term `langgraph`.
+
+The current backend comparison result:
+
+```text
+best_backend_by_pass_rate = hybrid
+best_backend_by_average_relevance = chroma_rerank
+```
+
+`hybrid` remains the best backend by pass rate only because `hybrid` and `chroma_rerank` tie at `pass_rate = 1.0`, and the current max selection returns the first maximum backend.
 
 ---
 
@@ -4532,7 +4742,7 @@ Agent response
 Local pytest currently shows:
 
 ```text
-89 passed, 1 warning
+93 passed, 1 warning
 ```
 
 The warning is:
@@ -4880,4 +5090,18 @@ Next:
 
 Next:
 
-- [ ] Day35 Semantic embedding quality improvement or reranker-ready retrieval extension
+- [x] Day35 Reranker-ready retrieval backend extension
+- [x] Day35 `src/app/rag/reranker.py`
+- [x] Day35 `retrieval_backend="chroma_rerank"`
+- [x] Day35 `chroma_rerank_retrieve` Agentic RAG step
+- [x] Day35 reranker metadata fields
+- [x] Day35 `/rag/agentic-debug` Chroma rerank path
+- [x] Day35 `/rag/backend-eval-debug` comparison with `chroma_rerank`
+- [x] Day35 `tests/test_rag_reranker.py`
+- [x] Day35 local pytest
+- [x] Day35 GitHub Actions CI
+- [x] Day35 Git push
+
+Next:
+
+- [ ] Day36 Semantic embedding provider local validation or reranker comparison refinement
