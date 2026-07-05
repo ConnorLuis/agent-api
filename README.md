@@ -2,17 +2,17 @@
 
 `agent-api` is a FastAPI + LangGraph backend project for building an Agent service step by step.
 
-This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent, SQLite-based short-term memory, graph debug output, request tracing, LLM provider abstraction, a real Ollama-backed LLM Tool Calling Agent path, SSE streaming endpoints, a lightweight local RAG search tool, a RAG search-debug endpoint with explainability metadata, a deterministic Router Agent that delegates calculator and RAG routes to the existing Agent graph, a Router Agent SSE streaming endpoint, an initial LLM Router Agent endpoint with mock and Ollama router providers, a Smart Chat endpoint as a future unified Agent entry point preview, a Smart Chat SSE streaming endpoint, route validation metadata for Router and Smart Chat paths, and a RAG chunk pipeline debug endpoint for vector DB preparation, a deterministic RAG vector-search debug endpoint, a hybrid retrieval debug endpoint that combines keyword and vector signals, an Agentic RAG debug graph with query analysis, query rewriting, hybrid retrieval, relevance grading, citation-aware answers, an Agentic RAG SSE streaming endpoint, an Agentic RAG answer verification debug endpoint, a SQLite-backed vector store debug layer for real vector database preparation, an EmbeddingProvider abstraction layer with an embedding debug endpoint, a Chroma-backed persistent vector store debug endpoint, an Agentic RAG retrieval backend switch that supports both hybrid and Chroma backends, and a backend-aware RAG evaluation comparison layer for hybrid-vs-Chroma metrics, refined backend comparison metrics, backend-aware Agentic RAG SSE streaming alignment, a reranker-ready retrieval backend extension with `chroma_rerank`, and pairwise backend metric deltas for multi-backend comparison.
+This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent, SQLite-based short-term memory, graph debug output, request tracing, LLM provider abstraction, a real Ollama-backed LLM Tool Calling Agent path, SSE streaming endpoints, a lightweight local RAG search tool, a RAG search-debug endpoint with explainability metadata, a deterministic Router Agent that delegates calculator and RAG routes to the existing Agent graph, a Router Agent SSE streaming endpoint, an initial LLM Router Agent endpoint with mock and Ollama router providers, a Smart Chat endpoint as a future unified Agent entry point preview, a Smart Chat SSE streaming endpoint, route validation metadata for Router and Smart Chat paths, and a RAG chunk pipeline debug endpoint for vector DB preparation, a deterministic RAG vector-search debug endpoint, a hybrid retrieval debug endpoint that combines keyword and vector signals, an Agentic RAG debug graph with query analysis, query rewriting, hybrid retrieval, relevance grading, citation-aware answers, an Agentic RAG SSE streaming endpoint, an Agentic RAG answer verification debug endpoint, a SQLite-backed vector store debug layer for real vector database preparation, an EmbeddingProvider abstraction layer with an embedding debug endpoint, a Chroma-backed persistent vector store debug endpoint, an Agentic RAG retrieval backend switch that supports both hybrid and Chroma backends, and a backend-aware RAG evaluation comparison layer for hybrid-vs-Chroma metrics, refined backend comparison metrics, backend-aware Agentic RAG SSE streaming alignment, a reranker-ready retrieval backend extension with `chroma_rerank`, pairwise backend metric deltas for multi-backend comparison, and a multi-backend-aware comparison summary.
 
 ## Current Status
 
 ```text
-Day1-Day36 completed.
-Current stage: Pairwise backend comparison refinement completed.
-Local pytest: 95 passed, 1 warning.
+Day1-Day37 completed.
+Current stage: Multi-backend comparison summary refinement completed.
+Local pytest: 97 passed, 1 warning.
 Git push: success.
 GitHub Actions CI: green.
-Next milestone: Day37 comparison summary refinement or semantic embedding provider local validation.
+Next milestone: Day38 semantic embedding provider local validation or evaluation report polishing.
 ```
 
 ## Features
@@ -106,6 +106,12 @@ Current features:
 * Multi-backend comparison pairs: `hybrid -> chroma`, `hybrid -> chroma_rerank`, and `chroma -> chroma_rerank`
 * Backend comparison trace payload records `pairwise_metric_deltas`
 * Backward-compatible `metric_deltas` remains first-vs-second
+* Multi-backend-aware `comparison_summary.notes`
+* `comparison_summary.evaluated_backends`
+* `comparison_summary.metric_winners`
+* `comparison_summary.metric_rankings`
+* `comparison_summary.top_improvement_pairs`
+* Trace payload records the refined multi-backend comparison summary
 * Local Markdown knowledge base under `knowledge/`
 * UTF-8 encoded knowledge base files for CI compatibility
 * Deterministic Router Agent route classification
@@ -236,7 +242,8 @@ agent-api/
 │   ├── DAY33.md
 │   ├── DAY34.md
 │   ├── DAY35.md
-│   └── DAY36.md
+│   ├── DAY36.md
+│   └── DAY37.md
 ├── knowledge/
 │   └── agent_basics.md
 ├── data/
@@ -1099,7 +1106,7 @@ This turns RAG from a single retrieval call into a controllable workflow that ca
 
 ## Current RAG Evaluation Architecture
 
-Day25 added a RAG evaluation debug layer. Day33 upgraded it into a backend-aware evaluation layer. Day34 refined the backend comparison output. Day36 extended metric deltas from first-vs-second comparison to pairwise multi-backend comparison.
+Day25 added a RAG evaluation debug layer. Day33 upgraded it into a backend-aware evaluation layer. Day34 refined the backend comparison output. Day36 extended metric deltas from first-vs-second comparison to pairwise multi-backend comparison. Day37 made `comparison_summary` multi-backend-aware.
 
 ```text
 eval_cases/rag_agentic_eval.jsonl
@@ -1129,6 +1136,7 @@ tests/test_rag_backend_eval.py
 tests/test_rag_agentic_stream_backend.py
 tests/test_rag_reranker.py
 tests/test_rag_backend_pairwise_eval.py
+tests/test_rag_backend_comparison_summary.py
 ```
 
 Current endpoints:
@@ -1171,12 +1179,21 @@ Compatibility behavior:
 
 ```text
 metric_deltas remains first-vs-second.
+pairwise_metric_deltas compares every backend pair in request order.
+comparison_summary is multi-backend-aware.
 ```
 
-Day36 pairwise behavior:
+Day37 comparison summary fields:
 
 ```text
-pairwise_metric_deltas compares every backend pair in request order.
+comparison_summary.total_backends
+comparison_summary.evaluated_backends
+comparison_summary.best_backend_by_pass_rate
+comparison_summary.best_backend_by_average_relevance
+comparison_summary.metric_winners
+comparison_summary.metric_rankings
+comparison_summary.top_improvement_pairs
+comparison_summary.notes
 ```
 
 Example backend request:
@@ -1185,76 +1202,84 @@ Example backend request:
 ["hybrid", "chroma", "chroma_rerank"]
 ```
 
-Generated pairwise comparisons:
-
-```text
-hybrid -> chroma
-hybrid -> chroma_rerank
-chroma -> chroma_rerank
-```
-
-Observed Day36 pairwise metric deltas:
-
-```text
-hybrid -> chroma:
-  pass_rate_delta = -0.333333
-  retrieval_decision_accuracy_delta = 0.0
-  expected_terms_hit_rate_delta = -0.333333
-  citation_hit_rate_delta = 0.0
-  average_relevance_score_delta = 0.00101
-
-hybrid -> chroma_rerank:
-  pass_rate_delta = 0.0
-  retrieval_decision_accuracy_delta = 0.0
-  expected_terms_hit_rate_delta = 0.0
-  citation_hit_rate_delta = 0.0
-  average_relevance_score_delta = 0.116079
-
-chroma -> chroma_rerank:
-  pass_rate_delta = 0.333333
-  retrieval_decision_accuracy_delta = 0.0
-  expected_terms_hit_rate_delta = 0.333333
-  citation_hit_rate_delta = 0.0
-  average_relevance_score_delta = 0.115069
-```
-
-Observed Day36 backend metrics:
+Observed Day37 backend metrics:
 
 ```text
 hybrid:
   pass_rate = 1.0
+  expected_terms_hit_rate = 1.0
   average_relevance_score = 0.278223
 
 chroma:
   pass_rate = 0.666667
+  expected_terms_hit_rate = 0.666667
   average_relevance_score = 0.279233
 
 chroma_rerank:
   pass_rate = 1.0
+  expected_terms_hit_rate = 1.0
   average_relevance_score = 0.394302
 ```
 
-Observed Day36 best backend summary:
+Observed Day37 metric winners:
 
 ```text
-best_backend_by_pass_rate = hybrid
-best_backend_by_average_relevance = chroma_rerank
+pass_rate:
+  value = 1.0
+  winners = hybrid, chroma_rerank
+  tie = true
+
+average_relevance_score:
+  value = 0.394302
+  winners = chroma_rerank
+  tie = false
+
+retrieval_decision_accuracy:
+  value = 1.0
+  winners = hybrid, chroma, chroma_rerank
+  tie = true
+
+expected_terms_hit_rate:
+  value = 1.0
+  winners = hybrid, chroma_rerank
+  tie = true
+
+citation_hit_rate:
+  value = 1.0
+  winners = hybrid, chroma, chroma_rerank
+  tie = true
+```
+
+Observed Day37 top improvement pairs:
+
+```text
+pass_rate:
+  chroma -> chroma_rerank, delta = 0.333333
+
+expected_terms_hit_rate:
+  chroma -> chroma_rerank, delta = 0.333333
+
+average_relevance_score:
+  hybrid -> chroma_rerank, delta = 0.116079
+  chroma -> chroma_rerank, delta = 0.115069
+  hybrid -> chroma, delta = 0.00101
+```
+
+Observed Day37 summary notes:
+
+```text
+Evaluated 3 backends: hybrid, chroma, chroma_rerank.
+Pass rate is tied at 1.0 by hybrid, chroma_rerank.
+Best average_relevance_score is chroma_rerank with value 0.394302.
+Largest pass_rate improvement is chroma -> chroma_rerank with delta 0.333333.
+Largest average_relevance_score improvement is hybrid -> chroma_rerank with delta 0.116079.
 ```
 
 Important interpretation:
 
 ```text
-chroma_rerank ties hybrid on pass_rate and improves average_relevance_score.
-plain chroma still misses the LangGraph expected terms case.
-pairwise_metric_deltas makes this improvement visible directly through hybrid -> chroma_rerank and chroma -> chroma_rerank comparisons.
-```
-
-Known compatibility note:
-
-```text
-comparison_summary.notes still uses the earlier first-vs-second wording.
-This is not a Day36 failure because Day36's goal is pairwise metric deltas.
-Day37 can optionally make comparison_summary notes fully multi-backend-aware.
+comparison_summary.notes no longer describes only the first two backends.
+The summary can now report ties, per-metric winners, metric rankings, and top improvement pairs across all evaluated backends.
 ```
 
 Example backend comparison request:
@@ -1262,7 +1287,7 @@ Example backend comparison request:
 ```bash
 curl -s -X POST http://localhost:8000/rag/backend-eval-debug \
   -H "Content-Type: application/json" \
-  -H "x-trace-id: day36-backend-pairwise-001" \
+  -H "x-trace-id: day37-backend-summary-001" \
   -d '{"backends":["hybrid","chroma","chroma_rerank"],"source_filter":"agent_basics","max_chars":300,"embedding_dim":64,"keyword_weight":0.6,"vector_weight":0.4,"embedding_provider":"deterministic","rebuild_index":true}' \
   | python -m json.tool --no-ensure-ascii
 ```
@@ -1270,19 +1295,11 @@ curl -s -X POST http://localhost:8000/rag/backend-eval-debug \
 Trace lookup:
 
 ```bash
-curl -s http://localhost:8000/observability/traces/day36-backend-pairwise-001 \
+curl -s http://localhost:8000/observability/traces/day37-backend-summary-001 \
   | python -m json.tool --no-ensure-ascii
 ```
 
-The `rag_backend_eval_debug` trace event now includes:
-
-```text
-backend_metrics
-metric_deltas
-pairwise_metric_deltas
-case_comparisons
-comparison_summary
-```
+The `rag_backend_eval_debug` trace event now includes the refined multi-backend `comparison_summary`.
 
 ## Current Observability Trace Store Architecture
 
@@ -2092,6 +2109,90 @@ New Day36 test file:
 
 ```text
 tests/test_rag_backend_pairwise_eval.py
+```
+
+## Current Multi-backend Comparison Summary Refinement
+
+Day37 refined `comparison_summary` so it is multi-backend-aware.
+
+Current file:
+
+```text
+src/app/evaluation/rag_eval.py
+```
+
+Current helper functions:
+
+```text
+_build_metric_rankings()
+_build_metric_winners()
+_build_top_improvement_pairs()
+_build_multi_backend_summary_notes()
+_build_comparison_summary()
+```
+
+Current endpoint:
+
+```text
+POST /rag/backend-eval-debug
+```
+
+The response still includes:
+
+```text
+metric_deltas
+pairwise_metric_deltas
+case_comparisons
+comparison_summary
+```
+
+The refined `comparison_summary` now includes:
+
+```text
+evaluated_backends
+metric_winners
+metric_rankings
+top_improvement_pairs
+notes
+```
+
+Observed Day37 summary keys:
+
+```text
+best_backend_by_average_relevance
+best_backend_by_pass_rate
+evaluated_backends
+metric_rankings
+metric_winners
+notes
+top_improvement_pairs
+total_backends
+```
+
+Observed key summary result:
+
+```text
+evaluated_backends = hybrid, chroma, chroma_rerank
+best_backend_by_pass_rate = hybrid
+best_backend_by_average_relevance = chroma_rerank
+pass_rate is tied by hybrid and chroma_rerank
+average_relevance_score winner is chroma_rerank
+```
+
+Observed summary notes:
+
+```text
+Evaluated 3 backends: hybrid, chroma, chroma_rerank.
+Pass rate is tied at 1.0 by hybrid, chroma_rerank.
+Best average_relevance_score is chroma_rerank with value 0.394302.
+Largest pass_rate improvement is chroma -> chroma_rerank with delta 0.333333.
+Largest average_relevance_score improvement is hybrid -> chroma_rerank with delta 0.116079.
+```
+
+New Day37 test file:
+
+```text
+tests/test_rag_backend_comparison_summary.py
 ```
 
 ## Request Tracing
@@ -3735,7 +3836,7 @@ pytest -q
 Current result:
 
 ```text
-95 passed, 1 warning
+97 passed, 1 warning
 ```
 
 Current test coverage includes:
@@ -3862,7 +3963,7 @@ pytest -q
 Current CI status:
 
 ```text
-Day36: green
+Day37: green
 ```
 
 ## Runtime Data
@@ -3930,8 +4031,8 @@ mv /tmp/agent_basics.md knowledge/agent_basics.md
 
 Next milestones:
 
-* Day37: Comparison summary refinement or semantic embedding provider local validation
-* Day38: Documentation, cleanup, and optional production backend selection
+* Day38: Semantic embedding provider local validation or evaluation report polishing
+* Day39: Documentation, cleanup, and optional production backend selection
 * Later: Add vector database based RAG
 * Later: Add GraphRAG and Neo4j integration
 * Later: Add Multi-Agent Supervisor workflow

@@ -13,12 +13,12 @@ Project 2 has officially started and is now the main development line.
 Current `agent-api` status:
 
 ```text
-Day1-Day36 completed.
-Day36 completed: Pairwise backend comparison refinement.
-Local pytest: 95 passed, 1 warning.
+Day1-Day37 completed.
+Day37 completed: Multi-backend comparison summary refinement.
+Local pytest: 97 passed, 1 warning.
 Git push: success.
 GitHub Actions CI: green.
-Next: Day37 comparison summary refinement or semantic embedding provider local validation.
+Next: Day38 semantic embedding provider local validation or evaluation report polishing.
 ```
 
 ## Project Goal
@@ -149,6 +149,12 @@ Current:
 - Backward-compatible first-vs-second `metric_deltas`
 - Backend comparison trace payload records `pairwise_metric_deltas`
 - Multi-backend comparison support for `hybrid`, `chroma`, and `chroma_rerank`
+- Multi-backend-aware `comparison_summary.notes`
+- `comparison_summary.evaluated_backends`
+- `comparison_summary.metric_winners`
+- `comparison_summary.metric_rankings`
+- `comparison_summary.top_improvement_pairs`
+- Trace payload records refined multi-backend `comparison_summary`
 - pytest
 - GitHub Actions CI
 
@@ -214,7 +220,8 @@ agent-api/
 │   ├── DAY33.md
 │   ├── DAY34.md
 │   ├── DAY35.md
-│   └── DAY36.md
+│   ├── DAY36.md
+│   └── DAY37.md
 ├── knowledge/
 │   └── agent_basics.md
 ├── data/
@@ -306,6 +313,7 @@ agent-api/
 ├── test_rag_agentic_stream_backend.py
 ├── test_rag_reranker.py
 ├── test_rag_backend_pairwise_eval.py
+├── test_rag_backend_comparison_summary.py
     ├── test_router_agent.py
     ├── test_router_delegation.py
     ├── test_router_stream.py
@@ -2592,6 +2600,115 @@ tests/test_rag_backend_pairwise_eval.py
 
 ---
 
+## Current Day37 Multi-backend Comparison Summary Strategy
+
+Day37 refined backend comparison summary generation.
+
+Current files:
+
+```text
+src/app/evaluation/rag_eval.py
+tests/test_rag_backend_comparison_summary.py
+```
+
+Current endpoint:
+
+```text
+POST /rag/backend-eval-debug
+```
+
+Current comparison fields:
+
+```text
+metric_deltas
+pairwise_metric_deltas
+case_comparisons
+comparison_summary
+```
+
+New Day37 `comparison_summary` fields:
+
+```text
+evaluated_backends
+metric_winners
+metric_rankings
+top_improvement_pairs
+notes
+```
+
+Helper functions:
+
+```text
+_build_metric_rankings()
+_build_metric_winners()
+_build_top_improvement_pairs()
+_build_multi_backend_summary_notes()
+_build_comparison_summary()
+```
+
+Observed evaluated backends:
+
+```text
+hybrid
+chroma
+chroma_rerank
+```
+
+Observed metric winners:
+
+```text
+pass_rate:
+  winners = hybrid, chroma_rerank
+  tie = true
+  value = 1.0
+
+average_relevance_score:
+  winners = chroma_rerank
+  tie = false
+  value = 0.394302
+```
+
+Observed top improvement pairs:
+
+```text
+pass_rate:
+  chroma -> chroma_rerank, delta = 0.333333
+
+expected_terms_hit_rate:
+  chroma -> chroma_rerank, delta = 0.333333
+
+average_relevance_score:
+  hybrid -> chroma_rerank, delta = 0.116079
+  chroma -> chroma_rerank, delta = 0.115069
+  hybrid -> chroma, delta = 0.00101
+```
+
+Observed notes:
+
+```text
+Evaluated 3 backends: hybrid, chroma, chroma_rerank.
+Pass rate is tied at 1.0 by hybrid, chroma_rerank.
+Best average_relevance_score is chroma_rerank with value 0.394302.
+Largest pass_rate improvement is chroma -> chroma_rerank with delta 0.333333.
+Largest average_relevance_score improvement is hybrid -> chroma_rerank with delta 0.116079.
+```
+
+Trace event:
+
+```text
+rag_backend_eval_debug
+```
+
+Trace payload includes the refined multi-backend `comparison_summary`.
+
+New Day37 test file:
+
+```text
+tests/test_rag_backend_comparison_summary.py
+```
+
+---
+
 ## Day1 - Project Initialization
 
 ### Completed
@@ -4619,7 +4736,7 @@ src/app/schemas/rag.py
 ### Test Result
 
 ```text
-95 passed, 1 warning
+97 passed, 1 warning
 ```
 
 ### CI Result
@@ -4691,7 +4808,7 @@ tests/test_rag_backend_eval.py
 ### Test Result
 
 ```text
-95 passed, 1 warning
+97 passed, 1 warning
 ```
 
 ### CI Result
@@ -4768,7 +4885,7 @@ src/app/schemas/rag.py
 ### Test Result
 
 ```text
-95 passed, 1 warning
+97 passed, 1 warning
 ```
 
 ### CI Result
@@ -4837,7 +4954,7 @@ src/app/schemas/rag.py
 ### Test Result
 
 ```text
-95 passed, 1 warning
+97 passed, 1 warning
 ```
 
 ### CI Result
@@ -4876,6 +4993,78 @@ chroma -> chroma_rerank:
 Day36 makes the backend evaluation endpoint suitable for more than two retrieval strategies.
 
 The old `metric_deltas` field remains first-vs-second so Day34/Day35 clients and tests remain compatible. The new `pairwise_metric_deltas` field should be used for multi-backend comparison.
+
+---
+
+## Day37 - Multi-backend Comparison Summary Refinement
+
+### Completed
+
+- Refined `comparison_summary` from first-vs-second notes to multi-backend-aware summary
+- Added metric ranking helper
+- Added metric winner helper
+- Added top improvement pair helper
+- Added multi-backend summary notes helper
+- Updated `_build_comparison_summary()`
+- Added `comparison_summary.evaluated_backends`
+- Added `comparison_summary.metric_winners`
+- Added `comparison_summary.metric_rankings`
+- Added `comparison_summary.top_improvement_pairs`
+- Updated `comparison_summary.notes` to describe all evaluated backends
+- Preserved existing response field names
+- Verified Python direct `compare_rag_retrieval_backends()` call
+- Verified `/rag/backend-eval-debug` API response
+- Verified `/observability/traces/{trace_id}` trace payload
+- Added `tests/test_rag_backend_comparison_summary.py`
+- Verified Day37 focused tests
+- Verified backend evaluation related tests
+- Verified full pytest
+- Verified GitHub Actions CI
+- Git push succeeded
+
+### New File
+
+```text
+tests/test_rag_backend_comparison_summary.py
+```
+
+### Modified File
+
+```text
+src/app/evaluation/rag_eval.py
+```
+
+### Test Result
+
+```text
+97 passed, 1 warning
+```
+
+### CI Result
+
+```text
+GitHub Actions CI: green
+```
+
+### Commit
+
+```text
+d1e0878 refine rag backend comparison summary
+```
+
+### Observed Summary
+
+```text
+evaluated_backends = hybrid, chroma, chroma_rerank
+best_backend_by_pass_rate = hybrid
+best_backend_by_average_relevance = chroma_rerank
+pass_rate tie = hybrid, chroma_rerank
+average_relevance_score winner = chroma_rerank
+```
+
+### Notes
+
+Day37 closes the known Day36 limitation. The backend comparison summary is now aligned with pairwise backend comparison and can directly explain multi-backend evaluation results.
 
 ---
 
@@ -4935,7 +5124,7 @@ Agent response
 Local pytest currently shows:
 
 ```text
-95 passed, 1 warning
+97 passed, 1 warning
 ```
 
 The warning is:
@@ -5309,4 +5498,17 @@ Next:
 
 Next:
 
-- [ ] Day37 Comparison summary refinement or semantic embedding provider local validation
+- [x] Day37 Multi-backend comparison summary refinement
+- [x] Day37 `comparison_summary.evaluated_backends`
+- [x] Day37 `comparison_summary.metric_winners`
+- [x] Day37 `comparison_summary.metric_rankings`
+- [x] Day37 `comparison_summary.top_improvement_pairs`
+- [x] Day37 multi-backend-aware `comparison_summary.notes`
+- [x] Day37 `tests/test_rag_backend_comparison_summary.py`
+- [x] Day37 local pytest
+- [x] Day37 GitHub Actions CI
+- [x] Day37 Git push
+
+Next:
+
+- [ ] Day38 Semantic embedding provider local validation or evaluation report polishing
