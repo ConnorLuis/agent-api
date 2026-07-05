@@ -392,64 +392,230 @@ def _build_case_comparisons(
     return comparisons
 
 
+_COMPARISON_SUMMARY_METRICS = [
+    "pass_rate",
+    "retrieval_decision_accuracy",
+    "expected_terms_hit_rate",
+    "citation_hit_rate",
+    "average_relevance_score",
+]
+
+
+def _build_metric_rankings(
+    backend_results: list[dict[str, Any]],
+) -> dict[str, list[dict[str, Any]]]:
+    rankings: dict[str, list[dict[str, Any]]] = {}
+
+    for metric_name in _COMPARISON_SUMMARY_METRICS:
+        metric_items = [
+            {
+                "retrieval_backend": backend_result["retrieval_backend"],
+                "value": backend_result["metrics"][metric_name],
+            }
+            for backend_result in backend_results
+        ]
+
+        metric_items.sort(
+            key=lambda item: item["value"],
+            reverse=True,
+        )
+
+        rankings[metric_name] = metric_items
+
+    return rankings
+
+
+def _build_metric_winners(
+    backend_results: list[dict[str, Any]],
+) -> dict[str, dict[str, Any]]:
+    winners: dict[str, dict[str, Any]] = {}
+
+    for metric_name in _COMPARISON_SUMMARY_METRICS:
+        values = [
+            backend_result["metrics"][metric_name]
+            for backend_result in backend_results
+        ]
+
+        if not values:
+            winners[metric_name] = {
+                "value": 0.0,
+                "winners": [],
+                "tie": False,
+            }
+            continue
+
+        best_value = max(values)
+
+        metric_winners = [
+            backend_result["retrieval_backend"]
+            for backend_result in backend_results
+            if backend_result["metrics"][metric_name] == best_value
+        ]
+
+        winners[metric_name] = {
+            "value": best_value,
+            "winners": metric_winners,
+            "tie": len(metric_winners) > 1,
+        }
+
+    return winners
+
+
+def _build_top_improvement_pairs(
+    pairwise_metric_deltas: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    improvements: list[dict[str, Any]] = []
+
+    for pairwise_delta in pairwise_metric_deltas:
+        baseline_backend = pairwise_delta["baseline_backend"]
+        comparison_backend = pairwise_delta["comparison_backend"]
+
+        for metric_name in _COMPARISON_SUMMARY_METRICS:
+            delta_key = f"{metric_name}_delta"
+            delta_value = float(pairwise_delta.get(delta_key, 0.0))
+
+            if delta_value <= 0:
+                continue
+
+            improvements.append(
+                {
+                    "metric": metric_name,
+                    "baseline_backend": baseline_backend,
+                    "comparison_backend": comparison_backend,
+                    "delta": round(delta_value, 6),
+                }
+            )
+
+    improvements.sort(
+        key=lambda item: item["delta"],
+        reverse=True,
+    )
+
+    return improvements[:5]
+
+
+def _format_backend_list(
+    backends: list[str],
+) -> str:
+    return ", ".join(backends)
+
+
+def _build_multi_backend_summary_notes(
+    backend_results: list[dict[str, Any]],
+    metric_winners: dict[str, dict[str, Any]],
+    top_improvement_pairs: list[dict[str, Any]],
+) -> list[str]:
+    if not backend_results:
+        return ["No backend was evaluated."]
+
+    evaluated_backends = [
+        backend_result["retrieval_backend"]
+        for backend_result in backend_results
+    ]
+
+    notes = [
+        f"Evaluated {len(evaluated_backends)} backends: "
+        f"{_format_backend_list(evaluated_backends)}."
+    ]
+
+    pass_rate_winner = metric_winners["pass_rate"]
+    pass_rate_winners = pass_rate_winner["winners"]
+    pass_rate_value = pass_rate_winner["value"]
+
+    if pass_rate_winner["tie"]:
+        notes.append(
+            "Pass rate is tied at "
+            f"{pass_rate_value} by {_format_backend_list(pass_rate_winners)}."
+        )
+    else:
+        notes.append(
+            f"Best pass_rate is {pass_rate_winners[0]} "
+            f"with value {pass_rate_value}."
+        )
+
+    relevance_winner = metric_winners["average_relevance_score"]
+    relevance_winners = relevance_winner["winners"]
+    relevance_value = relevance_winner["value"]
+
+    if relevance_winner["tie"]:
+        notes.append(
+            "Average relevance score is tied at "
+            f"{relevance_value} by {_format_backend_list(relevance_winners)}."
+        )
+    else:
+        notes.append(
+            f"Best average_relevance_score is {relevance_winners[0]} "
+            f"with value {relevance_value}."
+        )
+
+    pass_rate_improvements = [
+        item
+        for item in top_improvement_pairs
+        if item["metric"] == "pass_rate"
+    ]
+
+    if pass_rate_improvements:
+        top_pass_rate_improvement = pass_rate_improvements[0]
+        notes.append(
+            "Largest pass_rate improvement is "
+            f"{top_pass_rate_improvement['baseline_backend']} -> "
+            f"{top_pass_rate_improvement['comparison_backend']} "
+            f"with delta {top_pass_rate_improvement['delta']}."
+        )
+
+    relevance_improvements = [
+        item
+        for item in top_improvement_pairs
+        if item["metric"] == "average_relevance_score"
+    ]
+
+    if relevance_improvements:
+        top_relevance_improvement = relevance_improvements[0]
+        notes.append(
+            "Largest average_relevance_score improvement is "
+            f"{top_relevance_improvement['baseline_backend']} -> "
+            f"{top_relevance_improvement['comparison_backend']} "
+            f"with delta {top_relevance_improvement['delta']}."
+        )
+
+    return notes
+
+
 def _build_comparison_summary(
     backend_results: list[dict[str, Any]],
     best_backend_by_pass_rate: str,
     best_backend_by_average_relevance: str,
+    pairwise_metric_deltas: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    summary: dict[str, Any] = {
+    pairwise_metric_deltas = pairwise_metric_deltas or []
+
+    evaluated_backends = [
+        backend_result["retrieval_backend"]
+        for backend_result in backend_results
+    ]
+
+    metric_rankings = _build_metric_rankings(backend_results)
+    metric_winners = _build_metric_winners(backend_results)
+    top_improvement_pairs = _build_top_improvement_pairs(
+        pairwise_metric_deltas
+    )
+
+    notes = _build_multi_backend_summary_notes(
+        backend_results=backend_results,
+        metric_winners=metric_winners,
+        top_improvement_pairs=top_improvement_pairs,
+    )
+
+    return {
         "total_backends": len(backend_results),
+        "evaluated_backends": evaluated_backends,
         "best_backend_by_pass_rate": best_backend_by_pass_rate,
         "best_backend_by_average_relevance": best_backend_by_average_relevance,
-        "notes": [],
+        "metric_winners": metric_winners,
+        "metric_rankings": metric_rankings,
+        "top_improvement_pairs": top_improvement_pairs,
+        "notes": notes,
     }
-
-    if len(backend_results) < 2:
-        summary["notes"].append("Only one backend was evaluated.")
-        return summary
-
-    baseline = backend_results[0]
-    comparison = backend_results[1]
-
-    baseline_backend = baseline["retrieval_backend"]
-    comparison_backend = comparison["retrieval_backend"]
-
-    baseline_metrics = baseline["metrics"]
-    comparison_metrics = comparison["metrics"]
-
-    if comparison_metrics["pass_rate"] > baseline_metrics["pass_rate"]:
-        summary["notes"].append(
-            f"{comparison_backend} has a higher pass_rate than {baseline_backend}."
-        )
-    elif comparison_metrics["pass_rate"] < baseline_metrics["pass_rate"]:
-        summary["notes"].append(
-            f"{baseline_backend} has a higher pass_rate than {comparison_backend}."
-        )
-    else:
-        summary["notes"].append(
-            f"{baseline_backend} and {comparison_backend} have the same pass_rate."
-        )
-
-    if (
-        comparison_metrics["average_relevance_score"]
-        > baseline_metrics["average_relevance_score"]
-    ):
-        summary["notes"].append(
-            f"{comparison_backend} has a higher average_relevance_score than {baseline_backend}."
-        )
-    elif (
-        comparison_metrics["average_relevance_score"]
-        < baseline_metrics["average_relevance_score"]
-    ):
-        summary["notes"].append(
-            f"{baseline_backend} has a higher average_relevance_score than {comparison_backend}."
-        )
-    else:
-        summary["notes"].append(
-            f"{baseline_backend} and {comparison_backend} have the same average_relevance_score."
-        )
-
-    return summary
 
 def compare_rag_retrieval_backends(
     eval_file: Path | str = DEFAULT_RAG_EVAL_FILE,
@@ -500,6 +666,7 @@ def compare_rag_retrieval_backends(
         backend_results=backend_results,
         best_backend_by_pass_rate=best_backend_by_pass_rate,
         best_backend_by_average_relevance=best_backend_by_average_relevance,
+        pairwise_metric_deltas=pairwise_metric_deltas,
     )
 
     return {
