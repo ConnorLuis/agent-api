@@ -13,12 +13,12 @@ Project 2 has officially started and is now the main development line.
 Current `agent-api` status:
 
 ```text
-Day1-Day35 completed.
-Day35 completed: Reranker-ready retrieval backend extension.
-Local pytest: 93 passed, 1 warning.
+Day1-Day36 completed.
+Day36 completed: Pairwise backend comparison refinement.
+Local pytest: 95 passed, 1 warning.
 Git push: success.
 GitHub Actions CI: green.
-Next: Day36 semantic embedding provider local validation or reranker comparison refinement.
+Next: Day37 comparison summary refinement or semantic embedding provider local validation.
 ```
 
 ## Project Goal
@@ -145,6 +145,10 @@ Current:
 - Chroma retrieval followed by lightweight keyword-aware reranking
 - Reranker metadata fields for Agentic RAG retrieval results
 - Backend evaluation comparison across `hybrid`, `chroma`, and `chroma_rerank`
+- Pairwise backend metric deltas with `pairwise_metric_deltas`
+- Backward-compatible first-vs-second `metric_deltas`
+- Backend comparison trace payload records `pairwise_metric_deltas`
+- Multi-backend comparison support for `hybrid`, `chroma`, and `chroma_rerank`
 - pytest
 - GitHub Actions CI
 
@@ -209,7 +213,8 @@ agent-api/
 │   ├── DAY32.md
 │   ├── DAY33.md
 │   ├── DAY34.md
-│   └── DAY35.md
+│   ├── DAY35.md
+│   └── DAY36.md
 ├── knowledge/
 │   └── agent_basics.md
 ├── data/
@@ -300,6 +305,7 @@ agent-api/
     ├── test_rag_backend_eval.py
 ├── test_rag_agentic_stream_backend.py
 ├── test_rag_reranker.py
+├── test_rag_backend_pairwise_eval.py
     ├── test_router_agent.py
     ├── test_router_delegation.py
     ├── test_router_stream.py
@@ -2478,6 +2484,114 @@ tests/test_rag_reranker.py
 
 ---
 
+## Current Day36 Pairwise Backend Comparison Strategy
+
+Day36 refined backend evaluation metric deltas.
+
+Current files:
+
+```text
+src/app/evaluation/rag_eval.py
+src/app/routes/routes_rag.py
+src/app/schemas/rag.py
+tests/test_rag_backend_pairwise_eval.py
+```
+
+Current endpoint:
+
+```text
+POST /rag/backend-eval-debug
+```
+
+Current comparison fields:
+
+```text
+metric_deltas
+pairwise_metric_deltas
+case_comparisons
+comparison_summary
+```
+
+Backward compatibility:
+
+```text
+metric_deltas remains backend_results[0] vs backend_results[1].
+```
+
+New Day36 behavior:
+
+```text
+pairwise_metric_deltas compares all backend pairs in request order.
+```
+
+For:
+
+```text
+["hybrid", "chroma", "chroma_rerank"]
+```
+
+Day36 returns:
+
+```text
+hybrid -> chroma
+hybrid -> chroma_rerank
+chroma -> chroma_rerank
+```
+
+Observed pairwise metric deltas:
+
+```text
+hybrid -> chroma:
+  pass_rate_delta = -0.333333
+  expected_terms_hit_rate_delta = -0.333333
+  average_relevance_score_delta = 0.00101
+
+hybrid -> chroma_rerank:
+  pass_rate_delta = 0.0
+  expected_terms_hit_rate_delta = 0.0
+  average_relevance_score_delta = 0.116079
+
+chroma -> chroma_rerank:
+  pass_rate_delta = 0.333333
+  expected_terms_hit_rate_delta = 0.333333
+  average_relevance_score_delta = 0.115069
+```
+
+Observed best backend fields:
+
+```text
+best_backend_by_pass_rate = hybrid
+best_backend_by_average_relevance = chroma_rerank
+```
+
+Trace event:
+
+```text
+rag_backend_eval_debug
+```
+
+Trace payload now includes:
+
+```text
+pairwise_metric_deltas
+```
+
+Known compatibility note:
+
+```text
+comparison_summary.notes still follows the earlier first-vs-second summary wording.
+This is acceptable for Day36 because Day36 specifically targets pairwise metric deltas.
+Day37 can optionally make summary notes fully multi-backend-aware.
+```
+
+New Day36 test file:
+
+```text
+tests/test_rag_backend_pairwise_eval.py
+```
+
+---
+
 ## Day1 - Project Initialization
 
 ### Completed
@@ -4505,7 +4619,7 @@ src/app/schemas/rag.py
 ### Test Result
 
 ```text
-93 passed, 1 warning
+95 passed, 1 warning
 ```
 
 ### CI Result
@@ -4577,7 +4691,7 @@ tests/test_rag_backend_eval.py
 ### Test Result
 
 ```text
-93 passed, 1 warning
+95 passed, 1 warning
 ```
 
 ### CI Result
@@ -4654,7 +4768,7 @@ src/app/schemas/rag.py
 ### Test Result
 
 ```text
-93 passed, 1 warning
+95 passed, 1 warning
 ```
 
 ### CI Result
@@ -4683,6 +4797,85 @@ best_backend_by_average_relevance = chroma_rerank
 ```
 
 `hybrid` remains the best backend by pass rate only because `hybrid` and `chroma_rerank` tie at `pass_rate = 1.0`, and the current max selection returns the first maximum backend.
+
+---
+
+## Day36 - Pairwise Backend Comparison Refinement
+
+### Completed
+
+- Added common metric delta helper `_calculate_metric_delta()`
+- Kept old `_build_metric_deltas()` behavior for backward compatibility
+- Added `_build_pairwise_metric_deltas()`
+- Added `pairwise_metric_deltas` to backend comparison result
+- Added `pairwise_metric_deltas` to `RagBackendEvalDebugResponse`
+- Added `pairwise_metric_deltas` to `rag_backend_eval_debug` trace payload
+- Verified Python direct `compare_rag_retrieval_backends()` call
+- Verified `/rag/backend-eval-debug` API response
+- Verified `/observability/traces/{trace_id}` trace payload
+- Added `tests/test_rag_backend_pairwise_eval.py`
+- Verified Day36 focused tests
+- Verified backend-related tests
+- Verified full pytest
+- Verified GitHub Actions CI
+- Git push succeeded
+
+### New File
+
+```text
+tests/test_rag_backend_pairwise_eval.py
+```
+
+### Modified Files
+
+```text
+src/app/evaluation/rag_eval.py
+src/app/routes/routes_rag.py
+src/app/schemas/rag.py
+```
+
+### Test Result
+
+```text
+95 passed, 1 warning
+```
+
+### CI Result
+
+```text
+GitHub Actions CI: green
+```
+
+### Commit
+
+```text
+ad05e3f add pairwise rag backend metric deltas
+```
+
+### Observed Pairwise Deltas
+
+```text
+hybrid -> chroma:
+  pass_rate_delta = -0.333333
+  expected_terms_hit_rate_delta = -0.333333
+  average_relevance_score_delta = 0.00101
+
+hybrid -> chroma_rerank:
+  pass_rate_delta = 0.0
+  expected_terms_hit_rate_delta = 0.0
+  average_relevance_score_delta = 0.116079
+
+chroma -> chroma_rerank:
+  pass_rate_delta = 0.333333
+  expected_terms_hit_rate_delta = 0.333333
+  average_relevance_score_delta = 0.115069
+```
+
+### Notes
+
+Day36 makes the backend evaluation endpoint suitable for more than two retrieval strategies.
+
+The old `metric_deltas` field remains first-vs-second so Day34/Day35 clients and tests remain compatible. The new `pairwise_metric_deltas` field should be used for multi-backend comparison.
 
 ---
 
@@ -4742,7 +4935,7 @@ Agent response
 Local pytest currently shows:
 
 ```text
-93 passed, 1 warning
+95 passed, 1 warning
 ```
 
 The warning is:
@@ -5104,4 +5297,16 @@ Next:
 
 Next:
 
-- [ ] Day36 Semantic embedding provider local validation or reranker comparison refinement
+- [x] Day36 Pairwise backend comparison refinement
+- [x] Day36 `_calculate_metric_delta()`
+- [x] Day36 `_build_pairwise_metric_deltas()`
+- [x] Day36 `pairwise_metric_deltas` response field
+- [x] Day36 `pairwise_metric_deltas` trace payload
+- [x] Day36 `tests/test_rag_backend_pairwise_eval.py`
+- [x] Day36 local pytest
+- [x] Day36 GitHub Actions CI
+- [x] Day36 Git push
+
+Next:
+
+- [ ] Day37 Comparison summary refinement or semantic embedding provider local validation
