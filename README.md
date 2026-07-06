@@ -14,7 +14,62 @@ Local pytest: 108 passed, 1 warning.
 Git commit: clarify agent graph flow knowledge.
 Git push: success.
 GitHub Actions CI: green.
-Next milestone: Day42 production retrieval backend selection policy implementation and config hardening.
+Next milestone: Day42 GraphRAG + Neo4j environment and schema.
+```
+
+## Project Positioning
+
+This project is intentionally positioned differently from `chat-api`.
+
+```text
+agent-api:
+  Agent / RAG / GraphRAG / Multi-Agent workflow project.
+
+chat-api:
+  Production-grade LLM Chat Backend / LLM Gateway project.
+```
+
+The two projects should not duplicate each other. `chat-api` proves production LLM application backend engineering ability. `agent-api` proves complex Agentic RAG and Multi-Agent system ability.
+
+`agent-api` should continue toward:
+
+```text
+FastAPI + LangGraph Agentic RAG / GraphRAG / Multi-Agent backend system.
+```
+
+`chat-api` should later be upgraded toward:
+
+```text
+Production-ready LLM Chat Gateway with multi-provider access, conversation
+storage, SSE streaming, usage/cost statistics, API key auth, rate limiting,
+prompt cache, provider fallback, observability, and deployment.
+```
+
+## Locked Development Roadmap
+
+The VectorRAG stage has been expanded enough and should be considered closed for now.
+
+```text
+Day29-Day41:
+  Completed SQLite Vector Store, EmbeddingProvider, Chroma, Agentic RAG backend
+  switch, rerank, backend evaluation, semantic evaluation, evaluation_report,
+  failure analysis, and semantic review.
+
+Day42-Day51:
+  GraphRAG + Neo4j
+
+Day52-Day63:
+  Complex Multi-Agent Workflow
+
+Day64-Day66:
+  Final review, README / HANDOFF refactor, and resume / interview material cleanup
+```
+
+Route guard:
+
+```text
+Day42 must start GraphRAG + Neo4j environment and schema.
+Do not continue VectorRAG production selection-policy polishing before GraphRAG.
 ```
 
 ## Features
@@ -1621,7 +1676,7 @@ Day41 validates chroma_rerank as the strongest semantic backend candidate.
 The prior agent_graph_flow common failed case was caused by missing explicit graph-flow knowledge rather than a backend-specific retrieval bug.
 After adding the START -> agent -> tools -> agent -> END explanation, common_failed_cases becomes empty in the semantic review.
 The report now says the candidate is ready for default-switch review, but Day41 does not directly switch the production default backend.
-The default retrieval backend remains hybrid until Day42 implements and hardens the production selection policy.
+The default retrieval backend remains hybrid; production backend-switch policy hardening is deferred so Day42 can return to the GraphRAG + Neo4j roadmap.
 ```
 
 Validation:
@@ -4604,9 +4659,21 @@ mv /tmp/agent_basics.md knowledge/agent_basics.md
 
 Next milestones:
 
-* Day42: production retrieval backend selection policy implementation and config hardening
-* Day43: backend default-switch configuration, environment variables, and documentation hardening
-* Day44: optional backend report export or frontend-friendly report view
-* Later: Document upload and parsing pipeline
-* Later: GraphRAG and Neo4j integration
-* Later: Multi-Agent Supervisor workflow
+* Day42: GraphRAG + Neo4j environment and schema
+* Day43: Entity / Relation extraction
+* Day44: Graph ingestion
+* Day45: Graph retrieval debug
+* Day46: GraphRAG + VectorRAG fusion
+* Day47: Agentic RAG connects to GraphRAG
+* Day48: GraphRAG evaluation
+* Day49: Observability / answer verification for GraphRAG
+* Day50: GraphRAG docs
+* Day51: GraphRAG interview material
+* Day52-Day63: Complex Multi-Agent Workflow
+* Day64-Day66: Final review, README / HANDOFF refactor, and resume / interview material cleanup
+
+Deferred:
+
+* Production retrieval backend selection-policy implementation and config hardening
+* Document upload and parsing pipeline
+* MCP integration layer, if needed after GraphRAG / Multi-Agent

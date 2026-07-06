@@ -19,8 +19,272 @@ Local pytest: 108 passed, 1 warning.
 Git commit: clarify agent graph flow knowledge.
 Git push: success.
 GitHub Actions CI: green.
-Next: Day42 production retrieval backend selection policy implementation and config hardening.
+Next: Day42 GraphRAG + Neo4j environment and schema.
 ```
+
+## Strategic Project Positioning and Locked Roadmap
+
+This section is the route anchor. Before generating any future `DayXX` task, check this section first so the project does not drift into over-polishing the current VectorRAG layer.
+
+### Two-project positioning
+
+The two backend projects must have different resume positions:
+
+```text
+agent-api:
+  Agent / RAG / GraphRAG / Multi-Agent workflow project.
+
+chat-api:
+  Production-grade LLM Chat Backend / LLM Gateway project.
+```
+
+They should not compete with each other. They should form a complete capability portfolio:
+
+```text
+chat-api proves production LLM application backend engineering ability.
+agent-api proves complex Agentic RAG and Multi-Agent system ability.
+```
+
+### agent-api final positioning
+
+`agent-api` should continue toward a complete complex Agentic RAG / GraphRAG / Multi-Agent engineering project.
+
+Resume positioning:
+
+```text
+A FastAPI + LangGraph based Agentic RAG / GraphRAG / Multi-Agent backend system.
+
+The project implements tool calling, Router Agent, Smart Chat, streaming,
+Hybrid Retrieval, real vector database integration, RAG evaluation,
+observability, answer verification, GraphRAG + Neo4j, and a Multi-Agent
+workflow with planner, critic, memory, and reflection components.
+```
+
+Current status correction:
+
+```text
+The original real vector database stage was planned as Day30-Day35.
+In practice, VectorRAG engineering was expanded through Day41 with reranking,
+backend evaluation, semantic embedding validation, evaluation_report,
+failure analysis, and semantic review.
+
+This expansion is valuable and now complete enough.
+Do not continue into production retrieval backend selection policy before GraphRAG.
+Day42 should return to the original main route: GraphRAG + Neo4j.
+```
+
+### agent-api locked logical roadmap
+
+Original logical roadmap:
+
+```text
+Day29:
+  SQLite Vector Store Debug
+
+Day30-Day35:
+  Real vector database engineering integration
+
+Day36-Day45:
+  GraphRAG + Neo4j resume-level implementation
+
+Day46-Day57:
+  Complex Multi-Agent Workflow
+
+Day58-Day60:
+  Final review, README refactor, and interview material preparation
+```
+
+Current execution alignment after Day41:
+
+```text
+Day29-Day41:
+  Completed VectorRAG / Chroma / rerank / backend eval / semantic eval hardening.
+
+Day42-Day51:
+  GraphRAG + Neo4j
+
+Day42:
+  Neo4j environment and schema
+
+Day43:
+  Entity / Relation extraction
+
+Day44:
+  Graph ingestion
+
+Day45:
+  Graph retrieval debug
+
+Day46:
+  GraphRAG + VectorRAG fusion
+
+Day47:
+  Agentic RAG connects to GraphRAG
+
+Day48:
+  GraphRAG evaluation
+
+Day49:
+  Observability / answer verification for GraphRAG
+
+Day50:
+  GraphRAG docs
+
+Day51:
+  GraphRAG interview material
+
+Day52-Day63:
+  Complex Multi-Agent Workflow
+
+Day52:
+  Multi-Agent state
+
+Day53:
+  Planner Agent
+
+Day54:
+  Research Agent
+
+Day55:
+  Tool Agent
+
+Day56:
+  Critic Agent
+
+Day57:
+  Memory Agent
+
+Day58:
+  Reflection Agent
+
+Day59:
+  Supervisor graph
+
+Day60:
+  Multi-Agent streaming
+
+Day61:
+  Multi-Agent eval / trace
+
+Day62:
+  Multi-Agent docs
+
+Day63:
+  Multi-Agent interview material
+
+Day64-Day66:
+  Final review, README / HANDOFF refactor, and resume / interview material cleanup
+```
+
+If the schedule must be compressed back toward Day60, compress the Multi-Agent stage rather than extending VectorRAG again.
+
+### chat-api future positioning
+
+`chat-api` should not become another Agent project.
+
+Do not upgrade `chat-api` by duplicating:
+
+```text
+complex Agent Graph
+GraphRAG
+Multi-Agent Supervisor
+agent-api style Agentic RAG
+```
+
+Instead, upgrade `chat-api` later into:
+
+```text
+Production-ready LLM Chat Gateway
+```
+
+or:
+
+```text
+LLM Chat Gateway: multi-model unified chat backend system
+```
+
+Core positioning:
+
+```text
+A production-grade LLM Chat API service that supports multiple models,
+multiple conversations, SSE streaming, request tracing, token usage statistics,
+cost estimation, API key authentication, rate limiting, prompt cache,
+provider fallback, and deployment.
+```
+
+### chat-api recommended upgrade modules
+
+Recommended `chat-api` upgrade stages after `agent-api`:
+
+```text
+Chat-Day1:
+  Refactor project structure and README; define LLM Gateway positioning.
+
+Chat-Day2:
+  Upgrade Provider abstraction for OpenAI / Ollama / Mock.
+
+Chat-Day3:
+  Add OpenAI-compatible /v1/chat/completions API.
+
+Chat-Day4:
+  Standard SSE streaming with delta / final / done events.
+
+Chat-Day5:
+  Conversation / Message database tables.
+
+Chat-Day6:
+  Multi-conversation history management and context-window truncation.
+
+Chat-Day7:
+  Token usage statistics.
+
+Chat-Day8:
+  Cost estimation and usage summary APIs.
+
+Chat-Day9:
+  API Key authentication.
+
+Chat-Day10:
+  Rate limit and token quota.
+
+Chat-Day11:
+  Prompt cache.
+
+Chat-Day12:
+  Provider fallback / retry / timeout.
+
+Chat-Day13:
+  Dockerfile and docker-compose.
+
+Chat-Day14:
+  Metrics, health check, and readiness check.
+
+Chat-Day15:
+  pytest and CI completion.
+
+Chat-Day16:
+  Load testing and performance notes.
+
+Chat-Day17:
+  README / HANDOFF / interview material cleanup.
+
+Optional Chat-Day18-Day20:
+  Simple Web UI or Streamlit test page, cloud deployment, and final resume bullets.
+```
+
+### Anti-drift rules
+
+Future Day planning rules:
+
+```text
+1. Before generating Day42 or later tasks, check this roadmap first.
+2. Do not continue polishing VectorRAG selection policy before GraphRAG.
+3. Day42 must start GraphRAG + Neo4j environment and schema.
+4. Keep agent-api focused on Agentic RAG / GraphRAG / Multi-Agent.
+5. Keep chat-api focused on production LLM Gateway / Chat Backend engineering.
+6. Do not duplicate GraphRAG or Multi-Agent work in chat-api.
+```
+
 
 ## Day40 - Extended RAG Evaluation Dataset and Backend Failure Analysis
 
@@ -481,33 +745,38 @@ Completed:
 Recommended next milestone:
 
 ```text
-Day42: Production retrieval backend selection policy implementation and config hardening.
+Day42: GraphRAG + Neo4j environment and schema.
 ```
 
 Day42 should do the following:
 
 ```text
-1. Convert the Day39-Day41 selection policy into an explicit production decision layer.
-2. Keep hybrid as the safe runtime default unless config or review mode explicitly selects chroma_rerank.
-3. Add a retrieval backend policy/config module with conservative thresholds.
-4. Add tests for default behavior, opt-in chroma_rerank behavior, and policy-blocked behavior.
-5. Expose policy decision metadata in backend evaluation output or a dedicated debug/report path.
-6. Do not silently switch production default behavior without a tested config boundary.
+1. Start the GraphRAG stage instead of continuing VectorRAG selection-policy polishing.
+2. Add Neo4j connection configuration with a CI-safe boundary.
+3. Design the initial GraphRAG schema for Document, Chunk, Entity, Relation, and Topic nodes.
+4. Add a minimal Neo4j client or graph-store abstraction.
+5. Add a local connection validation script or debug endpoint.
+6. Keep tests deterministic: skip Neo4j-dependent tests when Neo4j is unavailable, or test schema/config logic without requiring a running Neo4j service.
+7. Do not change the current Agentic RAG default retrieval backend during Day42.
 ```
 
 Likely follow-up milestones:
 
 ```text
 Day43:
-  Backend default-switch configuration, environment variables, and documentation hardening.
+  Entity / Relation extraction.
 
 Day44:
-  Optional backend report export or frontend-friendly report view.
+  Graph ingestion.
 
-Later:
-  Document upload and parsing pipeline.
-  GraphRAG and Neo4j integration.
-  Multi-Agent Supervisor workflow.
+Day45:
+  Graph retrieval debug.
+
+Day46:
+  GraphRAG + VectorRAG fusion.
+
+Day47:
+  Agentic RAG connects to GraphRAG.
 ```
 
 
@@ -6142,13 +6411,21 @@ It has a typo: `langraph` should be `langgraph`. This does not affect code and d
 Recommended next route:
 
 ```text
-Day42: production retrieval backend selection policy implementation and config hardening
-Day43: backend default-switch configuration, environment variables, and documentation hardening
-Day44: optional backend report export or frontend-friendly report view
-Later: Document upload and parsing pipeline
-Later: GraphRAG + Neo4j + Multi-Agent Supervisor
+Day42: GraphRAG + Neo4j environment and schema
+Day43: Entity / Relation extraction
+Day44: Graph ingestion
+Day45: Graph retrieval debug
+Day46: GraphRAG + VectorRAG fusion
+Day47: Agentic RAG connects to GraphRAG
+Day48: GraphRAG evaluation
+Day49: Observability / answer verification for GraphRAG
+Day50: GraphRAG docs
+Day51: GraphRAG interview material
+Day52-Day63: Complex Multi-Agent Workflow
+Day64-Day66: Final review, README / HANDOFF refactor, and interview material cleanup
 ```
 
+Do not use Day42 for production retrieval backend selection-policy implementation. That work is deferred unless it becomes necessary after GraphRAG and Multi-Agent are complete.
 
 ---
 
@@ -6557,9 +6834,11 @@ Day41 completed:
 
 Next:
 
-- [ ] Day42 production retrieval backend selection policy implementation and config hardening
-- [ ] Convert the Day39-Day41 conservative selection policy into an explicit decision layer
-- [ ] Keep `hybrid` as the runtime default until backend-switch config and rollback behavior are explicit
-- [ ] Add configuration boundary for candidate/default backend decision
-- [ ] Add tests for default-switch readiness and conservative fallback behavior
-- [ ] Document the production-switch policy in README/HANDOFF
+- [ ] Day42 GraphRAG + Neo4j environment and schema
+- [ ] Add Neo4j connection configuration with CI-safe behavior
+- [ ] Define initial GraphRAG schema: Document, Chunk, Entity, Relation, Topic
+- [ ] Add minimal graph-store / Neo4j client boundary
+- [ ] Add local Neo4j validation script or debug endpoint
+- [ ] Add deterministic schema/config tests that do not require CI Neo4j
+- [ ] Keep current Agentic RAG default backend unchanged
+- [ ] Do not continue VectorRAG production selection-policy work before GraphRAG
