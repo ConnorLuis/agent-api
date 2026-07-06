@@ -13,13 +13,13 @@ Project 2 has officially started and is now the main development line.
 Current `agent-api` status:
 
 ```text
-Day1-Day41 completed.
-Day41 completed: Semantic embedding evaluation on the extended RAG eval dataset, semantic backend review analysis, and agent_graph_flow failure-case resolution.
-Local pytest: 108 passed, 1 warning.
-Git commit: clarify agent graph flow knowledge.
+Day1-Day42 completed.
+Day42 completed: GraphRAG + Neo4j environment and schema foundation.
+Local pytest: 115 passed, 1 warning.
+Git commit: 8963760 add graph schema and neo4j health debug.
 Git push: success.
-GitHub Actions CI: green.
-Next: Day42 GraphRAG + Neo4j environment and schema.
+GitHub Actions CI: not shown in provided Day42 log; confirm from Actions.
+Next: Day43 Entity / Relation extraction.
 ```
 
 ## Strategic Project Positioning and Locked Roadmap
@@ -104,7 +104,7 @@ Day42-Day51:
   GraphRAG + Neo4j
 
 Day42:
-  Neo4j environment and schema
+  Completed Neo4j environment and schema.
 
 Day43:
   Entity / Relation extraction
@@ -279,10 +279,11 @@ Future Day planning rules:
 ```text
 1. Before generating Day42 or later tasks, check this roadmap first.
 2. Do not continue polishing VectorRAG selection policy before GraphRAG.
-3. Day42 must start GraphRAG + Neo4j environment and schema.
-4. Keep agent-api focused on Agentic RAG / GraphRAG / Multi-Agent.
-5. Keep chat-api focused on production LLM Gateway / Chat Backend engineering.
-6. Do not duplicate GraphRAG or Multi-Agent work in chat-api.
+3. Day42 has started GraphRAG + Neo4j environment and schema.
+4. Day43 should continue with Entity / Relation extraction.
+5. Keep agent-api focused on Agentic RAG / GraphRAG / Multi-Agent.
+6. Keep chat-api focused on production LLM Gateway / Chat Backend engineering.
+7. Do not duplicate GraphRAG or Multi-Agent work in chat-api.
 ```
 
 
@@ -742,30 +743,235 @@ Completed:
 
 ### Next Work
 
+Day42 has now been completed.
+
 Recommended next milestone:
 
 ```text
-Day42: GraphRAG + Neo4j environment and schema.
+Day43: Entity / Relation extraction.
 ```
 
-Day42 should do the following:
+Day43 should add deterministic extraction over existing knowledge chunks without writing to Neo4j yet.
+
+
+## Day42 - GraphRAG + Neo4j Environment and Schema
+
+Day42 starts the GraphRAG + Neo4j stage according to the locked roadmap.
+
+Scope:
 
 ```text
-1. Start the GraphRAG stage instead of continuing VectorRAG selection-policy polishing.
-2. Add Neo4j connection configuration with a CI-safe boundary.
-3. Design the initial GraphRAG schema for Document, Chunk, Entity, Relation, and Topic nodes.
-4. Add a minimal Neo4j client or graph-store abstraction.
-5. Add a local connection validation script or debug endpoint.
-6. Keep tests deterministic: skip Neo4j-dependent tests when Neo4j is unavailable, or test schema/config logic without requiring a running Neo4j service.
-7. Do not change the current Agentic RAG default retrieval backend during Day42.
+Day42 intentionally builds only the GraphRAG foundation:
+  - Graph module directory
+  - Graph schema definition
+  - Neo4j client boundary
+  - CI-safe debug endpoints
+  - deterministic schema/config tests
+
+Day42 does not:
+  - extract entities or relations
+  - ingest graph data
+  - retrieve from Neo4j
+  - connect Agentic RAG to GraphRAG
+  - change the current default retrieval backend
+  - continue VectorRAG production selection-policy polishing
+```
+
+New / modified files:
+
+```text
+requirements.txt
+src/app/main.py
+src/app/graph/__init__.py
+src/app/graph/schema.py
+src/app/graph/neo4j_client.py
+src/app/routes/routes_graph.py
+src/app/schemas/graph.py
+tests/test_graph_schema.py
+tests/test_graph_debug.py
+```
+
+New dependency:
+
+```text
+neo4j
+```
+
+New graph schema version:
+
+```text
+day42_graph_schema_v1
+```
+
+Initial node labels:
+
+```text
+Document
+Chunk
+Entity
+```
+
+Initial relationship types:
+
+```text
+HAS_CHUNK
+NEXT_CHUNK
+MENTIONS
+RELATED_TO
+```
+
+Initial GraphRAG shape:
+
+```text
+(Document)-[:HAS_CHUNK]->(Chunk)
+(Chunk)-[:NEXT_CHUNK]->(Chunk)
+(Chunk)-[:MENTIONS]->(Entity)
+(Entity)-[:RELATED_TO]->(Entity)
+```
+
+New endpoints:
+
+```text
+GET /graph/schema-debug
+GET /graph/health-debug
+GET /graph/health-debug?check_connection=true
+```
+
+`/graph/schema-debug` returns the current GraphRAG schema and is fully CI-safe.
+
+`/graph/health-debug` defaults to `check_connection=false`, so it does not require a live Neo4j server in CI.
+
+`/graph/health-debug?check_connection=true` manually validates a live Neo4j connection in the local environment.
+
+Neo4j settings:
+
+```text
+NEO4J_ENABLED
+NEO4J_URI
+NEO4J_USERNAME
+NEO4J_PASSWORD
+NEO4J_DATABASE
+```
+
+Default settings:
+
+```text
+NEO4J_ENABLED=false
+NEO4J_URI=bolt://localhost:7687
+NEO4J_USERNAME=neo4j
+NEO4J_PASSWORD=password
+NEO4J_DATABASE=neo4j
+```
+
+Manual local Neo4j validation result:
+
+```text
+trace_id = day42-neo4j-health-manual-001
+connection_check_requested = true
+connection.ok = true
+connection.status = connected
+connection.settings.uri = bolt://localhost:7687
+connection.settings.database = neo4j
+connection.settings.enabled = true
+connection.settings.password_configured = true
+```
+
+Validation:
+
+```text
+pytest tests/test_graph_schema.py tests/test_graph_debug.py -q
+7 passed, 1 warning
+
+pytest tests/test_health.py tests/test_trace.py tests/test_graph_schema.py tests/test_graph_debug.py -q
+12 passed, 1 warning
+
+pytest -q
+115 passed, 1 warning
+```
+
+Commit:
+
+```text
+8963760 add graph schema and neo4j health debug
+```
+
+Git push:
+
+```text
+success
+```
+
+GitHub Actions CI:
+
+```text
+Not shown in the provided Day42 log. Confirm from GitHub Actions.
+```
+
+Important implementation note:
+
+```text
+The provided git diff showed CRLF markers (^M) on the two newly added main.py lines.
+Tests passed, so this is not functionally blocking.
+It can be normalized later if needed.
+```
+
+Important `.env.example` note:
+
+```text
+The attempted `git add .env.example` was blocked because `.env.example` is ignored by .gitignore.
+Therefore the Day42 commit did not include `.env.example`.
+This is acceptable for Day42 because Neo4j settings have safe defaults in code and are documented here.
+If the project later decides to track `.env.example`, add it explicitly with `git add -f .env.example` and review .gitignore behavior.
+```
+
+### Day42 Checklist
+
+Completed:
+
+```text
+✅ Started the GraphRAG + Neo4j stage according to the locked roadmap
+✅ Added `src/app/graph/`
+✅ Added initial GraphRAG schema
+✅ Added `Document`, `Chunk`, and `Entity` node labels
+✅ Added `HAS_CHUNK`, `NEXT_CHUNK`, `MENTIONS`, and `RELATED_TO` relationship types
+✅ Added Neo4j settings and client boundary
+✅ Added `/graph/schema-debug`
+✅ Added `/graph/health-debug`
+✅ Kept `/graph/health-debug` CI-safe by skipping live connection checks by default
+✅ Manually verified live Neo4j connection through `check_connection=true`
+✅ Added deterministic Graph schema tests
+✅ Added Graph debug endpoint tests
+✅ Local graph tests: 7 passed, 1 warning
+✅ Local related tests: 12 passed, 1 warning
+✅ Full local pytest: 115 passed, 1 warning
+✅ Git commit: 8963760 add graph schema and neo4j health debug
+✅ Git push: success
+```
+
+### Next Work
+
+Recommended next milestone:
+
+```text
+Day43: Entity / Relation extraction.
+```
+
+Day43 should do the following:
+
+```text
+1. Add a deterministic entity extraction module for knowledge chunks.
+2. Add a deterministic relation extraction module for simple domain relations.
+3. Reuse the existing Markdown chunk pipeline from `src/app/rag/chunking.py`.
+4. Return extraction debug metadata without writing to Neo4j yet.
+5. Add `/graph/extract-debug` or an equivalent debug endpoint.
+6. Add tests for entity extraction, relation extraction, and endpoint response shape.
+7. Keep extraction CI-safe and deterministic.
+8. Do not connect Agentic RAG to GraphRAG yet.
 ```
 
 Likely follow-up milestones:
 
 ```text
-Day43:
-  Entity / Relation extraction.
-
 Day44:
   Graph ingestion.
 
@@ -916,6 +1122,11 @@ Current:
 - `comparison_summary.top_improvement_pairs`
 - Trace payload records refined multi-backend `comparison_summary`
 - Local semantic embedding provider validation with `sentence_transformers`
+- Neo4j Python Driver dependency
+- GraphRAG schema foundation
+- Neo4j connection settings and health-check debug boundary
+- `/graph/schema-debug`
+- `/graph/health-debug`
 - Local BCE embedding model path: `/mnt/f/LLM/maidalun/bce-embedding-base_v1`
 - CI-safe semantic provider test that skips when the local model path is unavailable
 - Day38 validation script for semantic provider, Chroma, Agentic RAG, and backend comparison
@@ -939,7 +1150,9 @@ Not yet implemented:
 - Replacing `/agent/chat` with the real LLM Agent as the default route
 - Making Smart Chat the default production entry point
 - Document upload and parsing pipeline
-- GraphRAG
+- Entity / Relation extraction
+- Graph ingestion
+- Graph retrieval and GraphRAG + VectorRAG fusion
 - Multi-Agent Supervisor
 
 ---
@@ -1023,11 +1236,13 @@ agent-api/
 │       │   ├── agent.py
 │       │   ├── llm.py
 │       │   ├── rag.py
+│       │   ├── graph.py
 │       │   └── observability.py
 │       ├── routes/
 │       │   ├── routes_agent.py
 │       │   ├── routes_llm.py
 │       │   ├── routes_rag.py
+│       │   ├── routes_graph.py
 │       │   └── routes_observability.py
 │       ├── evaluation/
 │       │   ├── __init__.py
@@ -1037,6 +1252,10 @@ agent-api/
 │       ├── observability/
 │       │   ├── __init__.py
 │       │   └── trace_store.py
+│       ├── graph/
+│       │   ├── __init__.py
+│       │   ├── schema.py
+│       │   └── neo4j_client.py
 │       ├── rag/
 │       │   ├── __init__.py
 │       │   ├── explain.py
@@ -1079,6 +1298,8 @@ agent-api/
     ├── test_agent_memory.py
     ├── test_agent_debug.py
     ├── test_trace.py
+    ├── test_graph_schema.py
+    ├── test_graph_debug.py
     ├── test_llm.py
     ├── test_stream.py
     ├── test_rag.py
@@ -1096,6 +1317,8 @@ agent-api/
     ├── test_rag_chroma_store.py
     ├── test_rag_agentic_backend.py
     ├── test_rag_backend_eval.py
+    ├── test_graph_schema.py
+    ├── test_graph_debug.py
 ├── test_rag_agentic_stream_backend.py
 ├── test_rag_reranker.py
 ├── test_rag_backend_pairwise_eval.py
@@ -1236,6 +1459,8 @@ POST /rag/embedding-debug
 POST /rag/chroma-search-debug
 POST /rag/eval-debug
 POST /rag/backend-eval-debug
+GET /graph/schema-debug
+GET /graph/health-debug
 GET /observability/traces/{trace_id}
 GET /observability/traces
 ```
@@ -1587,6 +1812,86 @@ Day12 intentionally uses keyword retrieval instead of embeddings/vector DB.
 This keeps CI deterministic and avoids external services.
 Knowledge files are stored under knowledge/ and should be UTF-8 encoded.
 Do not put source-controlled knowledge files under data/, because data/ is runtime-only and ignored by Git.
+```
+
+---
+
+## Current GraphRAG / Neo4j Strategy
+
+Day42 added the initial GraphRAG + Neo4j foundation.
+
+Current graph files:
+
+```text
+src/app/graph/__init__.py
+src/app/graph/schema.py
+src/app/graph/neo4j_client.py
+src/app/routes/routes_graph.py
+src/app/schemas/graph.py
+tests/test_graph_schema.py
+tests/test_graph_debug.py
+```
+
+Current GraphRAG schema version:
+
+```text
+day42_graph_schema_v1
+```
+
+Current node labels:
+
+```text
+Document
+Chunk
+Entity
+```
+
+Current relationship types:
+
+```text
+HAS_CHUNK
+NEXT_CHUNK
+MENTIONS
+RELATED_TO
+```
+
+Current graph shape:
+
+```text
+(Document)-[:HAS_CHUNK]->(Chunk)
+(Chunk)-[:NEXT_CHUNK]->(Chunk)
+(Chunk)-[:MENTIONS]->(Entity)
+(Entity)-[:RELATED_TO]->(Entity)
+```
+
+Current Graph endpoints:
+
+```text
+GET /graph/schema-debug
+GET /graph/health-debug
+GET /graph/health-debug?check_connection=true
+```
+
+Current Neo4j client strategy:
+
+```text
+Default /graph/health-debug is CI-safe and does not connect to Neo4j.
+Manual live connection validation only happens when check_connection=true.
+The returned settings expose password_configured but never expose the password value.
+```
+
+Manual local Neo4j validation was successful:
+
+```text
+connection.ok = true
+connection.status = connected
+```
+
+Important:
+
+```text
+Day42 does not extract entities, ingest graph data, retrieve from Neo4j, or connect Agentic RAG to GraphRAG.
+Day43 should implement deterministic Entity / Relation extraction on top of the current chunk pipeline.
 ```
 
 ---
@@ -6832,13 +7137,30 @@ Day41 completed:
 - [x] Day41 GitHub Actions CI: green
 - [x] Day41 Git push
 
+Day42 completed:
+
+- [x] Day42 GraphRAG + Neo4j environment and schema
+- [x] Day42 added `src/app/graph/`
+- [x] Day42 added initial GraphRAG schema version `day42_graph_schema_v1`
+- [x] Day42 added node labels: `Document`, `Chunk`, `Entity`
+- [x] Day42 added relationship types: `HAS_CHUNK`, `NEXT_CHUNK`, `MENTIONS`, `RELATED_TO`
+- [x] Day42 added Neo4j client boundary and settings
+- [x] Day42 added `/graph/schema-debug`
+- [x] Day42 added `/graph/health-debug`
+- [x] Day42 kept Graph health debug CI-safe by skipping connection checks by default
+- [x] Day42 manually verified live Neo4j connection with `check_connection=true`
+- [x] Day42 local graph tests: 7 passed, 1 warning
+- [x] Day42 related local tests: 12 passed, 1 warning
+- [x] Day42 full local pytest: 115 passed, 1 warning
+- [x] Day42 Git commit: `8963760 add graph schema and neo4j health debug`
+- [x] Day42 Git push: success
+
 Next:
 
-- [ ] Day42 GraphRAG + Neo4j environment and schema
-- [ ] Add Neo4j connection configuration with CI-safe behavior
-- [ ] Define initial GraphRAG schema: Document, Chunk, Entity, Relation, Topic
-- [ ] Add minimal graph-store / Neo4j client boundary
-- [ ] Add local Neo4j validation script or debug endpoint
-- [ ] Add deterministic schema/config tests that do not require CI Neo4j
-- [ ] Keep current Agentic RAG default backend unchanged
-- [ ] Do not continue VectorRAG production selection-policy work before GraphRAG
+- [ ] Day43 Entity / Relation extraction
+- [ ] Add deterministic entity extraction over existing knowledge chunks
+- [ ] Add deterministic relation extraction for GraphRAG seed relations
+- [ ] Add `/graph/extract-debug` or equivalent debug endpoint
+- [ ] Add CI-safe extraction tests
+- [ ] Do not write to Neo4j yet
+- [ ] Do not connect Agentic RAG to GraphRAG yet
