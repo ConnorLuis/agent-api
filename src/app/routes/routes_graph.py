@@ -1,0 +1,55 @@
+from __future__ import annotations
+
+from fastapi import APIRouter, Request
+
+from src.app.graph.neo4j_client import (
+    check_neo4j_connection,
+    skipped_neo4j_connection_check,
+)
+from src.app.graph.schema import get_graph_schema
+from src.app.schemas.graph import (
+    GraphHealthDebugResponse,
+    GraphSchemaDebugResponse,
+)
+
+
+router = APIRouter(prefix="/graph", tags=["graph"])
+
+
+def _resolve_trace_id(request: Request) -> str:
+    if request.headers.get("x-trace-id"):
+        return request.headers["x-trace-id"]
+
+    try:
+        from src.app.core.request_context import get_trace_id
+
+        return get_trace_id()
+    except Exception:
+        return "trace-unavailable"
+
+
+@router.get("/schema-debug", response_model=GraphSchemaDebugResponse)
+def graph_schema_debug(request: Request) -> dict:
+    schema = get_graph_schema()
+
+    return {
+        "trace_id": _resolve_trace_id(request),
+        **schema,
+    }
+
+
+@router.get("/health-debug", response_model=GraphHealthDebugResponse)
+def graph_health_debug(
+    request: Request,
+    check_connection: bool = False,
+) -> dict:
+    if check_connection:
+        connection = check_neo4j_connection()
+    else:
+        connection = skipped_neo4j_connection_check()
+
+    return {
+        "trace_id": _resolve_trace_id(request),
+        "connection_check_requested": check_connection,
+        "connection": connection,
+    }

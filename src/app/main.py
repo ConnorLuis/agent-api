@@ -6,6 +6,7 @@ from src.app.routes.routes_agent import router as agent_router
 from src.app.routes.routes_llm import router as llm_router
 from src.app.routes.routes_rag import router as rag_router
 from src.app.routes.routes_observability import router as observability_router
+from src.app.routes import routes_graph
 
 setup_logging()
 
@@ -25,3 +26,4 @@ app.include_router(agent_router, prefix="/agent", tags=["agent"])
 app.include_router(llm_router, prefix="/llm", tags=["llm"])
 app.include_router(rag_router, prefix="/rag", tags=["rag"])
 app.include_router(observability_router)
+app.include_router(routes_graph.router)

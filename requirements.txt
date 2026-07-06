@@ -13,3 +13,4 @@ pytest
 httpx
 typing_extensions
 chromadb
+neo4j
