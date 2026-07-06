@@ -2,19 +2,19 @@
 
 `agent-api` is a FastAPI + LangGraph backend project for building an Agent service step by step.
 
-This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent, SQLite-based short-term memory, graph debug output, request tracing, LLM provider abstraction, a real Ollama-backed LLM Tool Calling Agent path, SSE streaming endpoints, a lightweight local RAG search tool, a RAG search-debug endpoint with explainability metadata, a deterministic Router Agent that delegates calculator and RAG routes to the existing Agent graph, a Router Agent SSE streaming endpoint, an initial LLM Router Agent endpoint with mock and Ollama router providers, a Smart Chat endpoint as a future unified Agent entry point preview, a Smart Chat SSE streaming endpoint, route validation metadata for Router and Smart Chat paths, and a RAG chunk pipeline debug endpoint for vector DB preparation, a deterministic RAG vector-search debug endpoint, a hybrid retrieval debug endpoint that combines keyword and vector signals, an Agentic RAG debug graph with query analysis, query rewriting, hybrid retrieval, relevance grading, citation-aware answers, an Agentic RAG SSE streaming endpoint, an Agentic RAG answer verification debug endpoint, a SQLite-backed vector store debug layer for real vector database preparation, an EmbeddingProvider abstraction layer with an embedding debug endpoint, a Chroma-backed persistent vector store debug endpoint, an Agentic RAG retrieval backend switch that supports both hybrid and Chroma backends, and a backend-aware RAG evaluation comparison layer for hybrid-vs-Chroma metrics, refined backend comparison metrics, backend-aware Agentic RAG SSE streaming alignment, a reranker-ready retrieval backend extension with `chroma_rerank`, pairwise backend metric deltas for multi-backend comparison, a multi-backend-aware comparison summary, local semantic embedding provider validation with a CI-safe fallback, and a backend evaluation report layer that converts raw backend metrics into engineering selection guidance, with observability trace payload alignment for that report, an extended RAG evaluation dataset for less tiny backend comparison signals, and Day40 failure-analysis plus selection-policy evaluation for conservative backend decisions.
+This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent, SQLite-based short-term memory, graph debug output, request tracing, LLM provider abstraction, a real Ollama-backed LLM Tool Calling Agent path, SSE streaming endpoints, a lightweight local RAG search tool, a RAG search-debug endpoint with explainability metadata, a deterministic Router Agent that delegates calculator and RAG routes to the existing Agent graph, a Router Agent SSE streaming endpoint, an initial LLM Router Agent endpoint with mock and Ollama router providers, a Smart Chat endpoint as a future unified Agent entry point preview, a Smart Chat SSE streaming endpoint, route validation metadata for Router and Smart Chat paths, and a RAG chunk pipeline debug endpoint for vector DB preparation, a deterministic RAG vector-search debug endpoint, a hybrid retrieval debug endpoint that combines keyword and vector signals, an Agentic RAG debug graph with query analysis, query rewriting, hybrid retrieval, relevance grading, citation-aware answers, an Agentic RAG SSE streaming endpoint, an Agentic RAG answer verification debug endpoint, a SQLite-backed vector store debug layer for real vector database preparation, an EmbeddingProvider abstraction layer with an embedding debug endpoint, a Chroma-backed persistent vector store debug endpoint, an Agentic RAG retrieval backend switch that supports both hybrid and Chroma backends, and a backend-aware RAG evaluation comparison layer for hybrid-vs-Chroma metrics, refined backend comparison metrics, backend-aware Agentic RAG SSE streaming alignment, a reranker-ready retrieval backend extension with `chroma_rerank`, pairwise backend metric deltas for multi-backend comparison, a multi-backend-aware comparison summary, local semantic embedding provider validation with a CI-safe fallback, and a backend evaluation report layer that converts raw backend metrics into engineering selection guidance, with observability trace payload alignment for that report, an extended RAG evaluation dataset for less tiny backend comparison signals, Day40 failure-analysis plus selection-policy evaluation for conservative backend decisions, and Day41 semantic embedding evaluation plus failure-case review for backend switch readiness.
 
 ## Current Status
 
 ```text
-Day1-Day40 completed.
-Current stage: Day40 completed.
-Day40 completed: Extended RAG evaluation dataset plus extended backend failure analysis and conservative selection policy refinement.
-Local pytest: 106 passed, 1 warning.
-Git commit: add extended rag backend failure analysis.
+Day1-Day41 completed.
+Current stage: Day41 completed.
+Day41 completed: Semantic embedding evaluation on the extended RAG eval dataset, semantic backend review analysis, and agent_graph_flow failure-case resolution.
+Local pytest: 108 passed, 1 warning.
+Git commit: clarify agent graph flow knowledge.
 Git push: success.
 GitHub Actions CI: green.
-Next milestone: Day41 semantic embedding evaluation on the extended RAG eval dataset.
+Next milestone: Day42 production retrieval backend selection policy implementation and config hardening.
 ```
 
 ## Features
@@ -46,6 +46,10 @@ Current features:
 * Extended RAG evaluation dataset with 12 cases through `eval_cases/rag_agentic_eval_extended.jsonl`
 * Extended backend failure analysis through `evaluation_report.failure_analysis`
 * Conservative backend selection-policy evaluation through `evaluation_report.selection_policy_evaluation`
+* Semantic extended backend evaluation script through `scripts/validate_semantic_extended_backend_eval.py`
+* Semantic backend review analysis through `src/app/evaluation/semantic_review.py`
+* Semantic backend review report generation through `scripts/review_semantic_backend_eval_report.py`
+* Agent graph-flow knowledge clarification through `START -> agent -> tools -> agent -> END`
 * `/observability/traces/{trace_id}` trace event lookup endpoint
 * `/observability/traces` recent trace list endpoint
 * `/agent/router-chat` deterministic Router Agent chat endpoint
@@ -219,7 +223,9 @@ agent-api/
 ├── requirements.txt
 ├── pytest.ini
 ├── scripts/
-│   └── validate_semantic_embedding_provider.py
+│   ├── validate_semantic_embedding_provider.py
+│   ├── validate_semantic_extended_backend_eval.py
+│   └── review_semantic_backend_eval_report.py
 ├── .env.example
 ├── .gitignore
 ├── .github/
@@ -268,7 +274,8 @@ agent-api/
 │   ├── DAY37.md
 │   ├── DAY38.md
 │   ├── DAY39.md
-│   └── DAY40.md
+│   ├── DAY40.md
+│   └── DAY41.md
 ├── knowledge/
 │   └── agent_basics.md
 ├── data/
@@ -295,7 +302,8 @@ agent-api/
 │       ├── evaluation/
 │       │   ├── __init__.py
 │       │   ├── rag_eval.py
-│       │   └── rag_report.py
+│       │   ├── rag_report.py
+│       │   └── semantic_review.py
 │       ├── observability/
 │       │   ├── __init__.py
 │       │   └── trace_store.py
@@ -1132,7 +1140,7 @@ This turns RAG from a single retrieval call into a controllable workflow that ca
 
 ## Current RAG Evaluation Architecture
 
-Day25 added a RAG evaluation debug layer. Day33 upgraded it into a backend-aware evaluation layer. Day34 refined the backend comparison output. Day36 extended metric deltas from first-vs-second comparison to pairwise multi-backend comparison. Day37 made `comparison_summary` multi-backend-aware. Day39 added an engineering-facing `evaluation_report` layer for backend selection guidance and aligned that report with the `rag_backend_eval_debug` trace payload. Day40 first stage added an extended 12-case RAG evaluation dataset so backend comparison is no longer limited to the original tiny 3-case regression set. Day40 second stage added failure analysis and selection-policy evaluation so backend comparison can explain failed cases and conservative default-switch blockers.
+Day25 added a RAG evaluation debug layer. Day33 upgraded it into a backend-aware evaluation layer. Day34 refined the backend comparison output. Day36 extended metric deltas from first-vs-second comparison to pairwise multi-backend comparison. Day37 made `comparison_summary` multi-backend-aware. Day39 added an engineering-facing `evaluation_report` layer for backend selection guidance and aligned that report with the `rag_backend_eval_debug` trace payload. Day40 first stage added an extended 12-case RAG evaluation dataset so backend comparison is no longer limited to the original tiny 3-case regression set. Day40 second stage added failure analysis and selection-policy evaluation so backend comparison can explain failed cases and conservative default-switch blockers. Day41 validated the extended eval set with local semantic embeddings, added semantic backend review analysis, and resolved the agent_graph_flow common failed case.
 
 ```text
 eval_cases/rag_agentic_eval.jsonl
@@ -1172,7 +1180,7 @@ tests/test_rag_backend_comparison_summary.py
 tests/test_rag_backend_report.py
 tests/test_rag_eval_extended_dataset.py
 tests/test_rag_backend_extended_analysis.py
-tests/test_rag_backend_extended_analysis.py
+tests/test_semantic_backend_review.py
 ```
 
 Current endpoints:
@@ -1502,13 +1510,136 @@ payload.evaluation_report.selection_policy_evaluation
 payload.evaluation_report.default_backend_should_change = false
 ```
 
-Next work:
+## Current Day41 Semantic Backend Evaluation and Failure-case Review
+
+Day41 completed semantic embedding evaluation on the extended RAG eval dataset and converted the result into a switch-readiness review.
+
+Current Day41 files:
 
 ```text
-Day41 should run the extended backend evaluation with the local sentence_transformers BCE embedding provider.
-Day41 should compare deterministic vs semantic evaluation behavior before any default backend switch.
-Day41 should keep the default backend as hybrid unless semantic evaluation and failure-case review satisfy the selection policy.
+scripts/validate_semantic_extended_backend_eval.py
+scripts/review_semantic_backend_eval_report.py
+src/app/evaluation/semantic_review.py
+tests/test_semantic_backend_review.py
+knowledge/agent_basics.md
 ```
+
+Generated local report artifacts are intentionally ignored by Git:
+
+```text
+reports/day41_semantic_extended_backend_eval.json
+reports/day41_semantic_backend_review.md
+```
+
+Day41 used the local BCE sentence-transformers embedding model:
+
+```text
+embedding_provider = sentence_transformers
+embedding_model = /mnt/f/LLM/maidalun/bce-embedding-base_v1
+embedding_dim = 768
+eval_file = eval_cases/rag_agentic_eval_extended.jsonl
+backends = hybrid, chroma, chroma_rerank
+```
+
+Observed semantic extended backend comparison after the `agent_graph_flow` knowledge fix:
+
+```text
+hybrid:
+  total_cases = 12
+  passed_cases = 11
+  pass_rate = 0.916667
+  expected_terms_hit_rate = 0.916667
+  citation_hit_rate = 1.0
+  average_relevance_score = 0.35149
+
+chroma:
+  total_cases = 12
+  passed_cases = 12
+  pass_rate = 1.0
+  expected_terms_hit_rate = 1.0
+  citation_hit_rate = 1.0
+  average_relevance_score = 0.517869
+
+chroma_rerank:
+  total_cases = 12
+  passed_cases = 12
+  pass_rate = 1.0
+  expected_terms_hit_rate = 1.0
+  citation_hit_rate = 1.0
+  average_relevance_score = 0.607509
+```
+
+Observed Day41 report result:
+
+```text
+best_backend_by_pass_rate = chroma
+best_backend_by_average_relevance = chroma_rerank
+recommended_backend = chroma_rerank
+default_backend = hybrid
+default_backend_should_change = true
+selection_policy = candidate_backend_ready_for_default_switch
+eval_case_count = 12
+```
+
+Observed Day41 semantic review result:
+
+```text
+review_decision = candidate_ready_for_default_switch_review
+semantic_candidate_validated = true
+candidate_backend = chroma_rerank
+default_backend = hybrid
+common_failed_cases = []
+blocking_reasons = []
+```
+
+Failure analysis after the knowledge fix:
+
+```text
+common_failed_cases = []
+failure_count_by_backend:
+  hybrid = 1
+  chroma = 0
+  chroma_rerank = 0
+
+unique_failed_cases_by_backend:
+  hybrid = agent_definition
+  chroma = none
+  chroma_rerank = none
+```
+
+Knowledge fix:
+
+```text
+knowledge/agent_basics.md now explicitly documents:
+START -> agent -> tools -> agent -> END
+```
+
+Important interpretation:
+
+```text
+Day41 validates chroma_rerank as the strongest semantic backend candidate.
+The prior agent_graph_flow common failed case was caused by missing explicit graph-flow knowledge rather than a backend-specific retrieval bug.
+After adding the START -> agent -> tools -> agent -> END explanation, common_failed_cases becomes empty in the semantic review.
+The report now says the candidate is ready for default-switch review, but Day41 does not directly switch the production default backend.
+The default retrieval backend remains hybrid until Day42 implements and hardens the production selection policy.
+```
+
+Validation:
+
+```text
+pytest tests/test_rag_agentic_backend.py \
+       tests/test_rag_chroma_store.py \
+       tests/test_rag_vector_store.py \
+       tests/test_rag_backend_comparison_summary.py \
+       tests/test_rag_backend_extended_analysis.py -q
+14 passed, 1 warning
+
+pytest -q
+108 passed, 1 warning
+
+GitHub Actions CI: green
+```
+
 
 ## Current Observability Trace Store Architecture
 
@@ -1647,7 +1778,7 @@ Chroma stream behavior:
 retrieval_backend = chroma
 steps include chroma_retrieve
 retrieval_metadata.collection_name exists
-retrieval_metadata.total_indexed_chunks = 2
+retrieval_metadata.total_indexed_chunks = 3
 ```
 
 Observed Chroma stream trace fields:
@@ -3619,7 +3750,7 @@ Expected response structure:
 {
   "source_filter": "agent_basics",
   "max_chars": 300,
-  "total_chunks": 2,
+  "total_chunks": 3,
   "chunks": [
     {
       "chunk_id": "knowledge/agent_basics.md::chunk-1",
@@ -3653,7 +3784,7 @@ Expected response includes:
 "top_k": 2
 "source_filter": "agent_basics"
 "embedding_dim": 64
-"total_chunks": 2
+"total_chunks": 3
 "chunk_id": "knowledge/agent_basics.md::chunk-2"
 "score": 0.376889
 "matched_terms": ["rag", "是"]
@@ -3698,7 +3829,7 @@ Expected response includes:
 "source_filter": "agent_basics"
 "keyword_weight": 0.6
 "vector_weight": 0.4
-"total_chunks": 2
+"total_chunks": 3
 "chunk_id": "knowledge/agent_basics.md::chunk-2"
 "hybrid_score": 0.450756
 "keyword_score": 0.5
@@ -3962,10 +4093,10 @@ top_k = 2
 source_filter = agent_basics
 embedding_dim = 64
 rebuild_index = true
-total_indexed_chunks = 2
-index_stats.loaded_chunks = 2
-index_stats.inserted_count = 2
-index_stats.stored_count = 2
+total_indexed_chunks = 3
+index_stats.loaded_chunks = 3
+index_stats.inserted_count = 3
+index_stats.stored_count = 3
 index_stats.db_path = data/rag_vector_store.sqlite
 results_count = 2
 trace_id = day29-vector-store-langgraph-001
@@ -3982,10 +4113,10 @@ Expected trace fields:
 
 ```text
 event_type = rag_vector_store_debug
-payload.total_indexed_chunks = 2
+payload.total_indexed_chunks = 3
 payload.results_count = 2
-payload.index_stats.inserted_count = 2
-payload.index_stats.stored_count = 2
+payload.index_stats.inserted_count = 3
+payload.index_stats.stored_count = 3
 ```
 
 RAG query:
@@ -4001,10 +4132,10 @@ curl -s -X POST http://localhost:8000/rag/vector-store-debug \
 Expected response fields:
 
 ```text
-total_indexed_chunks = 2
-index_stats.loaded_chunks = 2
-index_stats.inserted_count = 2
-index_stats.stored_count = 2
+total_indexed_chunks = 3
+index_stats.loaded_chunks = 3
+index_stats.inserted_count = 3
+index_stats.stored_count = 3
 results_count = 2
 trace_id = day29-vector-store-rag-001
 ```
@@ -4070,12 +4201,12 @@ Expected response fields:
 embedding_provider = deterministic
 embedding_model = deterministic-hash
 index_key includes embedding_provider and embedding_model
-total_indexed_chunks = 2
+total_indexed_chunks = 3
 index_stats.embedding_provider = deterministic
 index_stats.embedding_model = deterministic-hash
-index_stats.loaded_chunks = 2
-index_stats.inserted_count = 2
-index_stats.stored_count = 2
+index_stats.loaded_chunks = 3
+index_stats.inserted_count = 3
+index_stats.stored_count = 3
 ```
 
 ### RAG Chroma Search Debug
@@ -4099,10 +4230,10 @@ source_filter = agent_basics
 embedding_provider = deterministic
 embedding_model = deterministic-hash
 persist_dir = data/chroma
-total_indexed_chunks = 2
-index_stats.loaded_chunks = 2
-index_stats.upserted_count = 2
-index_stats.stored_count = 2
+total_indexed_chunks = 3
+index_stats.loaded_chunks = 3
+index_stats.upserted_count = 3
+index_stats.stored_count = 3
 results_count = 2
 trace_id = day31-chroma-langgraph-001
 ```
@@ -4118,9 +4249,9 @@ Expected trace fields:
 
 ```text
 event_type = rag_chroma_search_debug
-payload.total_indexed_chunks = 2
+payload.total_indexed_chunks = 3
 payload.results_count = 2
-payload.index_stats.stored_count = 2
+payload.index_stats.stored_count = 3
 payload.embedding_provider = deterministic
 payload.embedding_model = deterministic-hash
 ```
@@ -4138,10 +4269,10 @@ curl -s -X POST http://localhost:8000/rag/chroma-search-debug \
 Expected response fields:
 
 ```text
-total_indexed_chunks = 2
-index_stats.loaded_chunks = 2
-index_stats.upserted_count = 2
-index_stats.stored_count = 2
+total_indexed_chunks = 3
+index_stats.loaded_chunks = 3
+index_stats.upserted_count = 3
+index_stats.stored_count = 3
 results_count = 2
 distance >= 0
 score > 0
@@ -4168,7 +4299,7 @@ Expected hybrid fields:
 retrieval_backend = hybrid
 steps = query_analyzer -> query_rewriter -> hybrid_retrieve -> relevance_grade -> answer_with_citations
 retrieval_metadata.retrieval_backend = hybrid
-retrieval_metadata.total_chunks = 2
+retrieval_metadata.total_chunks = 3
 citations include knowledge/agent_basics.md::chunk-1
 ```
 
@@ -4188,7 +4319,7 @@ Expected Chroma fields:
 retrieval_backend = chroma
 steps = query_analyzer -> query_rewriter -> chroma_retrieve -> relevance_grade -> answer_with_citations
 retrieval_metadata.retrieval_backend = chroma
-retrieval_metadata.total_indexed_chunks = 2
+retrieval_metadata.total_indexed_chunks = 3
 retrieval_metadata.collection_name exists
 citations include knowledge/agent_basics.md::chunk-2
 ```
@@ -4473,9 +4604,9 @@ mv /tmp/agent_basics.md knowledge/agent_basics.md
 
 Next milestones:
 
-* Day41: semantic embedding evaluation on the extended RAG eval dataset
-* Day42: backend selection policy refinement based on semantic eval results
-* Later: production retrieval backend selection policy implementation, only after the policy is backed by stronger evaluation evidence
+* Day42: production retrieval backend selection policy implementation and config hardening
+* Day43: backend default-switch configuration, environment variables, and documentation hardening
+* Day44: optional backend report export or frontend-friendly report view
 * Later: Document upload and parsing pipeline
 * Later: GraphRAG and Neo4j integration
 * Later: Multi-Agent Supervisor workflow

@@ -13,13 +13,13 @@ Project 2 has officially started and is now the main development line.
 Current `agent-api` status:
 
 ```text
-Day1-Day40 completed.
-Day40 completed: Extended RAG evaluation dataset plus extended backend failure analysis and conservative selection policy refinement.
-Local pytest: 106 passed, 1 warning.
-Git commit: add extended rag backend failure analysis.
+Day1-Day41 completed.
+Day41 completed: Semantic embedding evaluation on the extended RAG eval dataset, semantic backend review analysis, and agent_graph_flow failure-case resolution.
+Local pytest: 108 passed, 1 warning.
+Git commit: clarify agent graph flow knowledge.
 Git push: success.
 GitHub Actions CI: green.
-Next: Day41 semantic embedding evaluation on the extended RAG eval dataset.
+Next: Day42 production retrieval backend selection policy implementation and config hardening.
 ```
 
 ## Day40 - Extended RAG Evaluation Dataset and Backend Failure Analysis
@@ -221,57 +221,295 @@ Completed:
 ✅ GitHub Actions CI: green
 ```
 
+## Day41 - Semantic Embedding Evaluation and Failure-case Review
+
+Day41 completed three stages:
+
+```text
+Stage 1:
+  Run the extended backend evaluation with the local sentence_transformers BCE embedding model.
+
+Stage 2:
+  Add a semantic backend review module and local review script.
+
+Stage 3:
+  Review and resolve the agent_graph_flow common failed case by clarifying Agent graph-flow knowledge.
+```
+
+### Day41 Stage 1 - Semantic Extended Backend Evaluation
+
+New file:
+
+```text
+scripts/validate_semantic_extended_backend_eval.py
+```
+
+Commit:
+
+```text
+86e0142 add semantic extended backend evaluation script
+```
+
+Configuration:
+
+```text
+eval_file = eval_cases/rag_agentic_eval_extended.jsonl
+embedding_provider = sentence_transformers
+embedding_model = /mnt/f/LLM/maidalun/bce-embedding-base_v1
+embedding_dim = 768
+backends = hybrid, chroma, chroma_rerank
+```
+
+Observed first semantic evaluation result:
+
+```text
+best_backend_by_pass_rate = chroma
+best_backend_by_average_relevance = chroma_rerank
+recommended_backend = chroma_rerank
+default_backend = hybrid
+default_backend_should_change = false
+selection_policy = keep_default_hybrid_until_failure_cases_are_reviewed
+eval_case_count = 12
+```
+
+Observed first semantic backend metrics:
+
+```text
+hybrid:
+  passed_cases = 10 / 12
+  pass_rate = 0.833333
+  average_relevance_score = 0.354141
+
+chroma:
+  passed_cases = 11 / 12
+  pass_rate = 0.916667
+  average_relevance_score = 0.519489
+
+chroma_rerank:
+  passed_cases = 11 / 12
+  pass_rate = 0.916667
+  average_relevance_score = 0.604476
+```
+
+Remaining blocker at that point:
+
+```text
+common_failed_cases = agent_graph_flow
+```
+
+### Day41 Stage 2 - Semantic Backend Review Analysis
+
+New / modified files:
+
+```text
+src/app/evaluation/semantic_review.py
+scripts/review_semantic_backend_eval_report.py
+tests/test_semantic_backend_review.py
+.gitignore
+```
+
+Commit:
+
+```text
+9dc3062 add semantic backend review analysis
+```
+
+Review output before fixing the failure case:
+
+```text
+review_decision = review_common_failure_cases_before_default_switch
+semantic_candidate_validated = true
+candidate_backend = chroma_rerank
+default_backend = hybrid
+common_failed_cases = agent_graph_flow
+blocking_reasons = Common failed cases must be reviewed before changing the default backend: agent_graph_flow.
+```
+
+Validation:
+
+```text
+pytest tests/test_semantic_backend_review.py -q
+2 passed, 1 warning
+
+pytest tests/test_semantic_backend_review.py \
+       tests/test_rag_backend_report.py \
+       tests/test_rag_backend_extended_analysis.py -q
+7 passed, 1 warning
+
+pytest -q
+108 passed, 1 warning
+```
+
+### Day41 Stage 3 - agent_graph_flow Failure-case Review
+
+Root cause:
+
+```text
+agent_graph_flow expected the terms start, tools, and end.
+The retrieved knowledge chunk did not previously state the tool-calling graph flow explicitly enough.
+This was a knowledge coverage / expected-term alignment problem, not a retrieval backend bug.
+```
+
+Knowledge update:
+
+```text
+knowledge/agent_basics.md
+```
+
+Added explicit graph-flow knowledge:
+
+```text
+START -> agent -> tools -> agent -> END
+```
+
+Test updates:
+
+```text
+tests/test_rag_backend_extended_analysis.py
+tests/test_rag_agentic_backend.py
+tests/test_rag_chroma_store.py
+tests/test_rag_vector_store.py
+tests/test_rag_backend_comparison_summary.py
+```
+
+Reason for test updates:
+
+```text
+Adding the Agent graph-flow paragraph changed the agent_basics chunk count from 2 to 3.
+Tests were updated to distinguish:
+  total_indexed_chunks / loaded_chunks / stored_count = current knowledge chunk count
+  top_k / results_count / retrieval_results_count = requested top_k result count
+```
+
+Observed final semantic evaluation after the knowledge fix:
+
+```text
+best_backend_by_pass_rate = chroma
+best_backend_by_average_relevance = chroma_rerank
+recommended_backend = chroma_rerank
+default_backend = hybrid
+default_backend_should_change = true
+selection_policy = candidate_backend_ready_for_default_switch
+eval_case_count = 12
+```
+
+Final semantic backend metrics:
+
+```text
+hybrid:
+  passed_cases = 11 / 12
+  pass_rate = 0.916667
+  average_relevance_score = 0.35149
+
+chroma:
+  passed_cases = 12 / 12
+  pass_rate = 1.0
+  average_relevance_score = 0.517869
+
+chroma_rerank:
+  passed_cases = 12 / 12
+  pass_rate = 1.0
+  average_relevance_score = 0.607509
+```
+
+Final failure analysis:
+
+```text
+common_failed_cases = []
+failure_count_by_backend:
+  hybrid = 1
+  chroma = 0
+  chroma_rerank = 0
+
+unique_failed_cases_by_backend:
+  hybrid = agent_definition
+  chroma = none
+  chroma_rerank = none
+```
+
+Final semantic review:
+
+```text
+review_decision = candidate_ready_for_default_switch_review
+semantic_candidate_validated = true
+candidate_backend = chroma_rerank
+default_backend = hybrid
+common_failed_cases = []
+blocking_reasons = []
+```
+
+Final validation:
+
+```text
+pytest tests/test_rag_agentic_backend.py \
+       tests/test_rag_chroma_store.py \
+       tests/test_rag_vector_store.py \
+       tests/test_rag_backend_comparison_summary.py \
+       tests/test_rag_backend_extended_analysis.py -q
+14 passed, 1 warning
+
+pytest -q
+108 passed, 1 warning
+
+GitHub Actions CI: green
+```
+
+### Day41 Checklist
+
+Completed:
+
+```text
+✅ Added semantic extended backend evaluation script
+✅ Ran extended evaluation with local BCE sentence-transformers embeddings
+✅ Added semantic backend review module
+✅ Added semantic review report script
+✅ Added semantic backend review tests
+✅ Ignored local reports/ artifacts
+✅ Confirmed chroma_rerank is validated as semantic candidate
+✅ Identified agent_graph_flow as the remaining common failed case
+✅ Added explicit START -> agent -> tools -> agent -> END knowledge
+✅ Re-ran semantic evaluation after the knowledge fix
+✅ Cleared common_failed_cases in semantic review
+✅ Confirmed final review_decision = candidate_ready_for_default_switch_review
+✅ Kept default retrieval backend as hybrid for now
+✅ Local pytest: 108 passed, 1 warning
+✅ GitHub Actions CI: green
+```
+
 ### Next Work
 
 Recommended next milestone:
 
 ```text
-Day41: Semantic embedding evaluation on the extended RAG eval dataset.
+Day42: Production retrieval backend selection policy implementation and config hardening.
 ```
 
-Day41 should do the following:
+Day42 should do the following:
 
 ```text
-1. Run /rag/backend-eval-debug with:
-   eval_file = eval_cases/rag_agentic_eval_extended.jsonl
-   embedding_provider = sentence_transformers
-   embedding_model = /mnt/f/LLM/maidalun/bce-embedding-base_v1
-   embedding_dim = 768
-   backends = hybrid, chroma, chroma_rerank
-
-2. Compare deterministic vs semantic extended-eval results.
-
-3. Check whether chroma_rerank still:
-   - stays in the top pass-rate group
-   - wins average_relevance_score
-   - reduces or preserves failed-case count
-
-4. Review common failed cases:
-   - agent_definition
-   - agent_graph_flow
-
-5. Decide whether failures come from:
-   - eval-case expected terms
-   - knowledge content coverage
-   - chunking
-   - query rewriting
-   - answer construction
-
-6. Keep default backend as hybrid unless semantic evaluation and failed-case review satisfy the conservative policy.
+1. Convert the Day39-Day41 selection policy into an explicit production decision layer.
+2. Keep hybrid as the safe runtime default unless config or review mode explicitly selects chroma_rerank.
+3. Add a retrieval backend policy/config module with conservative thresholds.
+4. Add tests for default behavior, opt-in chroma_rerank behavior, and policy-blocked behavior.
+5. Expose policy decision metadata in backend evaluation output or a dedicated debug/report path.
+6. Do not silently switch production default behavior without a tested config boundary.
 ```
 
 Likely follow-up milestones:
 
 ```text
-Day42:
-  Failed-case refinement for agent_definition and agent_graph_flow.
-
 Day43:
-  Backend selection policy thresholds and config hardening.
+  Backend default-switch configuration, environment variables, and documentation hardening.
 
 Day44:
   Optional backend report export or frontend-friendly report view.
+
+Later:
+  Document upload and parsing pipeline.
+  GraphRAG and Neo4j integration.
+  Multi-Agent Supervisor workflow.
 ```
+
 
 ## Project Goal
 
@@ -419,6 +657,10 @@ Current:
 - Extended eval dataset test for response and trace report behavior
 - Extended backend failure analysis in `evaluation_report.failure_analysis`
 - Conservative backend selection-policy evaluation in `evaluation_report.selection_policy_evaluation`
+- Semantic extended backend evaluation script
+- Semantic backend review analysis module
+- Semantic backend review markdown report generator
+- Agent graph-flow knowledge clarification with START -> agent -> tools -> agent -> END
 - pytest
 - GitHub Actions CI
 
@@ -442,7 +684,9 @@ agent-api/
 ├── requirements.txt
 ├── pytest.ini
 ├── scripts/
-│   └── validate_semantic_embedding_provider.py
+│   ├── validate_semantic_embedding_provider.py
+│   ├── validate_semantic_extended_backend_eval.py
+│   └── review_semantic_backend_eval_report.py
 ├── .env.example
 ├── .gitignore
 ├── .github/
@@ -491,7 +735,8 @@ agent-api/
 │   ├── DAY37.md
 │   ├── DAY38.md
 │   ├── DAY39.md
-│   └── DAY40.md
+│   ├── DAY40.md
+│   └── DAY41.md
 ├── knowledge/
 │   └── agent_basics.md
 ├── data/
@@ -518,7 +763,8 @@ agent-api/
 │       ├── evaluation/
 │       │   ├── __init__.py
 │       │   ├── rag_eval.py
-│       │   └── rag_report.py
+│       │   ├── rag_report.py
+│       │   └── semantic_review.py
 │       ├── observability/
 │       │   ├── __init__.py
 │       │   └── trace_store.py
@@ -588,6 +834,7 @@ agent-api/
 ├── test_rag_semantic_embedding_provider.py
 ├── test_rag_backend_report.py
 ├── test_rag_eval_extended_dataset.py
+├── test_semantic_backend_review.py
     ├── test_router_agent.py
     ├── test_router_delegation.py
     ├── test_router_stream.py
@@ -5895,9 +6142,9 @@ It has a typo: `langraph` should be `langgraph`. This does not affect code and d
 Recommended next route:
 
 ```text
-Day41: semantic embedding evaluation on the extended RAG eval dataset
-Day42: backend selection policy refinement based on semantic eval results
-Later: production retrieval backend selection policy implementation, only after the policy is backed by stronger evaluation evidence
+Day42: production retrieval backend selection policy implementation and config hardening
+Day43: backend default-switch configuration, environment variables, and documentation hardening
+Day44: optional backend report export or frontend-friendly report view
 Later: Document upload and parsing pipeline
 Later: GraphRAG + Neo4j + Multi-Agent Supervisor
 ```
@@ -6264,7 +6511,6 @@ Next:
 - [x] Day39 full local pytest
 - [x] Day39 GitHub Actions CI
 - [x] Day39 Git push
-
 Day40 completed:
 
 - [x] Day40 first stage Extended RAG evaluation dataset
@@ -6289,10 +6535,31 @@ Day40 completed:
 - [x] Day40 GitHub Actions CI: green
 - [x] Day40 Git push
 
+Day41 completed:
+
+- [x] Day41 semantic embedding evaluation on the extended RAG eval dataset
+- [x] Day41 local BCE sentence-transformers model validation
+- [x] Day41 `scripts/validate_semantic_extended_backend_eval.py`
+- [x] Day41 semantic extended backend comparison with `embedding_provider=sentence_transformers`
+- [x] Day41 semantic eval confirms `chroma_rerank` is in the top pass-rate group
+- [x] Day41 semantic eval confirms `chroma_rerank` has the best average relevance score
+- [x] Day41 `scripts/review_semantic_backend_eval_report.py`
+- [x] Day41 `src/app/evaluation/semantic_review.py`
+- [x] Day41 `tests/test_semantic_backend_review.py`
+- [x] Day41 semantic review result: `semantic_candidate_validated = true`
+- [x] Day41 semantic review result: `review_decision = candidate_ready_for_default_switch_review`
+- [x] Day41 resolved `agent_graph_flow` common failed case by clarifying `START -> agent -> tools -> agent -> END` in `knowledge/agent_basics.md`
+- [x] Day41 corrected tests after `agent_basics` chunk count changed from 2 to 3
+- [x] Day41 preserved `default_backend = hybrid`
+- [x] Day41 full local pytest: 108 passed, 1 warning
+- [x] Day41 GitHub Actions CI: green
+- [x] Day41 Git push
+
 Next:
 
-- [ ] Day41 semantic embedding evaluation on the extended RAG eval dataset
-- [ ] Re-run extended backend comparison with `embedding_provider=sentence_transformers`
-- [ ] Compare deterministic vs semantic backend metrics
-- [ ] Re-check `agent_definition` and `agent_graph_flow` common failed cases
-- [ ] Decide whether backend policy should stay conservative or prepare a controlled switch later
+- [ ] Day42 production retrieval backend selection policy implementation and config hardening
+- [ ] Convert the Day39-Day41 conservative selection policy into an explicit decision layer
+- [ ] Keep `hybrid` as the runtime default until backend-switch config and rollback behavior are explicit
+- [ ] Add configuration boundary for candidate/default backend decision
+- [ ] Add tests for default-switch readiness and conservative fallback behavior
+- [ ] Document the production-switch policy in README/HANDOFF
