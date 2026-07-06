@@ -38,3 +38,26 @@ class GraphExtractDebugResponse(BaseModel):
     entities: list[dict[str, Any]]
     relations: list[dict[str, Any]]
     counts: dict[str, Any]
+
+
+class GraphIngestDebugRequest(BaseModel):
+    source_filter: str | None = "agent_basics"
+    max_chars: int = 300
+    include_related_entities: bool = True
+    dry_run: bool = True
+    apply_schema: bool = True
+
+
+class GraphIngestDebugResponse(BaseModel):
+    trace_id: str
+    source_filter: str | None
+    max_chars: int
+    include_related_entities: bool
+    dry_run: bool
+    apply_schema: bool
+    extraction_counts: dict[str, Any]
+    documents: list[dict[str, Any]]
+    entities: list[dict[str, Any]]
+    relation_preview: list[dict[str, Any]]
+    plan: dict[str, Any]
+    execution: dict[str, Any]
