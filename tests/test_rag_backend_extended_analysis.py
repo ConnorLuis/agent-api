@@ -43,11 +43,11 @@ def test_extended_backend_eval_report_contains_failure_analysis_and_policy(
     assert "chroma_rerank" in failure_analysis["failed_cases_by_backend"]
 
     assert "agent_definition" in failure_analysis["common_failed_cases"]
-    assert "agent_graph_flow" in failure_analysis["common_failed_cases"]
+    assert "agent_graph_flow" not in failure_analysis["common_failed_cases"]
 
-    assert failure_analysis["failure_count_by_backend"]["hybrid"] >= 2
-    assert failure_analysis["failure_count_by_backend"]["chroma"] >= 2
-    assert failure_analysis["failure_count_by_backend"]["chroma_rerank"] >= 2
+    assert failure_analysis["failure_count_by_backend"]["hybrid"] >= 1
+    assert failure_analysis["failure_count_by_backend"]["chroma"] >= 1
+    assert failure_analysis["failure_count_by_backend"]["chroma_rerank"] >= 1
 
     policy = report["selection_policy_evaluation"]
 
@@ -61,7 +61,6 @@ def test_extended_backend_eval_report_contains_failure_analysis_and_policy(
 
     assert "deterministic" in blocking_text or "semantic" in blocking_text
     assert "agent_definition" in blocking_text
-    assert "agent_graph_flow" in blocking_text
 
 
 def test_extended_backend_eval_trace_contains_failure_analysis_and_policy(

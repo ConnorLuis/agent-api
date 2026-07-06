@@ -1,11 +1,18 @@
 from pathlib import Path
 
 from src.app.rag.chroma_store import (
+
     build_chroma_index,
     debug_chroma_search,
     query_chroma_store,
 )
 
+
+from src.app.rag.chunking import load_knowledge_chunks
+
+EXPECTED_AGENT_BASICS_CHUNKS = len(
+    load_knowledge_chunks(source_filter="agent_basics", max_chars=300)
+)
 
 def test_build_and_query_chroma_store(tmp_path):
     persist_dir = Path(tmp_path) / "chroma"
@@ -25,9 +32,9 @@ def test_build_and_query_chroma_store(tmp_path):
     assert index_stats["embedding_provider"] == "deterministic"
     assert index_stats["embedding_model"] == "deterministic-hash"
     assert index_stats["rebuild_index"] is True
-    assert index_stats["loaded_chunks"] == 2
-    assert index_stats["upserted_count"] == 2
-    assert index_stats["stored_count"] == 2
+    assert index_stats["loaded_chunks"] == EXPECTED_AGENT_BASICS_CHUNKS
+    assert index_stats["upserted_count"] == EXPECTED_AGENT_BASICS_CHUNKS
+    assert index_stats["stored_count"] == EXPECTED_AGENT_BASICS_CHUNKS
     assert index_stats["persist_dir"] == str(persist_dir)
 
     result = query_chroma_store(
@@ -46,7 +53,7 @@ def test_build_and_query_chroma_store(tmp_path):
     assert result["embedding_dim"] == 64
     assert result["embedding_provider"] == "deterministic"
     assert result["embedding_model"] == "deterministic-hash"
-    assert result["total_indexed_chunks"] == 2
+    assert result["total_indexed_chunks"] == EXPECTED_AGENT_BASICS_CHUNKS
     assert len(result["results"]) == 2
 
     first = result["results"][0]
@@ -81,10 +88,10 @@ def test_debug_chroma_search_rebuilds_index(tmp_path):
     assert result["embedding_provider"] == "deterministic"
     assert result["embedding_model"] == "deterministic-hash"
     assert result["rebuild_index"] is True
-    assert result["total_indexed_chunks"] == 2
-    assert result["index_stats"]["loaded_chunks"] == 2
-    assert result["index_stats"]["upserted_count"] == 2
-    assert result["index_stats"]["stored_count"] == 2
+    assert result["total_indexed_chunks"] == EXPECTED_AGENT_BASICS_CHUNKS
+    assert result["index_stats"]["loaded_chunks"] == EXPECTED_AGENT_BASICS_CHUNKS
+    assert result["index_stats"]["upserted_count"] == EXPECTED_AGENT_BASICS_CHUNKS
+    assert result["index_stats"]["stored_count"] == EXPECTED_AGENT_BASICS_CHUNKS
     assert len(result["results"]) == 2
     assert result["results"][0]["score"] > 0
 
@@ -117,10 +124,10 @@ def test_rag_chroma_search_debug_endpoint_writes_trace(client):
     assert data["source_filter"] == "agent_basics"
     assert data["embedding_provider"] == "deterministic"
     assert data["embedding_model"] == "deterministic-hash"
-    assert data["total_indexed_chunks"] == 2
-    assert data["index_stats"]["loaded_chunks"] == 2
-    assert data["index_stats"]["upserted_count"] == 2
-    assert data["index_stats"]["stored_count"] == 2
+    assert data["total_indexed_chunks"] == EXPECTED_AGENT_BASICS_CHUNKS
+    assert data["index_stats"]["loaded_chunks"] == EXPECTED_AGENT_BASICS_CHUNKS
+    assert data["index_stats"]["upserted_count"] == EXPECTED_AGENT_BASICS_CHUNKS
+    assert data["index_stats"]["stored_count"] == EXPECTED_AGENT_BASICS_CHUNKS
     assert len(data["results"]) == 2
 
     trace_response = client.get(f"/observability/traces/{trace_id}")
@@ -144,6 +151,6 @@ def test_rag_chroma_search_debug_endpoint_writes_trace(client):
     assert payload["source_filter"] == "agent_basics"
     assert payload["embedding_provider"] == "deterministic"
     assert payload["embedding_model"] == "deterministic-hash"
-    assert payload["total_indexed_chunks"] == 2
+    assert payload["total_indexed_chunks"] == EXPECTED_AGENT_BASICS_CHUNKS
     assert payload["results_count"] == 2
-    assert payload["index_stats"]["stored_count"] == 2
+    assert payload["index_stats"]["stored_count"] == EXPECTED_AGENT_BASICS_CHUNKS

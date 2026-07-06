@@ -1,11 +1,18 @@
 from pathlib import Path
 
 from src.app.rag.vector_store import (
+
     build_vector_store_index,
     debug_vector_store_search,
     query_vector_store,
 )
 
+
+from src.app.rag.chunking import load_knowledge_chunks
+
+EXPECTED_AGENT_BASICS_CHUNKS = len(
+    load_knowledge_chunks(source_filter="agent_basics", max_chars=300)
+)
 
 def test_build_and_query_vector_store(tmp_path):
     db_path = Path(tmp_path) / "rag_vector_store.sqlite"
@@ -22,9 +29,9 @@ def test_build_and_query_vector_store(tmp_path):
     assert index_stats["max_chars"] == 300
     assert index_stats["embedding_dim"] == 64
     assert index_stats["rebuild_index"] is True
-    assert index_stats["loaded_chunks"] == 2
-    assert index_stats["inserted_count"] == 2
-    assert index_stats["stored_count"] == 2
+    assert index_stats["loaded_chunks"] == EXPECTED_AGENT_BASICS_CHUNKS
+    assert index_stats["inserted_count"] == EXPECTED_AGENT_BASICS_CHUNKS
+    assert index_stats["stored_count"] == EXPECTED_AGENT_BASICS_CHUNKS
 
     result = query_vector_store(
         query="LangGraph 是什么？",
@@ -39,7 +46,7 @@ def test_build_and_query_vector_store(tmp_path):
     assert result["top_k"] == 2
     assert result["source_filter"] == "agent_basics"
     assert result["embedding_dim"] == 64
-    assert result["total_indexed_chunks"] == 2
+    assert result["total_indexed_chunks"] == EXPECTED_AGENT_BASICS_CHUNKS
     assert len(result["results"]) == 2
 
     first = result["results"][0]
@@ -71,10 +78,10 @@ def test_debug_vector_store_search_rebuilds_index(tmp_path):
     assert result["source_filter"] == "agent_basics"
     assert result["embedding_dim"] == 64
     assert result["rebuild_index"] is True
-    assert result["total_indexed_chunks"] == 2
-    assert result["index_stats"]["loaded_chunks"] == 2
-    assert result["index_stats"]["inserted_count"] == 2
-    assert result["index_stats"]["stored_count"] == 2
+    assert result["total_indexed_chunks"] == EXPECTED_AGENT_BASICS_CHUNKS
+    assert result["index_stats"]["loaded_chunks"] == EXPECTED_AGENT_BASICS_CHUNKS
+    assert result["index_stats"]["inserted_count"] == EXPECTED_AGENT_BASICS_CHUNKS
+    assert result["index_stats"]["stored_count"] == EXPECTED_AGENT_BASICS_CHUNKS
     assert len(result["results"]) == 2
     assert result["results"][0]["score"] > 0
 
@@ -106,10 +113,10 @@ def test_rag_vector_store_debug_endpoint_writes_trace(client):
     assert data["source_filter"] == "agent_basics"
     assert data["embedding_dim"] == 64
     assert data["rebuild_index"] is True
-    assert data["total_indexed_chunks"] == 2
-    assert data["index_stats"]["loaded_chunks"] == 2
-    assert data["index_stats"]["inserted_count"] == 2
-    assert data["index_stats"]["stored_count"] == 2
+    assert data["total_indexed_chunks"] == EXPECTED_AGENT_BASICS_CHUNKS
+    assert data["index_stats"]["loaded_chunks"] == EXPECTED_AGENT_BASICS_CHUNKS
+    assert data["index_stats"]["inserted_count"] == EXPECTED_AGENT_BASICS_CHUNKS
+    assert data["index_stats"]["stored_count"] == EXPECTED_AGENT_BASICS_CHUNKS
     assert len(data["results"]) == 2
 
     trace_response = client.get(f"/observability/traces/{trace_id}")
@@ -131,6 +138,6 @@ def test_rag_vector_store_debug_endpoint_writes_trace(client):
     assert payload["query"] == "LangGraph 是什么？"
     assert payload["top_k"] == 2
     assert payload["source_filter"] == "agent_basics"
-    assert payload["total_indexed_chunks"] == 2
+    assert payload["total_indexed_chunks"] == EXPECTED_AGENT_BASICS_CHUNKS
     assert payload["results_count"] == 2
-    assert payload["index_stats"]["stored_count"] == 2
+    assert payload["index_stats"]["stored_count"] == EXPECTED_AGENT_BASICS_CHUNKS

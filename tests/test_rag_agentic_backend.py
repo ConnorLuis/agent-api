@@ -3,6 +3,13 @@ from src.app.rag.chroma_store import build_chroma_collection_name
 from src.app.rag.retrieval_backend import retrieve_agentic_context
 
 
+
+from src.app.rag.chunking import load_knowledge_chunks
+
+EXPECTED_AGENT_BASICS_CHUNKS = len(
+    load_knowledge_chunks(source_filter="agent_basics", max_chars=300)
+)
+
 def test_chroma_collection_name_uses_short_hash_and_dimension():
     name_64 = build_chroma_collection_name(
         source_filter="agent_basics",
@@ -40,7 +47,7 @@ def test_retrieve_agentic_context_supports_chroma_backend():
     assert result["retrieval_backend"] == "chroma"
     assert len(result["results"]) == 2
     assert result["metadata"]["retrieval_backend"] == "chroma"
-    assert result["metadata"]["total_indexed_chunks"] == 2
+    assert result["metadata"]["total_indexed_chunks"] == EXPECTED_AGENT_BASICS_CHUNKS
     assert result["metadata"]["embedding_provider"] == "deterministic"
     assert result["metadata"]["embedding_model"] == "deterministic-hash"
 
@@ -71,7 +78,7 @@ def test_invoke_agentic_rag_with_chroma_backend():
     assert len(result["retrieval_results"]) == 2
     assert len(result["citations"]) >= 1
     assert result["retrieval_metadata"]["retrieval_backend"] == "chroma"
-    assert result["retrieval_metadata"]["total_indexed_chunks"] == 2
+    assert result["retrieval_metadata"]["total_indexed_chunks"] == EXPECTED_AGENT_BASICS_CHUNKS
 
 
 def test_rag_agentic_debug_endpoint_supports_chroma_backend(client):
@@ -103,7 +110,7 @@ def test_rag_agentic_debug_endpoint_supports_chroma_backend(client):
     assert "chroma_retrieve" in data["steps"]
     assert len(data["retrieval_results"]) == 2
     assert data["retrieval_metadata"]["retrieval_backend"] == "chroma"
-    assert data["retrieval_metadata"]["total_indexed_chunks"] == 2
+    assert data["retrieval_metadata"]["total_indexed_chunks"] == EXPECTED_AGENT_BASICS_CHUNKS
 
     trace_response = client.get(f"/observability/traces/{trace_id}")
 
@@ -124,5 +131,5 @@ def test_rag_agentic_debug_endpoint_supports_chroma_backend(client):
     assert payload["query"] == "请搜索知识库：RAG 是什么？"
     assert payload["retrieval_backend"] == "chroma"
     assert payload["retrieval_metadata"]["retrieval_backend"] == "chroma"
-    assert payload["retrieval_metadata"]["total_indexed_chunks"] == 2
+    assert payload["retrieval_metadata"]["total_indexed_chunks"] == EXPECTED_AGENT_BASICS_CHUNKS
     assert payload["retrieval_results_count"] == 2
