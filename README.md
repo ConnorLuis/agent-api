@@ -2,18 +2,19 @@
 
 `agent-api` is a FastAPI + LangGraph backend project for building an Agent service step by step.
 
-This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent, SQLite-based short-term memory, graph debug output, request tracing, LLM provider abstraction, a real Ollama-backed LLM Tool Calling Agent path, SSE streaming endpoints, a lightweight local RAG search tool, a RAG search-debug endpoint with explainability metadata, a deterministic Router Agent that delegates calculator and RAG routes to the existing Agent graph, a Router Agent SSE streaming endpoint, an initial LLM Router Agent endpoint with mock and Ollama router providers, a Smart Chat endpoint as a future unified Agent entry point preview, a Smart Chat SSE streaming endpoint, route validation metadata for Router and Smart Chat paths, and a RAG chunk pipeline debug endpoint for vector DB preparation, a deterministic RAG vector-search debug endpoint, a hybrid retrieval debug endpoint that combines keyword and vector signals, an Agentic RAG debug graph with query analysis, query rewriting, hybrid retrieval, relevance grading, citation-aware answers, an Agentic RAG SSE streaming endpoint, an Agentic RAG answer verification debug endpoint, a SQLite-backed vector store debug layer for real vector database preparation, an EmbeddingProvider abstraction layer with an embedding debug endpoint, a Chroma-backed persistent vector store debug endpoint, an Agentic RAG retrieval backend switch that supports both hybrid and Chroma backends, and a backend-aware RAG evaluation comparison layer for hybrid-vs-Chroma metrics, refined backend comparison metrics, backend-aware Agentic RAG SSE streaming alignment, a reranker-ready retrieval backend extension with `chroma_rerank`, pairwise backend metric deltas for multi-backend comparison, a multi-backend-aware comparison summary, local semantic embedding provider validation with a CI-safe fallback, and a backend evaluation report layer that converts raw backend metrics into engineering selection guidance, with observability trace payload alignment for that report, and an extended RAG evaluation dataset for less tiny backend comparison signals.
+This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent, SQLite-based short-term memory, graph debug output, request tracing, LLM provider abstraction, a real Ollama-backed LLM Tool Calling Agent path, SSE streaming endpoints, a lightweight local RAG search tool, a RAG search-debug endpoint with explainability metadata, a deterministic Router Agent that delegates calculator and RAG routes to the existing Agent graph, a Router Agent SSE streaming endpoint, an initial LLM Router Agent endpoint with mock and Ollama router providers, a Smart Chat endpoint as a future unified Agent entry point preview, a Smart Chat SSE streaming endpoint, route validation metadata for Router and Smart Chat paths, and a RAG chunk pipeline debug endpoint for vector DB preparation, a deterministic RAG vector-search debug endpoint, a hybrid retrieval debug endpoint that combines keyword and vector signals, an Agentic RAG debug graph with query analysis, query rewriting, hybrid retrieval, relevance grading, citation-aware answers, an Agentic RAG SSE streaming endpoint, an Agentic RAG answer verification debug endpoint, a SQLite-backed vector store debug layer for real vector database preparation, an EmbeddingProvider abstraction layer with an embedding debug endpoint, a Chroma-backed persistent vector store debug endpoint, an Agentic RAG retrieval backend switch that supports both hybrid and Chroma backends, and a backend-aware RAG evaluation comparison layer for hybrid-vs-Chroma metrics, refined backend comparison metrics, backend-aware Agentic RAG SSE streaming alignment, a reranker-ready retrieval backend extension with `chroma_rerank`, pairwise backend metric deltas for multi-backend comparison, a multi-backend-aware comparison summary, local semantic embedding provider validation with a CI-safe fallback, and a backend evaluation report layer that converts raw backend metrics into engineering selection guidance, with observability trace payload alignment for that report, an extended RAG evaluation dataset for less tiny backend comparison signals, and Day40 failure-analysis plus selection-policy evaluation for conservative backend decisions.
 
 ## Current Status
 
 ```text
-Day1-Day40 first stage completed.
-Current stage: Extended RAG evaluation dataset completed.
-Local pytest: 104 passed, 1 warning.
-Git commit: 3792cac add extended rag evaluation dataset.
+Day1-Day40 completed.
+Current stage: Day40 completed.
+Day40 completed: Extended RAG evaluation dataset plus extended backend failure analysis and conservative selection policy refinement.
+Local pytest: 106 passed, 1 warning.
+Git commit: add extended rag backend failure analysis.
 Git push: success.
 GitHub Actions CI: green.
-Next milestone: Day40 second stage extended backend evaluation analysis and selection policy refinement.
+Next milestone: Day41 semantic embedding evaluation on the extended RAG eval dataset.
 ```
 
 ## Features
@@ -43,6 +44,8 @@ Current features:
 * `/rag/eval-debug` RAG evaluation debug endpoint
 * `/rag/backend-eval-debug` RAG backend evaluation comparison endpoint
 * Extended RAG evaluation dataset with 12 cases through `eval_cases/rag_agentic_eval_extended.jsonl`
+* Extended backend failure analysis through `evaluation_report.failure_analysis`
+* Conservative backend selection-policy evaluation through `evaluation_report.selection_policy_evaluation`
 * `/observability/traces/{trace_id}` trace event lookup endpoint
 * `/observability/traces` recent trace list endpoint
 * `/agent/router-chat` deterministic Router Agent chat endpoint
@@ -119,8 +122,8 @@ Current features:
 * Extended evaluation validates `evaluation_report.eval_case_count = 12` and removes the small/tiny eval-set caveat
 * `/rag/backend-eval-debug` returns `evaluation_report`
 * `rag_backend_eval_debug` trace payload records `evaluation_report`
-* Evaluation report fields: `recommended_backend`, `recommendation_reason`, `default_backend_should_change`, `metric_highlights`, `risk_notes`, and `backend_rank_summary`
-* Backend selection policy keeps `hybrid` as the default until larger eval data validates switching
+* Evaluation report fields: `recommended_backend`, `recommendation_reason`, `default_backend_should_change`, `metric_highlights`, `risk_notes`, `failure_analysis`, `selection_policy_evaluation`, and `backend_rank_summary`
+* Backend selection policy keeps `hybrid` as the default until semantic embedding evaluation and failed-case review validate switching
 * Local semantic embedding validation for `sentence_transformers` with `/mnt/f/LLM/maidalun/bce-embedding-base_v1`
 * Day38 semantic embedding validation script: `scripts/validate_semantic_embedding_provider.py`
 * CI-safe semantic embedding provider test: `tests/test_rag_semantic_embedding_provider.py`
@@ -264,8 +267,8 @@ agent-api/
 │   ├── DAY36.md
 │   ├── DAY37.md
 │   ├── DAY38.md
-│   └── DAY39.md
-│       # Note: docs/DAY40.md has not been generated yet; Day40 is currently recorded in README/HANDOFF.
+│   ├── DAY39.md
+│   └── DAY40.md
 ├── knowledge/
 │   └── agent_basics.md
 ├── data/
@@ -1129,7 +1132,7 @@ This turns RAG from a single retrieval call into a controllable workflow that ca
 
 ## Current RAG Evaluation Architecture
 
-Day25 added a RAG evaluation debug layer. Day33 upgraded it into a backend-aware evaluation layer. Day34 refined the backend comparison output. Day36 extended metric deltas from first-vs-second comparison to pairwise multi-backend comparison. Day37 made `comparison_summary` multi-backend-aware. Day39 added an engineering-facing `evaluation_report` layer for backend selection guidance and aligned that report with the `rag_backend_eval_debug` trace payload. Day40 first stage added an extended 12-case RAG evaluation dataset so backend comparison is no longer limited to the original tiny 3-case regression set.
+Day25 added a RAG evaluation debug layer. Day33 upgraded it into a backend-aware evaluation layer. Day34 refined the backend comparison output. Day36 extended metric deltas from first-vs-second comparison to pairwise multi-backend comparison. Day37 made `comparison_summary` multi-backend-aware. Day39 added an engineering-facing `evaluation_report` layer for backend selection guidance and aligned that report with the `rag_backend_eval_debug` trace payload. Day40 first stage added an extended 12-case RAG evaluation dataset so backend comparison is no longer limited to the original tiny 3-case regression set. Day40 second stage added failure analysis and selection-policy evaluation so backend comparison can explain failed cases and conservative default-switch blockers.
 
 ```text
 eval_cases/rag_agentic_eval.jsonl
@@ -1168,6 +1171,8 @@ tests/test_rag_backend_pairwise_eval.py
 tests/test_rag_backend_comparison_summary.py
 tests/test_rag_backend_report.py
 tests/test_rag_eval_extended_dataset.py
+tests/test_rag_backend_extended_analysis.py
+tests/test_rag_backend_extended_analysis.py
 ```
 
 Current endpoints:
@@ -1205,6 +1210,8 @@ pairwise_metric_deltas
 case_comparisons
 comparison_summary
 evaluation_report
+evaluation_report.failure_analysis
+evaluation_report.selection_policy_evaluation
 ```
 
 Compatibility behavior:
@@ -1335,7 +1342,7 @@ The `rag_backend_eval_debug` trace event now includes the refined multi-backend 
 
 ## Current Extended RAG Evaluation Dataset
 
-Day40 first stage added an extended RAG evaluation dataset while keeping the original tiny eval set for fast regression checks.
+Day40 added an extended RAG evaluation dataset and then used it for backend failure analysis and conservative backend selection-policy refinement.
 
 Current extended eval file:
 
@@ -1343,10 +1350,11 @@ Current extended eval file:
 eval_cases/rag_agentic_eval_extended.jsonl
 ```
 
-Current extended eval test file:
+Current extended eval tests:
 
 ```text
 tests/test_rag_eval_extended_dataset.py
+tests/test_rag_backend_extended_analysis.py
 ```
 
 Design:
@@ -1354,11 +1362,11 @@ Design:
 ```text
 Default eval set:
   eval_cases/rag_agentic_eval.jsonl
-  3 cases, fast CI regression signal
+  3 cases, fast CI regression signal.
 
 Extended eval set:
   eval_cases/rag_agentic_eval_extended.jsonl
-  12 cases, broader backend comparison signal
+  12 cases, broader backend comparison signal.
 ```
 
 The extended dataset covers:
@@ -1406,14 +1414,57 @@ chroma_rerank:
   average_relevance_score = 0.529049
 ```
 
-Observed Day40 report result:
+Observed Day40 phase 2 report result:
 
 ```text
 evaluation_report.eval_case_count = 12
 recommended_backend = chroma_rerank
 default_backend = hybrid
 default_backend_should_change = false
-selection_policy = keep_default_hybrid_until_larger_eval_set
+selection_policy = keep_default_hybrid_until_semantic_eval
+```
+
+Observed failure analysis:
+
+```text
+common_failed_cases:
+  - agent_definition
+  - agent_graph_flow
+
+failure_count_by_backend:
+  hybrid = 2
+  chroma = 3
+  chroma_rerank = 2
+
+unique_failed_cases_by_backend:
+  chroma = langgraph_definition
+  hybrid = none
+  chroma_rerank = none
+```
+
+Observed selection-policy evaluation:
+
+```text
+candidate_backend = chroma_rerank
+default_backend = hybrid
+pass_rate_winners = hybrid, chroma_rerank
+best_relevance_backend = chroma_rerank
+default_backend_should_change = false
+```
+
+Supporting reasons:
+
+```text
+chroma_rerank is in the top pass-rate group.
+chroma_rerank has the best average relevance score.
+The extended eval set has 12 cases, so it is no longer treated as a tiny regression-only eval set.
+```
+
+Blocking reasons:
+
+```text
+The run uses deterministic embeddings; semantic embedding validation is required before switching the default backend.
+Common failed cases must be reviewed before changing the default backend: agent_definition, agent_graph_flow.
 ```
 
 Important interpretation:
@@ -1421,7 +1472,9 @@ Important interpretation:
 ```text
 The extended eval set removes the small/tiny eval-set caveat from the report.
 The deterministic embedding caveat remains, because deterministic embeddings are CI-safe but do not represent real semantic embedding quality.
-`chroma_rerank` remains the best experiment candidate by average relevance score, while `hybrid` remains the default backend until a stronger policy and semantic evaluation validate switching.
+The common failed cases show that some failures are not backend-specific; they likely require reviewing eval case design, knowledge content, chunking, query rewriting, or answer construction.
+chroma_rerank remains the strongest experiment candidate by average relevance score.
+The default backend remains hybrid until semantic embedding evaluation and failure-case review justify a production switch.
 ```
 
 Example extended backend comparison request:
@@ -1429,11 +1482,33 @@ Example extended backend comparison request:
 ```bash
 curl -s -X POST http://localhost:8000/rag/backend-eval-debug \
   -H "Content-Type: application/json" \
-  -H "x-trace-id: day40-extended-eval-manual-001" \
+  -H "x-trace-id: day40-extended-analysis-manual-001" \
   -d '{"eval_file":"eval_cases/rag_agentic_eval_extended.jsonl","backends":["hybrid","chroma","chroma_rerank"],"source_filter":"agent_basics","max_chars":300,"embedding_dim":64,"keyword_weight":0.6,"vector_weight":0.4,"embedding_provider":"deterministic","rebuild_index":true}' \
   | python -m json.tool --no-ensure-ascii
 ```
 
+Trace lookup:
+
+```bash
+curl -s http://localhost:8000/observability/traces/day40-extended-analysis-manual-001 \
+  | python -m json.tool --no-ensure-ascii
+```
+
+Expected trace payload fields:
+
+```text
+payload.evaluation_report.failure_analysis
+payload.evaluation_report.selection_policy_evaluation
+payload.evaluation_report.default_backend_should_change = false
+```
+
+Next work:
+
+```text
+Day41 should run the extended backend evaluation with the local sentence_transformers BCE embedding provider.
+Day41 should compare deterministic vs semantic evaluation behavior before any default backend switch.
+Day41 should keep the default backend as hybrid unless semantic evaluation and failure-case review satisfy the selection policy.
+```
 
 ## Current Observability Trace Store Architecture
 
@@ -2420,7 +2495,7 @@ SentenceTransformersEmbeddingProvider.__init__():
 
 ## Current Backend Evaluation Report Architecture
 
-Day39 added a backend evaluation report layer on top of the existing backend comparison output, then aligned that report with the observability trace payload.
+Day39 added a backend evaluation report layer on top of the existing backend comparison output and aligned that report with the observability trace payload. Day40 extended the report with failure analysis and selection-policy evaluation based on the 12-case extended eval set.
 
 ```text
 /rag/backend-eval-debug
@@ -2465,74 +2540,102 @@ evaluation_report.recommendation_reason
 evaluation_report.default_backend
 evaluation_report.default_backend_should_change
 evaluation_report.selection_policy
+evaluation_report.selection_policy_evaluation
 evaluation_report.embedding_provider
 evaluation_report.embedding_model
 evaluation_report.eval_file
 evaluation_report.eval_case_count
 evaluation_report.metric_highlights
 evaluation_report.risk_notes
+evaluation_report.failure_analysis
 evaluation_report.backend_rank_summary
 evaluation_report.interpretation
 ```
 
-The `rag_backend_eval_debug` trace payload now also records:
+The `rag_backend_eval_debug` trace payload records the same report-level decision fields:
 
 ```text
 payload.evaluation_report.recommended_backend
 payload.evaluation_report.default_backend_should_change
 payload.evaluation_report.risk_notes
 payload.evaluation_report.backend_rank_summary
+payload.evaluation_report.failure_analysis
+payload.evaluation_report.selection_policy_evaluation
 ```
 
-Observed Day39 deterministic evaluation report:
+Current conservative selection policy:
+
+```text
+policy_name = pass_rate_first_relevance_tiebreak_conservative
+
+A candidate backend must:
+  1. be in the top pass-rate group
+  2. have strong relevance-score evidence
+  3. be evaluated on a non-tiny eval set
+  4. pass semantic embedding validation before production switching
+  5. have common failed cases reviewed before production switching
+```
+
+Observed Day40 deterministic evaluation report:
 
 ```text
 recommended_backend = chroma_rerank
 default_backend = hybrid
 default_backend_should_change = false
-selection_policy = keep_default_hybrid_until_larger_eval_set
+selection_policy = keep_default_hybrid_until_semantic_eval
 embedding_provider = deterministic
-eval_case_count = 3
+eval_case_count = 12
 ```
 
-Observed Day39 backend ranking:
+Observed Day40 backend ranking:
 
 ```text
 chroma_rerank:
-  pass_rate = 1.0
-  average_relevance_score = 0.394302
+  pass_rate = 0.833333
+  average_relevance_score = 0.529049
+  passed_cases = 10 / 12
   strength = recommended candidate on current evaluation
 
 hybrid:
-  pass_rate = 1.0
-  average_relevance_score = 0.278223
+  pass_rate = 0.833333
+  average_relevance_score = 0.407461
+  passed_cases = 10 / 12
   strength = top pass-rate group
 
 chroma:
-  pass_rate = 0.666667
-  average_relevance_score = 0.279233
+  pass_rate = 0.75
+  average_relevance_score = 0.412151
+  passed_cases = 9 / 12
   strength = comparison backend
 ```
 
-Observed Day39 trace alignment:
+Observed Day40 failure analysis:
 
 ```text
-trace_id = day39-backend-report-trace-manual-001
+common_failed_cases = agent_definition, agent_graph_flow
+unique_failed_cases_by_backend.chroma = langgraph_definition
+failure_count_by_backend.hybrid = 2
+failure_count_by_backend.chroma = 3
+failure_count_by_backend.chroma_rerank = 2
+```
+
+Observed Day40 trace alignment:
+
+```text
+trace_id = day40-extended-analysis-manual-001
 event_type = rag_backend_eval_debug
-payload.evaluation_report.recommended_backend = chroma_rerank
+payload.evaluation_report.failure_analysis exists
+payload.evaluation_report.selection_policy_evaluation exists
 payload.evaluation_report.default_backend_should_change = false
-payload.evaluation_report.risk_notes exists
 ```
 
-Important Day39 interpretation:
+Important Day40 interpretation:
 
 ```text
-chroma_rerank is recommended as an experiment candidate on the current tiny deterministic eval set.
-The default backend should remain hybrid until a larger and more representative eval set validates a production switch.
-Deterministic embeddings are CI-safe but do not represent real semantic embedding quality.
-The recommendation is now visible both in the API response and in the observability trace payload.
+chroma_rerank is recommended as an experiment candidate because it ties hybrid on pass_rate and wins average_relevance_score.
+The default backend should remain hybrid because the current run uses deterministic embeddings and still has common failed cases across all evaluated backends.
+The recommendation is visible both in the API response and in the observability trace payload.
 ```
-
 
 ## Request Tracing
 
@@ -4370,8 +4473,9 @@ mv /tmp/agent_basics.md knowledge/agent_basics.md
 
 Next milestones:
 
-* Day40 second stage: extended backend evaluation analysis and selection policy refinement
-* Day41: production retrieval backend selection policy implementation, only after the policy is backed by stronger evaluation evidence
+* Day41: semantic embedding evaluation on the extended RAG eval dataset
+* Day42: backend selection policy refinement based on semantic eval results
+* Later: production retrieval backend selection policy implementation, only after the policy is backed by stronger evaluation evidence
 * Later: Document upload and parsing pipeline
 * Later: GraphRAG and Neo4j integration
 * Later: Multi-Agent Supervisor workflow

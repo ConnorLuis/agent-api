@@ -13,16 +13,28 @@ Project 2 has officially started and is now the main development line.
 Current `agent-api` status:
 
 ```text
-Day1-Day40 first stage completed.
-Day40 first stage completed: Extended RAG evaluation dataset.
-Local pytest: 104 passed, 1 warning.
-Git commit: 3792cac add extended rag evaluation dataset.
+Day1-Day40 completed.
+Day40 completed: Extended RAG evaluation dataset plus extended backend failure analysis and conservative selection policy refinement.
+Local pytest: 106 passed, 1 warning.
+Git commit: add extended rag backend failure analysis.
 Git push: success.
 GitHub Actions CI: green.
-Next: Day40 second stage extended backend evaluation analysis and selection policy refinement.
+Next: Day41 semantic embedding evaluation on the extended RAG eval dataset.
 ```
 
-## Day40 First Stage - Extended RAG Evaluation Dataset
+## Day40 - Extended RAG Evaluation Dataset and Backend Failure Analysis
+
+Day40 has two completed stages:
+
+```text
+Stage 1:
+  Add an extended 12-case RAG eval dataset while keeping the original 3-case default eval set for fast regression tests.
+
+Stage 2:
+  Add extended backend failure analysis and conservative backend selection-policy evaluation to the backend evaluation report.
+```
+
+### Day40 First Stage - Extended RAG Evaluation Dataset
 
 Day40 first stage expands the backend evaluation dataset without replacing the original default regression dataset.
 
@@ -80,13 +92,101 @@ chroma_rerank:
   average_relevance_score = 0.529049
 ```
 
-Observed evaluation report:
+### Day40 Second Stage - Extended Backend Failure Analysis
+
+Day40 second stage upgrades the engineering report from "which backend looks best" to "why the candidate is recommended and why the default should or should not change."
+
+New / modified files:
+
+```text
+src/app/evaluation/rag_report.py
+tests/test_rag_backend_extended_analysis.py
+tests/test_observability.py
+```
+
+New report fields:
+
+```text
+evaluation_report.failure_analysis
+evaluation_report.selection_policy_evaluation
+```
+
+Validation:
+
+```text
+pytest tests/test_rag_backend_extended_analysis.py -q
+2 passed, 1 warning
+
+pytest tests/test_rag_eval_extended_dataset.py \
+       tests/test_rag_backend_report.py \
+       tests/test_rag_backend_extended_analysis.py -q
+8 passed, 1 warning
+
+pytest -q
+106 passed, 1 warning
+```
+
+Observed Day40 phase 2 report:
 
 ```text
 recommended_backend = chroma_rerank
 default_backend = hybrid
 default_backend_should_change = false
-selection_policy = keep_default_hybrid_until_larger_eval_set
+selection_policy = keep_default_hybrid_until_semantic_eval
+eval_case_count = 12
+```
+
+Observed failure analysis:
+
+```text
+common_failed_cases:
+  - agent_definition
+  - agent_graph_flow
+
+failure_count_by_backend:
+  hybrid = 2
+  chroma = 3
+  chroma_rerank = 2
+
+unique_failed_cases_by_backend:
+  chroma = langgraph_definition
+  hybrid = none
+  chroma_rerank = none
+```
+
+Observed selection-policy evaluation:
+
+```text
+candidate_backend = chroma_rerank
+default_backend = hybrid
+pass_rate_winners = hybrid, chroma_rerank
+best_relevance_backend = chroma_rerank
+default_backend_should_change = false
+```
+
+Supporting reasons:
+
+```text
+chroma_rerank is in the top pass-rate group.
+chroma_rerank has the best average relevance score.
+The extended eval set has 12 cases, so it is no longer treated as a tiny regression-only eval set.
+```
+
+Blocking reasons:
+
+```text
+The run uses deterministic embeddings; semantic embedding validation is required before switching the default backend.
+Common failed cases must be reviewed before changing the default backend: agent_definition, agent_graph_flow.
+```
+
+Trace validation:
+
+```text
+trace_id = day40-extended-analysis-manual-001
+event_type = rag_backend_eval_debug
+payload.evaluation_report.failure_analysis exists
+payload.evaluation_report.selection_policy_evaluation exists
+payload.evaluation_report.default_backend_should_change = false
 ```
 
 Interpretation:
@@ -94,18 +194,12 @@ Interpretation:
 ```text
 The extended dataset removes the small/tiny eval-set risk note because the eval case count is now 12.
 The deterministic embedding caveat remains.
-`chroma_rerank` remains the strongest experiment candidate by average relevance score.
-The default backend should still remain `hybrid` until Day40 second stage defines a stronger backend selection policy.
+The common failed cases show that some failures are not backend-specific; they likely require reviewing eval case design, knowledge content, chunking, query rewriting, or answer construction.
+chroma_rerank remains the strongest experiment candidate by average relevance score.
+The default backend should remain hybrid until semantic embedding evaluation and common failed-case review justify a production switch.
 ```
 
-Next phase:
-
-```text
-Day40 second stage should analyze the extended backend result, identify failed cases, and refine the backend selection policy without prematurely switching the production default.
-```
-
-
-## Day40 First Stage Checklist
+### Day40 Checklist
 
 Completed:
 
@@ -117,10 +211,67 @@ Completed:
 ✅ Verified evaluation_report.eval_case_count = 12
 ✅ Verified deterministic embedding caveat remains
 ✅ Verified small/tiny eval-set caveat is removed for extended eval
-✅ Local pytest: 104 passed, 1 warning
+✅ Added evaluation_report.failure_analysis
+✅ Added evaluation_report.selection_policy_evaluation
+✅ Verified common_failed_cases = agent_definition, agent_graph_flow
+✅ Verified unique_failed_cases_by_backend.chroma = langgraph_definition
+✅ Verified default backend remains hybrid
+✅ Verified trace payload contains failure_analysis and selection_policy_evaluation
+✅ Local pytest: 106 passed, 1 warning
 ✅ GitHub Actions CI: green
 ```
 
+### Next Work
+
+Recommended next milestone:
+
+```text
+Day41: Semantic embedding evaluation on the extended RAG eval dataset.
+```
+
+Day41 should do the following:
+
+```text
+1. Run /rag/backend-eval-debug with:
+   eval_file = eval_cases/rag_agentic_eval_extended.jsonl
+   embedding_provider = sentence_transformers
+   embedding_model = /mnt/f/LLM/maidalun/bce-embedding-base_v1
+   embedding_dim = 768
+   backends = hybrid, chroma, chroma_rerank
+
+2. Compare deterministic vs semantic extended-eval results.
+
+3. Check whether chroma_rerank still:
+   - stays in the top pass-rate group
+   - wins average_relevance_score
+   - reduces or preserves failed-case count
+
+4. Review common failed cases:
+   - agent_definition
+   - agent_graph_flow
+
+5. Decide whether failures come from:
+   - eval-case expected terms
+   - knowledge content coverage
+   - chunking
+   - query rewriting
+   - answer construction
+
+6. Keep default backend as hybrid unless semantic evaluation and failed-case review satisfy the conservative policy.
+```
+
+Likely follow-up milestones:
+
+```text
+Day42:
+  Failed-case refinement for agent_definition and agent_graph_flow.
+
+Day43:
+  Backend selection policy thresholds and config hardening.
+
+Day44:
+  Optional backend report export or frontend-friendly report view.
+```
 
 ## Project Goal
 
@@ -266,6 +417,8 @@ Current:
 - `/rag/backend-eval-debug` response-level `evaluation_report`
 - `rag_backend_eval_debug` trace payload includes `evaluation_report`
 - Extended eval dataset test for response and trace report behavior
+- Extended backend failure analysis in `evaluation_report.failure_analysis`
+- Conservative backend selection-policy evaluation in `evaluation_report.selection_policy_evaluation`
 - pytest
 - GitHub Actions CI
 
@@ -337,8 +490,8 @@ agent-api/
 │   ├── DAY36.md
 │   ├── DAY37.md
 │   ├── DAY38.md
-│   └── DAY39.md
-│       # Note: docs/DAY40.md has not been generated yet; Day40 is currently recorded in README/HANDOFF.
+│   ├── DAY39.md
+│   └── DAY40.md
 ├── knowledge/
 │   └── agent_basics.md
 ├── data/
@@ -5742,8 +5895,9 @@ It has a typo: `langraph` should be `langgraph`. This does not affect code and d
 Recommended next route:
 
 ```text
-Day40 second stage: extended backend evaluation analysis and selection policy refinement
-Day41: production retrieval backend selection policy implementation, only after the policy is backed by stronger evaluation evidence
+Day41: semantic embedding evaluation on the extended RAG eval dataset
+Day42: backend selection policy refinement based on semantic eval results
+Later: production retrieval backend selection policy implementation, only after the policy is backed by stronger evaluation evidence
 Later: Document upload and parsing pipeline
 Later: GraphRAG + Neo4j + Multi-Agent Supervisor
 ```
@@ -6111,7 +6265,7 @@ Next:
 - [x] Day39 GitHub Actions CI
 - [x] Day39 Git push
 
-Next:
+Day40 completed:
 
 - [x] Day40 first stage Extended RAG evaluation dataset
 - [x] Day40 `eval_cases/rag_agentic_eval_extended.jsonl`
@@ -6121,12 +6275,24 @@ Next:
 - [x] Day40 `evaluation_report.eval_case_count = 12`
 - [x] Day40 extended report removes small/tiny eval-set caveat
 - [x] Day40 extended trace payload includes `evaluation_report`
+- [x] Day40 second stage extended backend failure analysis
+- [x] Day40 `evaluation_report.failure_analysis`
+- [x] Day40 `evaluation_report.selection_policy_evaluation`
+- [x] Day40 common failed cases identified: `agent_definition`, `agent_graph_flow`
+- [x] Day40 backend-specific disagreement identified: `chroma` fails `langgraph_definition` while `hybrid` and `chroma_rerank` pass
+- [x] Day40 conservative policy keeps `default_backend = hybrid`
+- [x] Day40 `default_backend_should_change = false`
+- [x] Day40 `selection_policy = keep_default_hybrid_until_semantic_eval`
 - [x] Day40 focused extended eval tests
 - [x] Day40 backend evaluation related tests
-- [x] Day40 full local pytest
-- [x] Day40 GitHub Actions CI
+- [x] Day40 full local pytest: 106 passed, 1 warning
+- [x] Day40 GitHub Actions CI: green
 - [x] Day40 Git push
 
 Next:
 
-- [ ] Day40 second stage extended backend evaluation analysis and selection policy refinement
+- [ ] Day41 semantic embedding evaluation on the extended RAG eval dataset
+- [ ] Re-run extended backend comparison with `embedding_provider=sentence_transformers`
+- [ ] Compare deterministic vs semantic backend metrics
+- [ ] Re-check `agent_definition` and `agent_graph_flow` common failed cases
+- [ ] Decide whether backend policy should stay conservative or prepare a controlled switch later
