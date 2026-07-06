@@ -128,7 +128,7 @@ def test_eval_debug_writes_observability_trace_and_list(client):
     assert payload["metrics"]["total_cases"] == 3
     assert payload["metrics"]["pass_rate"] == 1.0
 
-    list_response = client.get("/observability/traces?limit=10")
+    list_response = client.get("/observability/traces?limit=100")
 
     assert list_response.status_code == 200
 
