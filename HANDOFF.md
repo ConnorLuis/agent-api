@@ -13,13 +13,13 @@ Project 2 has officially started and is now the main development line.
 Current `agent-api` status:
 
 ```text
-Day1-Day43 completed.
-Day43 completed: Deterministic Entity / Relation extraction over existing knowledge chunks.
-Local pytest: 122 passed, 1 warning.
-Git commit: 775a6ef add deterministic graph extraction debug.
+Day1-Day44 completed.
+Day44 completed: Neo4j graph ingestion debug boundary and live seed-graph ingestion verification.
+Local pytest: 129 passed, 1 warning.
+Git commit: c6af3c5 add neo4j graph ingestion debug.
 Git push: success.
 GitHub Actions CI: green.
-Next: Day44 Graph ingestion.
+Next: Day45 Graph retrieval debug.
 ```
 
 ## Strategic Project Positioning and Locked Roadmap
@@ -110,7 +110,7 @@ Day43:
   Completed Entity / Relation extraction
 
 Day44:
-  Graph ingestion
+  Completed Graph ingestion
 
 Day45:
   Graph retrieval debug
@@ -281,10 +281,11 @@ Future Day planning rules:
 2. Do not continue polishing VectorRAG selection policy before GraphRAG.
 3. Day42 has started GraphRAG + Neo4j environment and schema.
 4. Day43 has completed deterministic Entity / Relation extraction.
-5. Day44 should continue with Graph ingestion into Neo4j.
-6. Keep agent-api focused on Agentic RAG / GraphRAG / Multi-Agent.
-7. Keep chat-api focused on production LLM Gateway / Chat Backend engineering.
-8. Do not duplicate GraphRAG or Multi-Agent work in chat-api.
+5. Day44 has completed Graph ingestion into Neo4j.
+6. Day45 should continue with Graph retrieval debug over the ingested seed graph.
+7. Keep agent-api focused on Agentic RAG / GraphRAG / Multi-Agent.
+8. Keep chat-api focused on production LLM Gateway / Chat Backend engineering.
+9. Do not duplicate GraphRAG or Multi-Agent work in chat-api.
 ```
 
 
@@ -951,15 +952,15 @@ Completed:
 
 ### Next Work
 
-Day43 has now been completed.
+Day44 has now been completed.
 
 Recommended next milestone:
 
 ```text
-Day44: Graph ingestion.
+Day45: Graph retrieval debug.
 ```
 
-Day44 should consume the Day43 extraction output and write the graph seed data into Neo4j through a CI-safe ingestion boundary.
+Day45 should query the Day44 Neo4j seed graph and return explainable graph retrieval metadata without fusing GraphRAG with VectorRAG yet.
 
 
 ## Day43 - Entity / Relation Extraction
@@ -992,6 +993,8 @@ src/app/routes/routes_graph.py
 src/app/schemas/graph.py
 tests/test_graph_extraction.py
 tests/test_graph_extract_debug.py
+tests/test_graph_ingestion.py
+tests/test_graph_ingest_debug.py
 ```
 
 New endpoint:
@@ -1190,36 +1193,375 @@ Completed:
 
 ### Next Work
 
+Day44 has now been completed.
+
 Recommended next milestone:
 
 ```text
-Day44: Graph ingestion.
+Day45: Graph retrieval debug.
 ```
 
-Day44 should do the following:
+Day45 should do the following:
 
 ```text
-1. Add a Neo4j ingestion module that consumes Day43 extraction output.
-2. Apply schema constraints / indexes in a controlled helper.
-3. Upsert Document, Chunk, and Entity nodes.
-4. Upsert HAS_CHUNK, NEXT_CHUNK, MENTIONS, and RELATED_TO relationships.
-5. Add /graph/ingest-debug or equivalent debug endpoint.
-6. Keep CI-safe tests mocked or connection-skipped by default.
-7. Manually verify live Neo4j ingestion locally.
-8. Do not connect Agentic RAG to GraphRAG yet.
+1. Add a Neo4j graph retrieval module over the Day44 seed graph.
+2. Match query entities against ingested Entity nodes.
+3. Retrieve chunks connected through MENTIONS.
+4. Retrieve related entities connected through RELATED_TO.
+5. Return explainable graph retrieval metadata.
+6. Add /graph/retrieval-debug or equivalent debug endpoint.
+7. Keep CI-safe tests mocked or connection-skipped by default.
+8. Manually verify live Neo4j graph retrieval locally.
+9. Do not fuse GraphRAG with VectorRAG yet.
+10. Do not connect Agentic RAG to GraphRAG yet.
 ```
 
 Likely follow-up milestones:
 
 ```text
-Day45:
-  Graph retrieval debug.
-
 Day46:
   GraphRAG + VectorRAG fusion.
 
 Day47:
   Agentic RAG connects to GraphRAG.
+
+Day48:
+  GraphRAG evaluation.
+```
+
+
+## Day44 - Graph Ingestion
+
+Day44 completes the first Neo4j write path for the GraphRAG stage.
+
+Scope:
+
+```text
+Day44 intentionally builds only the graph ingestion boundary:
+  - Neo4j ingestion module
+  - ingestion planning
+  - schema constraint / index application helper
+  - Document / Chunk / Entity node upserts
+  - HAS_CHUNK / NEXT_CHUNK / MENTIONS / RELATED_TO relationship upserts
+  - /graph/ingest-debug
+  - CI-safe dry-run tests
+  - local live Neo4j ingestion verification
+
+Day44 does not:
+  - retrieve from Neo4j
+  - fuse GraphRAG with VectorRAG
+  - connect Agentic RAG to GraphRAG
+  - change the current default retrieval backend
+```
+
+New / modified files:
+
+```text
+src/app/graph/ingestion.py
+src/app/routes/routes_graph.py
+src/app/schemas/graph.py
+tests/test_graph_ingestion.py
+tests/test_graph_ingest_debug.py
+```
+
+New endpoint:
+
+```text
+POST /graph/ingest-debug
+```
+
+Core ingestion functions:
+
+```text
+get_graph_ingestion_cypher_templates()
+build_graph_ingestion_plan()
+apply_graph_schema_constraints_and_indexes()
+execute_graph_ingestion()
+run_graph_ingestion_debug()
+```
+
+Ingestion pipeline:
+
+```text
+/graph/ingest-debug
+  ↓
+run_graph_ingestion_debug()
+  ↓
+extract_graph_items()
+  ↓
+build_graph_ingestion_plan()
+  ├── dry_run=true  -> return CI-safe plan only
+  └── dry_run=false -> execute_graph_ingestion() -> Neo4j
+```
+
+Schema application:
+
+```text
+CREATE CONSTRAINT document_source_unique IF NOT EXISTS
+CREATE CONSTRAINT chunk_id_unique IF NOT EXISTS
+CREATE CONSTRAINT entity_identity_unique IF NOT EXISTS
+CREATE INDEX chunk_source_index IF NOT EXISTS
+CREATE INDEX entity_name_index IF NOT EXISTS
+CREATE INDEX entity_type_index IF NOT EXISTS
+```
+
+Node upsert strategy:
+
+```text
+Document:
+  MERGE (d:Document {source: doc.source})
+
+Chunk:
+  MERGE (c:Chunk {chunk_id: chunk.chunk_id})
+
+Entity:
+  MERGE (e:Entity {normalized_name: entity.normalized_name, type: entity.type})
+```
+
+Relationship upsert strategy:
+
+```text
+HAS_CHUNK:
+  MATCH Document by document_id
+  MATCH Chunk by chunk_id
+  MERGE Document -> Chunk
+
+NEXT_CHUNK:
+  MATCH source Chunk by chunk_id
+  MATCH target Chunk by chunk_id
+  MERGE source Chunk -> target Chunk
+
+MENTIONS:
+  MATCH Chunk by chunk_id
+  MATCH Entity by entity_id
+  MERGE Chunk -> Entity
+
+RELATED_TO:
+  MATCH source Entity by entity_id
+  MATCH target Entity by entity_id
+  MERGE source Entity -> target Entity
+```
+
+Dry-run validation result:
+
+```text
+trace_id = day44-graph-ingest-dry-run-001
+dry_run = true
+apply_schema = true
+execution.status = dry_run
+
+extraction_counts:
+  documents = 1
+  chunks = 3
+  entities = 5
+  relations = 29
+
+plan.node_counts:
+  Document = 1
+  Chunk = 3
+  Entity = 5
+
+plan.relationship_counts:
+  HAS_CHUNK = 3
+  NEXT_CHUNK = 2
+  MENTIONS = 10
+  RELATED_TO = 14
+
+plan.schema_statement_count = 6
+plan.total_node_upserts = 9
+plan.total_relationship_upserts = 29
+```
+
+Live Neo4j health check before ingestion:
+
+```text
+trace_id = day44-neo4j-health-before-ingest-001
+connection.ok = true
+connection.status = connected
+connection.settings.uri = bolt://localhost:7687
+connection.settings.database = neo4j
+connection.settings.enabled = true
+connection.settings.password_configured = true
+```
+
+Live ingestion result:
+
+```text
+trace_id = day44-graph-ingest-live-001
+dry_run = false
+apply_schema = true
+execution.ok = true
+execution.status = ingested
+execution.schema.applied_statement_count = 6
+
+node_upsert_attempts:
+  Document = 1
+  Chunk = 3
+  Entity = 5
+
+relationship_upsert_attempts:
+  HAS_CHUNK = 3
+  NEXT_CHUNK = 2
+  MENTIONS = 10
+  RELATED_TO = 14
+
+total_node_upsert_attempts = 9
+total_relationship_upsert_attempts = 29
+```
+
+Neo4j Browser validation:
+
+```text
+MATCH (n)
+RETURN labels(n) AS labels, count(n) AS count
+ORDER BY labels;
+```
+
+Observed node counts:
+
+```text
+Chunk = 3
+Document = 1
+Entity = 5
+```
+
+```text
+MATCH ()-[r]->()
+RETURN type(r) AS type, count(r) AS count
+ORDER BY type;
+```
+
+Observed relationship counts:
+
+```text
+HAS_CHUNK = 3
+MENTIONS = 10
+NEXT_CHUNK = 2
+RELATED_TO = 10
+```
+
+Important relationship-count interpretation:
+
+```text
+The extraction output contains 14 RELATED_TO records.
+The live Neo4j graph stores 10 RELATED_TO edges because the current upsert
+MERGE key is the entity pair, not the source evidence chunk.
+
+Current behavior:
+  one Entity -> Entity edge per unique entity pair.
+
+Potential future improvement:
+  preserve evidence per chunk through evidence_sources or evidence relationships.
+
+This does not block Day44 because Day44's target is a stable seed graph ingestion
+boundary, not evidence-level graph retrieval yet.
+```
+
+Validation:
+
+```text
+pytest tests/test_graph_ingestion.py tests/test_graph_ingest_debug.py -q
+7 passed, 1 warning
+
+pytest tests/test_graph_schema.py \
+       tests/test_graph_debug.py \
+       tests/test_graph_extraction.py \
+       tests/test_graph_extract_debug.py \
+       tests/test_graph_ingestion.py \
+       tests/test_graph_ingest_debug.py -q
+21 passed, 1 warning
+
+pytest -q
+129 passed, 1 warning
+```
+
+Commit:
+
+```text
+c6af3c5 add neo4j graph ingestion debug
+```
+
+Git push:
+
+```text
+success
+```
+
+GitHub Actions CI:
+
+```text
+green
+```
+
+### Day44 Checklist
+
+Completed:
+
+```text
+✅ Added Neo4j ingestion module
+✅ Reused Day43 extraction output
+✅ Added ingestion planning helper
+✅ Added controlled schema constraint / index application helper
+✅ Added Document node upsert
+✅ Added Chunk node upsert
+✅ Added Entity node upsert
+✅ Added HAS_CHUNK relationship upsert
+✅ Added NEXT_CHUNK relationship upsert
+✅ Added MENTIONS relationship upsert
+✅ Added RELATED_TO relationship upsert
+✅ Added /graph/ingest-debug
+✅ Kept /graph/ingest-debug dry_run=true by default
+✅ Added CI-safe ingestion tests
+✅ Added graph ingest debug endpoint tests
+✅ Verified dry-run ingestion plan
+✅ Verified live Neo4j health check
+✅ Verified live Neo4j ingestion
+✅ Verified Neo4j node counts in Browser
+✅ Verified Neo4j relationship counts in Browser
+✅ Verified Day44 did not modify src/app/rag or src/app/agent
+✅ Verified Day44 did not connect Agentic RAG to GraphRAG
+✅ Local Day44 tests: 7 passed, 1 warning
+✅ Local GraphRAG related tests: 21 passed, 1 warning
+✅ Full local pytest: 129 passed, 1 warning
+✅ Git commit: c6af3c5 add neo4j graph ingestion debug
+✅ Git push: success
+✅ GitHub Actions CI: green
+```
+
+### Next Work
+
+Recommended next milestone:
+
+```text
+Day45: Graph retrieval debug.
+```
+
+Day45 should do the following:
+
+```text
+1. Add a Neo4j graph retrieval module over the Day44 ingested seed graph.
+2. Query matched entities from a user query.
+3. Retrieve chunks that mention matched entities.
+4. Retrieve related entities through RELATED_TO.
+5. Return explainable graph retrieval metadata.
+6. Add /graph/retrieval-debug or equivalent debug endpoint.
+7. Keep CI-safe tests mocked or connection-skipped by default.
+8. Manually verify live Neo4j graph retrieval locally.
+9. Do not fuse GraphRAG with VectorRAG yet.
+10. Do not connect Agentic RAG to GraphRAG yet.
+```
+
+Likely follow-up milestones:
+
+```text
+Day46:
+  GraphRAG + VectorRAG fusion.
+
+Day47:
+  Agentic RAG connects to GraphRAG.
+
+Day48:
+  GraphRAG evaluation.
 ```
 
 
@@ -1366,6 +1708,8 @@ Current:
 - `/graph/health-debug`
 - Deterministic Entity / Relation extraction
 - `/graph/extract-debug`
+- `/graph/ingest-debug`
+- Neo4j graph ingestion debug boundary
 - Local BCE embedding model path: `/mnt/f/LLM/maidalun/bce-embedding-base_v1`
 - CI-safe semantic provider test that skips when the local model path is unavailable
 - Day38 validation script for semantic provider, Chroma, Agentic RAG, and backend comparison
@@ -1389,7 +1733,6 @@ Not yet implemented:
 - Replacing `/agent/chat` with the real LLM Agent as the default route
 - Making Smart Chat the default production entry point
 - Document upload and parsing pipeline
-- Graph ingestion into Neo4j
 - Graph retrieval and GraphRAG + VectorRAG fusion
 - Multi-Agent Supervisor
 
@@ -1700,6 +2043,7 @@ POST /rag/backend-eval-debug
 GET /graph/schema-debug
 GET /graph/health-debug
 POST /graph/extract-debug
+POST /graph/ingest-debug
 GET /observability/traces/{trace_id}
 GET /observability/traces
 ```
@@ -2057,7 +2401,7 @@ Do not put source-controlled knowledge files under data/, because data/ is runti
 
 ## Current GraphRAG / Neo4j Strategy
 
-Day42 added the initial GraphRAG + Neo4j foundation. Day43 added deterministic Entity / Relation extraction over the existing knowledge chunks.
+Day42 added the initial GraphRAG + Neo4j foundation. Day43 added deterministic Entity / Relation extraction over the existing knowledge chunks. Day44 added a Neo4j ingestion boundary that consumes the extraction output and writes the seed graph into Neo4j.
 
 Current graph files:
 
@@ -2066,12 +2410,15 @@ src/app/graph/__init__.py
 src/app/graph/schema.py
 src/app/graph/neo4j_client.py
 src/app/graph/extraction.py
+src/app/graph/ingestion.py
 src/app/routes/routes_graph.py
 src/app/schemas/graph.py
 tests/test_graph_schema.py
 tests/test_graph_debug.py
 tests/test_graph_extraction.py
 tests/test_graph_extract_debug.py
+tests/test_graph_ingestion.py
+tests/test_graph_ingest_debug.py
 ```
 
 Current GraphRAG schema version:
@@ -2113,6 +2460,7 @@ GET /graph/schema-debug
 GET /graph/health-debug
 GET /graph/health-debug?check_connection=true
 POST /graph/extract-debug
+POST /graph/ingest-debug
 ```
 
 Current Neo4j client strategy:
@@ -2121,13 +2469,6 @@ Current Neo4j client strategy:
 Default /graph/health-debug is CI-safe and does not connect to Neo4j.
 Manual live connection validation only happens when check_connection=true.
 The returned settings expose password_configured but never expose the password value.
-```
-
-Manual local Neo4j validation was successful:
-
-```text
-connection.ok = true
-connection.status = connected
 ```
 
 Current extraction strategy:
@@ -2146,43 +2487,159 @@ deterministic relation extraction
 Document / Chunk / Entity / Relation debug payload
 ```
 
-Current extracted entities over `knowledge/agent_basics.md`:
+Current ingestion strategy:
 
 ```text
-Agent
-RAG
-LangGraph
-Tool
-Memory
+/graph/ingest-debug
+  ↓
+run_graph_ingestion_debug()
+  ↓
+extract_graph_items()
+  ↓
+build_graph_ingestion_plan()
+  ├── dry_run=true  -> CI-safe plan, no Neo4j write
+  └── dry_run=false -> execute_graph_ingestion() -> Neo4j upserts
 ```
 
-Current extracted relations:
+Ingestion applies schema statements when `apply_schema=true`:
 
 ```text
+Document source unique constraint
+Chunk chunk_id unique constraint
+Entity normalized_name + type unique constraint
+Chunk source index
+Entity name index
+Entity type index
+```
+
+Current upsert behavior:
+
+```text
+Document:
+  MERGE by source.
+
+Chunk:
+  MERGE by chunk_id.
+
+Entity:
+  MERGE by normalized_name + type.
+
 HAS_CHUNK:
-  Document -> Chunk
+  MERGE Document -> Chunk.
 
 NEXT_CHUNK:
-  Chunk -> next Chunk
+  MERGE Chunk -> next Chunk.
 
 MENTIONS:
-  Chunk -> Entity
+  MERGE Chunk -> Entity.
 
 RELATED_TO:
-  Entity -> Entity through same-chunk co-occurrence
+  MERGE Entity -> Entity.
+```
+
+Observed Day44 dry-run ingestion plan:
+
+```text
+documents = 1
+chunks = 3
+entities = 5
+relations = 29
+
+node_counts:
+  Document = 1
+  Chunk = 3
+  Entity = 5
+
+relationship_counts:
+  HAS_CHUNK = 3
+  NEXT_CHUNK = 2
+  MENTIONS = 10
+  RELATED_TO = 14
+
+schema_statement_count = 6
+total_node_upserts = 9
+total_relationship_upserts = 29
+execution.status = dry_run
+```
+
+Observed Day44 live ingestion result:
+
+```text
+dry_run = false
+execution.ok = true
+execution.status = ingested
+execution.schema.applied_statement_count = 6
+
+node_upsert_attempts:
+  Document = 1
+  Chunk = 3
+  Entity = 5
+
+relationship_upsert_attempts:
+  HAS_CHUNK = 3
+  NEXT_CHUNK = 2
+  MENTIONS = 10
+  RELATED_TO = 14
+```
+
+Observed Neo4j Browser node counts after live ingestion:
+
+```text
+Chunk = 3
+Document = 1
+Entity = 5
+```
+
+Observed Neo4j Browser relationship counts after live ingestion:
+
+```text
+HAS_CHUNK = 3
+MENTIONS = 10
+NEXT_CHUNK = 2
+RELATED_TO = 10
+```
+
+Important relationship-count note:
+
+```text
+The Day43 extraction output contains 14 RELATED_TO relation records.
+The Day44 live graph stores 10 RELATED_TO edges because the current Cypher
+MERGE key is the entity pair: (source Entity)-[:RELATED_TO]->(target Entity).
+Repeated same entity-pair co-occurrences collapse into one stored relationship.
+This is acceptable for Day44's seed graph ingestion boundary. If future retrieval
+needs per-chunk evidence, improve RELATED_TO to store evidence_sources or an
+evidence relationship model.
+```
+
+Day44 validation:
+
+```text
+pytest tests/test_graph_ingestion.py tests/test_graph_ingest_debug.py -q
+7 passed, 1 warning
+
+pytest tests/test_graph_schema.py \
+       tests/test_graph_debug.py \
+       tests/test_graph_extraction.py \
+       tests/test_graph_extract_debug.py \
+       tests/test_graph_ingestion.py \
+       tests/test_graph_ingest_debug.py -q
+21 passed, 1 warning
+
+pytest -q
+129 passed, 1 warning
+
+GitHub Actions CI: green
 ```
 
 Important:
 
 ```text
-Day43 does not write to Neo4j.
-Day43 does not retrieve from Neo4j.
-Day43 does not connect Agentic RAG to GraphRAG.
-Day44 should implement Graph ingestion into Neo4j using the Day43 extraction output.
+Day44 writes the seed graph into Neo4j, but it still does not retrieve from Neo4j.
+Day44 does not fuse GraphRAG with VectorRAG.
+Day44 does not connect Agentic RAG to GraphRAG.
+The default Agentic RAG retrieval backend remains unchanged.
+Day45 should implement graph retrieval debug over the ingested Neo4j graph.
 ```
-
-
----
 
 ## Current Router Agent Strategy
 
@@ -7466,12 +7923,14 @@ Day43 completed:
 
 Next:
 
-- [ ] Day44 Graph ingestion
-- [ ] Add Neo4j ingestion module that consumes Day43 extraction output
-- [ ] Add controlled schema constraint / index application helper
-- [ ] Upsert `Document`, `Chunk`, and `Entity` nodes
-- [ ] Upsert `HAS_CHUNK`, `NEXT_CHUNK`, `MENTIONS`, and `RELATED_TO` relationships
-- [ ] Add `/graph/ingest-debug` or equivalent debug endpoint
+- [ ] Day45 Graph retrieval debug
+- [ ] Add Neo4j graph retrieval module over the Day44 seed graph
+- [ ] Match query entities against ingested Entity nodes
+- [ ] Retrieve chunks connected through MENTIONS
+- [ ] Retrieve related entities connected through RELATED_TO
+- [ ] Return explainable graph retrieval metadata
+- [ ] Add /graph/retrieval-debug or equivalent debug endpoint
 - [ ] Keep CI-safe tests mocked or connection-skipped by default
-- [ ] Manually verify live Neo4j ingestion locally
+- [ ] Manually verify live Neo4j graph retrieval locally
+- [ ] Do not fuse GraphRAG with VectorRAG yet
 - [ ] Do not connect Agentic RAG to GraphRAG yet
