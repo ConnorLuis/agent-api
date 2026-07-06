@@ -25,3 +25,6 @@ data/
 *.sqlite-shm
 *.sqlite-wal
 *.sqlite-journal
+
+# Local evaluation reports
+reports/
