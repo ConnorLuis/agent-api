@@ -3,6 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Request
 
 from src.app.graph import ingestion as graph_ingestion
+from src.app.graph import retrieval as graph_retrieval
 from src.app.graph.extraction import extract_graph_items
 from src.app.graph.neo4j_client import (
     check_neo4j_connection,
@@ -15,6 +16,8 @@ from src.app.schemas.graph import (
     GraphHealthDebugResponse,
     GraphIngestDebugRequest,
     GraphIngestDebugResponse,
+    GraphRetrievalDebugRequest,
+    GraphRetrievalDebugResponse,
     GraphSchemaDebugResponse,
 )
 
@@ -94,4 +97,22 @@ def graph_ingest_debug(
     return {
         "trace_id": _resolve_trace_id(request),
         **ingestion,
+    }
+
+
+@router.post("/retrieval-debug", response_model=GraphRetrievalDebugResponse)
+def graph_retrieval_debug(
+    payload: GraphRetrievalDebugRequest,
+    request: Request,
+) -> dict:
+    retrieval = graph_retrieval.run_graph_retrieval_debug(
+        query=payload.query,
+        chunk_limit=payload.chunk_limit,
+        related_entity_limit=payload.related_entity_limit,
+        dry_run=payload.dry_run,
+    )
+
+    return {
+        "trace_id": _resolve_trace_id(request),
+        **retrieval,
     }

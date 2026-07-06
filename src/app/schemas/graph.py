@@ -61,3 +61,21 @@ class GraphIngestDebugResponse(BaseModel):
     relation_preview: list[dict[str, Any]]
     plan: dict[str, Any]
     execution: dict[str, Any]
+
+
+class GraphRetrievalDebugRequest(BaseModel):
+    query: str
+    chunk_limit: int = 5
+    related_entity_limit: int = 10
+    dry_run: bool = True
+
+
+class GraphRetrievalDebugResponse(BaseModel):
+    trace_id: str
+    query: str
+    chunk_limit: int
+    related_entity_limit: int
+    dry_run: bool
+    query_entity_matches: list[dict[str, Any]]
+    plan: dict[str, Any]
+    execution: dict[str, Any]
