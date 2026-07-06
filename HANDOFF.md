@@ -13,13 +13,13 @@ Project 2 has officially started and is now the main development line.
 Current `agent-api` status:
 
 ```text
-Day1-Day42 completed.
-Day42 completed: GraphRAG + Neo4j environment and schema foundation.
-Local pytest: 115 passed, 1 warning.
-Git commit: 8963760 add graph schema and neo4j health debug.
+Day1-Day43 completed.
+Day43 completed: Deterministic Entity / Relation extraction over existing knowledge chunks.
+Local pytest: 122 passed, 1 warning.
+Git commit: 775a6ef add deterministic graph extraction debug.
 Git push: success.
-GitHub Actions CI: not shown in provided Day42 log; confirm from Actions.
-Next: Day43 Entity / Relation extraction.
+GitHub Actions CI: green.
+Next: Day44 Graph ingestion.
 ```
 
 ## Strategic Project Positioning and Locked Roadmap
@@ -107,7 +107,7 @@ Day42:
   Completed Neo4j environment and schema.
 
 Day43:
-  Entity / Relation extraction
+  Completed Entity / Relation extraction
 
 Day44:
   Graph ingestion
@@ -280,10 +280,11 @@ Future Day planning rules:
 1. Before generating Day42 or later tasks, check this roadmap first.
 2. Do not continue polishing VectorRAG selection policy before GraphRAG.
 3. Day42 has started GraphRAG + Neo4j environment and schema.
-4. Day43 should continue with Entity / Relation extraction.
-5. Keep agent-api focused on Agentic RAG / GraphRAG / Multi-Agent.
-6. Keep chat-api focused on production LLM Gateway / Chat Backend engineering.
-7. Do not duplicate GraphRAG or Multi-Agent work in chat-api.
+4. Day43 has completed deterministic Entity / Relation extraction.
+5. Day44 should continue with Graph ingestion into Neo4j.
+6. Keep agent-api focused on Agentic RAG / GraphRAG / Multi-Agent.
+7. Keep chat-api focused on production LLM Gateway / Chat Backend engineering.
+8. Do not duplicate GraphRAG or Multi-Agent work in chat-api.
 ```
 
 
@@ -950,31 +951,267 @@ Completed:
 
 ### Next Work
 
+Day43 has now been completed.
+
 Recommended next milestone:
 
 ```text
-Day43: Entity / Relation extraction.
+Day44: Graph ingestion.
 ```
 
-Day43 should do the following:
+Day44 should consume the Day43 extraction output and write the graph seed data into Neo4j through a CI-safe ingestion boundary.
+
+
+## Day43 - Entity / Relation Extraction
+
+Day43 adds a deterministic GraphRAG extraction layer over the existing Markdown knowledge chunks.
+
+Scope:
 
 ```text
-1. Add a deterministic entity extraction module for knowledge chunks.
-2. Add a deterministic relation extraction module for simple domain relations.
-3. Reuse the existing Markdown chunk pipeline from `src/app/rag/chunking.py`.
-4. Return extraction debug metadata without writing to Neo4j yet.
-5. Add `/graph/extract-debug` or an equivalent debug endpoint.
-6. Add tests for entity extraction, relation extraction, and endpoint response shape.
-7. Keep extraction CI-safe and deterministic.
+Day43 intentionally builds only the extraction layer:
+  - deterministic entity extraction
+  - deterministic relation extraction
+  - /graph/extract-debug
+  - CI-safe extraction tests
+
+Day43 does not:
+  - write to Neo4j
+  - ingest graph data
+  - retrieve from Neo4j
+  - connect Agentic RAG to GraphRAG
+  - change the current default retrieval backend
+```
+
+New / modified files:
+
+```text
+src/app/main.py
+src/app/graph/extraction.py
+src/app/routes/routes_graph.py
+src/app/schemas/graph.py
+tests/test_graph_extraction.py
+tests/test_graph_extract_debug.py
+```
+
+New endpoint:
+
+```text
+POST /graph/extract-debug
+```
+
+Core extraction function:
+
+```text
+extract_graph_items(source_filter="agent_basics", max_chars=300, include_related_entities=true)
+```
+
+Current extraction pipeline:
+
+```text
+knowledge/agent_basics.md
+  ↓
+load_knowledge_chunks()
+  ↓
+extract_graph_items()
+  ↓
+extract_entities_from_chunks()
+  ↓
+extract_relations_from_chunks()
+  ↓
+Document / Chunk / Entity / Relation debug payload
+```
+
+Current deterministic entity extraction strategy:
+
+```text
+EntityPattern(name, normalized_name, entity_type, aliases)
+  ↓
+case-insensitive alias matching over chunk content
+  ↓
+stable entity_id = Entity:{type}:{normalized_name}
+```
+
+Current extracted entities over `agent_basics`:
+
+```text
+Agent      -> Entity:concept:agent
+RAG        -> Entity:concept:rag
+LangGraph  -> Entity:framework:langgraph
+Tool       -> Entity:concept:tool
+Memory     -> Entity:concept:memory
+```
+
+Current deterministic relation extraction strategy:
+
+```text
+HAS_CHUNK:
+  Document -> Chunk
+
+NEXT_CHUNK:
+  Chunk -> next Chunk in the same source
+
+MENTIONS:
+  Chunk -> Entity detected in that chunk
+
+RELATED_TO:
+  Entity -> Entity when two entities co-occur in the same chunk
+```
+
+Observed manual extraction result with related entity edges enabled:
+
+```text
+trace_id = day43-graph-extract-manual-001
+source_filter = agent_basics
+max_chars = 300
+include_related_entities = true
+
+documents = 1
+chunks = 3
+entities = 5
+relations = 29
+
+entity_types:
+  concept = 4
+  framework = 1
+
+relation_types:
+  HAS_CHUNK = 3
+  NEXT_CHUNK = 2
+  MENTIONS = 10
+  RELATED_TO = 14
+```
+
+Observed manual extraction result with related entity edges disabled:
+
+```text
+trace_id = day43-graph-extract-no-related-001
+include_related_entities = false
+
+documents = 1
+chunks = 3
+entities = 5
+relations = 15
+
+relation_types:
+  HAS_CHUNK = 3
+  NEXT_CHUNK = 2
+  MENTIONS = 10
+  RELATED_TO is not returned
+```
+
+Neo4j write-safety validation:
+
+```text
+grep -R "MERGE\\|CREATE (" -n src/app/graph tests/ || true
+```
+
+Observed result:
+
+```text
+No Day43 graph write statement was found.
+```
+
+The only Neo4j driver usage remains the Day42 health-check boundary:
+
+```text
+src/app/graph/neo4j_client.py
+session.run("RETURN 1 AS ok")
+```
+
+Validation:
+
+```text
+pytest tests/test_graph_extraction.py tests/test_graph_extract_debug.py -q
+7 passed, 1 warning
+
+pytest tests/test_graph_schema.py \
+       tests/test_graph_debug.py \
+       tests/test_graph_extraction.py \
+       tests/test_graph_extract_debug.py -q
+14 passed, 1 warning
+
+pytest -q
+122 passed, 1 warning
+```
+
+Commit:
+
+```text
+775a6ef add deterministic graph extraction debug
+```
+
+Git push:
+
+```text
+success
+```
+
+GitHub Actions CI:
+
+```text
+green
+```
+
+Important implementation note:
+
+```text
+Day43 is a deterministic seed-graph extraction layer.
+It prepares structured graph data for Day44 ingestion but intentionally avoids Neo4j writes.
+```
+
+### Day43 Checklist
+
+Completed:
+
+```text
+✅ Added deterministic graph extraction module
+✅ Reused existing RAG chunk pipeline through load_knowledge_chunks()
+✅ Added EntityPattern-based alias matching
+✅ Extracted Agent, RAG, LangGraph, Tool, and Memory from agent_basics chunks
+✅ Added HAS_CHUNK relations
+✅ Added NEXT_CHUNK relations
+✅ Added MENTIONS relations
+✅ Added optional RELATED_TO co-occurrence relations
+✅ Added /graph/extract-debug
+✅ Added Graph extraction request / response schemas
+✅ Added graph extraction unit tests
+✅ Added graph extract debug endpoint tests
+✅ Verified include_related_entities=false disables RELATED_TO
+✅ Verified extraction does not require Neo4j
+✅ Verified Day43 does not write to Neo4j
+✅ Local graph extraction tests: 7 passed, 1 warning
+✅ Local graph related tests: 14 passed, 1 warning
+✅ Full local pytest: 122 passed, 1 warning
+✅ Git commit: 775a6ef add deterministic graph extraction debug
+✅ Git push: success
+✅ GitHub Actions CI: green
+```
+
+### Next Work
+
+Recommended next milestone:
+
+```text
+Day44: Graph ingestion.
+```
+
+Day44 should do the following:
+
+```text
+1. Add a Neo4j ingestion module that consumes Day43 extraction output.
+2. Apply schema constraints / indexes in a controlled helper.
+3. Upsert Document, Chunk, and Entity nodes.
+4. Upsert HAS_CHUNK, NEXT_CHUNK, MENTIONS, and RELATED_TO relationships.
+5. Add /graph/ingest-debug or equivalent debug endpoint.
+6. Keep CI-safe tests mocked or connection-skipped by default.
+7. Manually verify live Neo4j ingestion locally.
 8. Do not connect Agentic RAG to GraphRAG yet.
 ```
 
 Likely follow-up milestones:
 
 ```text
-Day44:
-  Graph ingestion.
-
 Day45:
   Graph retrieval debug.
 
@@ -1127,6 +1364,8 @@ Current:
 - Neo4j connection settings and health-check debug boundary
 - `/graph/schema-debug`
 - `/graph/health-debug`
+- Deterministic Entity / Relation extraction
+- `/graph/extract-debug`
 - Local BCE embedding model path: `/mnt/f/LLM/maidalun/bce-embedding-base_v1`
 - CI-safe semantic provider test that skips when the local model path is unavailable
 - Day38 validation script for semantic provider, Chroma, Agentic RAG, and backend comparison
@@ -1150,8 +1389,7 @@ Not yet implemented:
 - Replacing `/agent/chat` with the real LLM Agent as the default route
 - Making Smart Chat the default production entry point
 - Document upload and parsing pipeline
-- Entity / Relation extraction
-- Graph ingestion
+- Graph ingestion into Neo4j
 - Graph retrieval and GraphRAG + VectorRAG fusion
 - Multi-Agent Supervisor
 
@@ -1461,6 +1699,7 @@ POST /rag/eval-debug
 POST /rag/backend-eval-debug
 GET /graph/schema-debug
 GET /graph/health-debug
+POST /graph/extract-debug
 GET /observability/traces/{trace_id}
 GET /observability/traces
 ```
@@ -1818,7 +2057,7 @@ Do not put source-controlled knowledge files under data/, because data/ is runti
 
 ## Current GraphRAG / Neo4j Strategy
 
-Day42 added the initial GraphRAG + Neo4j foundation.
+Day42 added the initial GraphRAG + Neo4j foundation. Day43 added deterministic Entity / Relation extraction over the existing knowledge chunks.
 
 Current graph files:
 
@@ -1826,10 +2065,13 @@ Current graph files:
 src/app/graph/__init__.py
 src/app/graph/schema.py
 src/app/graph/neo4j_client.py
+src/app/graph/extraction.py
 src/app/routes/routes_graph.py
 src/app/schemas/graph.py
 tests/test_graph_schema.py
 tests/test_graph_debug.py
+tests/test_graph_extraction.py
+tests/test_graph_extract_debug.py
 ```
 
 Current GraphRAG schema version:
@@ -1870,6 +2112,7 @@ Current Graph endpoints:
 GET /graph/schema-debug
 GET /graph/health-debug
 GET /graph/health-debug?check_connection=true
+POST /graph/extract-debug
 ```
 
 Current Neo4j client strategy:
@@ -1887,12 +2130,57 @@ connection.ok = true
 connection.status = connected
 ```
 
+Current extraction strategy:
+
+```text
+/graph/extract-debug
+  ↓
+extract_graph_items()
+  ↓
+load_knowledge_chunks()
+  ↓
+deterministic alias-based entity extraction
+  ↓
+deterministic relation extraction
+  ↓
+Document / Chunk / Entity / Relation debug payload
+```
+
+Current extracted entities over `knowledge/agent_basics.md`:
+
+```text
+Agent
+RAG
+LangGraph
+Tool
+Memory
+```
+
+Current extracted relations:
+
+```text
+HAS_CHUNK:
+  Document -> Chunk
+
+NEXT_CHUNK:
+  Chunk -> next Chunk
+
+MENTIONS:
+  Chunk -> Entity
+
+RELATED_TO:
+  Entity -> Entity through same-chunk co-occurrence
+```
+
 Important:
 
 ```text
-Day42 does not extract entities, ingest graph data, retrieve from Neo4j, or connect Agentic RAG to GraphRAG.
-Day43 should implement deterministic Entity / Relation extraction on top of the current chunk pipeline.
+Day43 does not write to Neo4j.
+Day43 does not retrieve from Neo4j.
+Day43 does not connect Agentic RAG to GraphRAG.
+Day44 should implement Graph ingestion into Neo4j using the Day43 extraction output.
 ```
+
 
 ---
 
@@ -7154,13 +7442,36 @@ Day42 completed:
 - [x] Day42 full local pytest: 115 passed, 1 warning
 - [x] Day42 Git commit: `8963760 add graph schema and neo4j health debug`
 - [x] Day42 Git push: success
+- [x] Day42 GitHub Actions CI: green
+
+Day43 completed:
+
+- [x] Day43 Entity / Relation extraction
+- [x] Day43 added deterministic entity extraction over existing knowledge chunks
+- [x] Day43 added deterministic relation extraction for GraphRAG seed relations
+- [x] Day43 added `/graph/extract-debug`
+- [x] Day43 added `src/app/graph/extraction.py`
+- [x] Day43 added `tests/test_graph_extraction.py`
+- [x] Day43 added `tests/test_graph_extract_debug.py`
+- [x] Day43 extracted `Agent`, `RAG`, `LangGraph`, `Tool`, and `Memory`
+- [x] Day43 generated `HAS_CHUNK`, `NEXT_CHUNK`, `MENTIONS`, and optional `RELATED_TO`
+- [x] Day43 verified `include_related_entities=false` disables `RELATED_TO`
+- [x] Day43 verified no Neo4j write statements were added
+- [x] Day43 local graph extraction tests: 7 passed, 1 warning
+- [x] Day43 related graph tests: 14 passed, 1 warning
+- [x] Day43 full local pytest: 122 passed, 1 warning
+- [x] Day43 Git commit: `775a6ef add deterministic graph extraction debug`
+- [x] Day43 Git push: success
+- [x] Day43 GitHub Actions CI: green
 
 Next:
 
-- [ ] Day43 Entity / Relation extraction
-- [ ] Add deterministic entity extraction over existing knowledge chunks
-- [ ] Add deterministic relation extraction for GraphRAG seed relations
-- [ ] Add `/graph/extract-debug` or equivalent debug endpoint
-- [ ] Add CI-safe extraction tests
-- [ ] Do not write to Neo4j yet
+- [ ] Day44 Graph ingestion
+- [ ] Add Neo4j ingestion module that consumes Day43 extraction output
+- [ ] Add controlled schema constraint / index application helper
+- [ ] Upsert `Document`, `Chunk`, and `Entity` nodes
+- [ ] Upsert `HAS_CHUNK`, `NEXT_CHUNK`, `MENTIONS`, and `RELATED_TO` relationships
+- [ ] Add `/graph/ingest-debug` or equivalent debug endpoint
+- [ ] Keep CI-safe tests mocked or connection-skipped by default
+- [ ] Manually verify live Neo4j ingestion locally
 - [ ] Do not connect Agentic RAG to GraphRAG yet
