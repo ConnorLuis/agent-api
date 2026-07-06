@@ -20,3 +20,21 @@ class GraphHealthDebugResponse(BaseModel):
     trace_id: str
     connection_check_requested: bool
     connection: dict[str, Any]
+
+
+class GraphExtractDebugRequest(BaseModel):
+    source_filter: str | None = "agent_basics"
+    max_chars: int = 300
+    include_related_entities: bool = True
+
+
+class GraphExtractDebugResponse(BaseModel):
+    trace_id: str
+    source_filter: str | None
+    max_chars: int
+    include_related_entities: bool
+    documents: list[dict[str, Any]]
+    chunks: list[dict[str, Any]]
+    entities: list[dict[str, Any]]
+    relations: list[dict[str, Any]]
+    counts: dict[str, Any]
