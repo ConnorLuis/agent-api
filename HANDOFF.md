@@ -13,13 +13,13 @@ Project 2 has officially started and is now the main development line.
 Current `agent-api` status:
 
 ```text
-Day1-Day45 completed.
-Day45 completed: Neo4j graph retrieval debug boundary over the ingested seed graph.
-Local pytest: 139 passed, 1 warning.
-Git commit: 6606f39 add neo4j graph retrieval debug.
+Day1-Day46 completed.
+Day46 completed: GraphRAG + VectorRAG fusion debug boundary through `/graph/fusion-debug`.
+Local pytest: 148 passed, 1 warning.
+Git commit: 22392d2 add graph vector fusion debug.
 Git push: success.
 GitHub Actions CI: green.
-Next: Day46 GraphRAG + VectorRAG fusion.
+Next: Day47 Agentic RAG connects to GraphRAG.
 ```
 
 ## Strategic Project Positioning and Locked Roadmap
@@ -116,7 +116,7 @@ Day45:
   Completed Graph retrieval debug
 
 Day46:
-  GraphRAG + VectorRAG fusion
+  Completed GraphRAG + VectorRAG fusion
 
 Day47:
   Agentic RAG connects to GraphRAG
@@ -283,10 +283,11 @@ Future Day planning rules:
 4. Day43 has completed deterministic Entity / Relation extraction.
 5. Day44 has completed Graph ingestion into Neo4j.
 6. Day45 has completed Graph retrieval debug over the ingested seed graph.
-7. Day46 should continue with GraphRAG + VectorRAG fusion.
-8. Keep agent-api focused on Agentic RAG / GraphRAG / Multi-Agent.
-9. Keep chat-api focused on production LLM Gateway / Chat Backend engineering.
-10. Do not duplicate GraphRAG or Multi-Agent work in chat-api.
+7. Day46 has completed standalone GraphRAG + VectorRAG fusion debug.
+8. Day47 should connect Agentic RAG to GraphRAG through an explicit backend path.
+9. Keep agent-api focused on Agentic RAG / GraphRAG / Multi-Agent.
+10. Keep chat-api focused on production LLM Gateway / Chat Backend engineering.
+11. Do not duplicate GraphRAG or Multi-Agent work in chat-api.
 ```
 
 
@@ -999,6 +1000,8 @@ tests/test_graph_ingestion.py
 tests/test_graph_ingest_debug.py
 tests/test_graph_retrieval.py
 tests/test_graph_retrieval_debug.py
+tests/test_graph_fusion.py
+tests/test_graph_fusion_debug.py
 ```
 
 New endpoint:
@@ -1250,6 +1253,7 @@ New endpoint:
 ```text
 POST /graph/ingest-debug
 POST /graph/retrieval-debug
+POST /graph/fusion-debug
 ```
 
 Core ingestion functions:
@@ -1520,7 +1524,7 @@ Recommended next milestone:
 Day46: GraphRAG + VectorRAG fusion.
 ```
 
-Day46 should fuse graph retrieval results with existing VectorRAG / Chroma results while keeping Agentic RAG disconnected from GraphRAG until Day47.
+Day46 has now been completed. Day47 should connect Agentic RAG to GraphRAG through an explicit backend path.
 
 
 
@@ -1552,6 +1556,7 @@ New / modified files:
 
 ```text
 src/app/graph/retrieval.py
+src/app/graph/fusion.py
 src/app/routes/routes_graph.py
 src/app/schemas/graph.py
 tests/test_graph_retrieval.py
@@ -1808,13 +1813,15 @@ Completed:
 
 ### Next Work
 
+Day46 has now been completed.
+
 Recommended next milestone:
 
 ```text
-Day46: GraphRAG + VectorRAG fusion.
+Day47: Agentic RAG connects to GraphRAG.
 ```
 
-Day46 should do the following:
+Day47 should do the following:
 
 ```text
 1. Add a fusion debug module that combines graph retrieval results with existing VectorRAG / Chroma retrieval results.
@@ -1840,6 +1847,331 @@ Day48:
 Day49:
   Observability / answer verification for GraphRAG.
 ```
+
+
+
+## Day46 - GraphRAG + VectorRAG Fusion
+
+Day46 completes the standalone GraphRAG + VectorRAG fusion debug boundary.
+
+Scope:
+
+```text
+Day46 intentionally builds only the fusion debug layer:
+  - Graph / Vector fusion module
+  - graph-side retrieval through Day45 graph retrieval
+  - vector-side retrieval through existing hybrid retrieval
+  - chunk_id-based result union and merge
+  - deterministic fusion score
+  - /graph/fusion-debug
+  - CI-safe graph_dry_run=true default
+  - local live Neo4j graph + vector fusion verification
+
+Day46 does not:
+  - connect Agentic RAG to GraphRAG
+  - change the default Agentic RAG retrieval backend
+  - generate final answers from fused results
+  - run GraphRAG evaluation
+```
+
+New / modified files:
+
+```text
+src/app/graph/fusion.py
+src/app/routes/routes_graph.py
+src/app/schemas/graph.py
+tests/test_graph_fusion.py
+tests/test_graph_fusion_debug.py
+```
+
+New endpoint:
+
+```text
+POST /graph/fusion-debug
+```
+
+Core fusion functions:
+
+```text
+fuse_graph_and_vector_results()
+run_graph_vector_fusion_debug()
+```
+
+Fusion pipeline:
+
+```text
+/graph/fusion-debug
+  ↓
+run_graph_vector_fusion_debug()
+  ↓
+graph side:
+  run_graph_retrieval_debug()
+  ├── graph_dry_run=true  -> CI-safe graph plan only
+  └── graph_dry_run=false -> live Neo4j graph retrieval
+  ↓
+vector side:
+  hybrid_search_knowledge()
+  ↓
+fuse_graph_and_vector_results()
+  ↓
+chunk_id union merge + weighted fusion score
+```
+
+Fusion scoring:
+
+```text
+fusion_score = fusion_graph_weight * graph_score + fusion_vector_weight * vector_score
+
+Default:
+  fusion_graph_weight = 0.5
+  fusion_vector_weight = 0.5
+```
+
+Merged result metadata:
+
+```text
+rank
+chunk_id
+source
+index
+content
+preview
+content_length
+document
+fusion_score
+graph_score
+vector_score
+retrieval_sources
+matched_entities
+mentions
+graph_metadata
+vector_metadata
+```
+
+Dry-run validation:
+
+```text
+trace_id = day46-graph-fusion-dry-run-001
+query = RAG 和 LangGraph 有什么关系？
+graph_dry_run = true
+
+query_entity_matches:
+  RAG
+  LangGraph
+
+graph_retrieval.status = dry_run
+vector_retrieval.result_count = 3
+
+fusion:
+  result_count = 3
+  source_counts.graph_only = 0
+  source_counts.vector_only = 3
+  source_counts.graph_and_vector = 0
+  strategy = chunk_id_union_weighted_score
+```
+
+Live Neo4j health check before fusion:
+
+```text
+trace_id = day46-neo4j-health-before-fusion-001
+connection.ok = true
+connection.status = connected
+connection.settings.uri = bolt://localhost:7687
+connection.settings.database = neo4j
+connection.settings.enabled = true
+connection.settings.password_configured = true
+```
+
+Live fusion result for `RAG 和 LangGraph 有什么关系？`:
+
+```text
+trace_id = day46-graph-fusion-live-001
+graph_dry_run = false
+
+query_entity_matches:
+  RAG
+  LangGraph
+
+graph_retrieval:
+  status = retrieved
+  ok = true
+  matched_entities = 2
+  chunks = 2
+  related_entities = 8
+
+vector_retrieval:
+  result_count = 3
+
+fusion:
+  result_count = 3
+  source_counts.graph_only = 0
+  source_counts.vector_only = 1
+  source_counts.graph_and_vector = 2
+  strategy = chunk_id_union_weighted_score
+
+top fused chunks:
+  rank 1: knowledge/agent_basics.md::chunk-1, retrieval_sources = graph + vector
+  rank 2: knowledge/agent_basics.md::chunk-2, retrieval_sources = graph + vector
+  rank 3: knowledge/agent_basics.md::chunk-3, retrieval_sources = vector
+```
+
+Live fusion result for `智能体如何使用工具和短期记忆？`:
+
+```text
+trace_id = day46-graph-fusion-cn-alias-001
+graph_dry_run = false
+
+query_entity_matches:
+  Agent matched by 智能体
+  Memory matched by 短期记忆
+  Tool matched by 工具
+
+graph_retrieval:
+  status = retrieved
+  ok = true
+  matched_entities = 3
+  chunks = 3
+  related_entities = 10
+
+vector_retrieval:
+  result_count = 3
+
+fusion:
+  result_count = 3
+  source_counts.graph_only = 0
+  source_counts.vector_only = 0
+  source_counts.graph_and_vector = 3
+```
+
+Safety checks:
+
+```text
+git diff -- src/app/rag src/app/agent
+```
+
+Observed result:
+
+```text
+No diff.
+```
+
+```text
+grep -R "retrieval_backend.*graph\|graph_fusion.*agentic\|GraphRAG.*agentic\|fusion-debug.*agentic" -n src/app tests/ || true
+```
+
+Observed result:
+
+```text
+No output.
+```
+
+Validation:
+
+```text
+pytest tests/test_graph_fusion.py tests/test_graph_fusion_debug.py -q
+9 passed, 1 warning
+
+pytest tests/test_graph_schema.py \
+       tests/test_graph_debug.py \
+       tests/test_graph_extraction.py \
+       tests/test_graph_extract_debug.py \
+       tests/test_graph_ingestion.py \
+       tests/test_graph_ingest_debug.py \
+       tests/test_graph_retrieval.py \
+       tests/test_graph_retrieval_debug.py \
+       tests/test_graph_fusion.py \
+       tests/test_graph_fusion_debug.py -q
+40 passed, 1 warning
+
+pytest -q
+148 passed, 1 warning
+```
+
+Commit:
+
+```text
+22392d2 add graph vector fusion debug
+```
+
+Git push:
+
+```text
+success
+```
+
+GitHub Actions CI:
+
+```text
+green
+```
+
+### Day46 Checklist
+
+Completed:
+
+```text
+✅ Added Graph / Vector fusion module
+✅ Reused Day45 graph retrieval boundary
+✅ Reused existing hybrid retrieval as the VectorRAG side
+✅ Added chunk_id-based graph/vector result union
+✅ Added deterministic weighted fusion scoring
+✅ Added fusion_score, graph_score, and vector_score
+✅ Added retrieval_sources for graph / vector / graph+vector explainability
+✅ Added graph_metadata and vector_metadata
+✅ Added /graph/fusion-debug
+✅ Kept graph_dry_run=true by default for CI safety
+✅ Added graph fusion unit tests
+✅ Added graph fusion endpoint tests
+✅ Verified dry-run fusion does not require Neo4j
+✅ Verified live Neo4j graph + vector fusion locally
+✅ Verified Chinese aliases: 智能体 / 工具 / 短期记忆
+✅ Verified Day46 did not modify src/app/rag or src/app/agent
+✅ Verified Day46 did not connect Agentic RAG to GraphRAG
+✅ Verified Day46 did not switch the default Agentic RAG retrieval backend
+✅ Local Day46 tests: 9 passed, 1 warning
+✅ Local GraphRAG related tests: 40 passed, 1 warning
+✅ Full local pytest: 148 passed, 1 warning
+✅ Git commit: 22392d2 add graph vector fusion debug
+✅ Git push: success
+✅ GitHub Actions CI: green
+```
+
+### Next Work
+
+Recommended next milestone:
+
+```text
+Day47: Agentic RAG connects to GraphRAG.
+```
+
+Day47 should do the following:
+
+```text
+1. Add an explicit GraphRAG-capable retrieval backend for Agentic RAG.
+2. Reuse the Day46 fusion module instead of duplicating graph/vector logic.
+3. Add `retrieval_backend="graph_fusion"` or equivalent.
+4. Normalize fused results into the existing Agentic RAG retrieval result format.
+5. Preserve citations and retrieval metadata.
+6. Add JSON debug tests for /rag/agentic-debug with the new backend.
+7. Keep default retrieval_backend unchanged.
+8. Keep CI-safe behavior by using graph dry-run or mocked graph retrieval by default.
+9. Manually verify live Neo4j-backed Agentic RAG locally.
+10. Do not make GraphRAG the default backend yet.
+```
+
+Likely follow-up milestones:
+
+```text
+Day48:
+  GraphRAG evaluation.
+
+Day49:
+  Observability / answer verification for GraphRAG.
+
+Day50:
+  GraphRAG docs.
+```
+
 
 
 ## Project Goal
@@ -2681,7 +3013,7 @@ Do not put source-controlled knowledge files under data/, because data/ is runti
 
 ## Current GraphRAG / Neo4j Strategy
 
-Day42 added the initial GraphRAG + Neo4j foundation. Day43 added deterministic Entity / Relation extraction over the existing knowledge chunks. Day44 added a Neo4j ingestion boundary that consumes the extraction output and writes the seed graph into Neo4j. Day45 added a Neo4j graph retrieval boundary over the ingested seed graph.
+Day42 added the initial GraphRAG + Neo4j foundation. Day43 added deterministic Entity / Relation extraction over the existing knowledge chunks. Day44 added a Neo4j ingestion boundary that consumes the extraction output and writes the seed graph into Neo4j. Day45 added a Neo4j graph retrieval boundary over the ingested seed graph. Day46 added a standalone GraphRAG + VectorRAG fusion debug boundary.
 
 Current graph files:
 
@@ -2692,6 +3024,7 @@ src/app/graph/neo4j_client.py
 src/app/graph/extraction.py
 src/app/graph/ingestion.py
 src/app/graph/retrieval.py
+src/app/graph/fusion.py
 src/app/routes/routes_graph.py
 src/app/schemas/graph.py
 tests/test_graph_schema.py
@@ -2996,15 +3329,143 @@ pytest -q
 GitHub Actions CI: green
 ```
 
+
+Current fusion strategy:
+
+```text
+/graph/fusion-debug
+  ↓
+run_graph_vector_fusion_debug()
+  ↓
+graph side:
+  run_graph_retrieval_debug()
+  ├── graph_dry_run=true  -> CI-safe graph plan / no Neo4j read
+  └── graph_dry_run=false -> live Neo4j graph retrieval
+  ↓
+vector side:
+  hybrid_search_knowledge()
+  ↓
+fuse_graph_and_vector_results()
+  ↓
+chunk_id union merge + weighted fusion score
+```
+
+Current fusion response fields:
+
+```text
+trace_id
+query
+top_k
+source_filter
+max_chars
+embedding_dim
+hybrid_keyword_weight
+hybrid_vector_weight
+fusion_graph_weight
+fusion_vector_weight
+graph_chunk_limit
+related_entity_limit
+graph_dry_run
+query_entity_matches
+graph_retrieval
+vector_retrieval
+fusion
+results
+results[*].fusion_score
+results[*].graph_score
+results[*].vector_score
+results[*].retrieval_sources
+results[*].graph_metadata
+results[*].vector_metadata
+```
+
+Observed Day46 dry-run fusion result for `RAG 和 LangGraph 有什么关系？`:
+
+```text
+trace_id = day46-graph-fusion-dry-run-001
+graph_dry_run = true
+query_entity_matches = RAG, LangGraph
+graph_retrieval.status = dry_run
+vector_retrieval.result_count = 3
+fusion.result_count = 3
+fusion.source_counts.graph_only = 0
+fusion.source_counts.vector_only = 3
+fusion.source_counts.graph_and_vector = 0
+```
+
+Observed Day46 live fusion result for `RAG 和 LangGraph 有什么关系？`:
+
+```text
+trace_id = day46-graph-fusion-live-001
+graph_dry_run = false
+graph_retrieval.status = retrieved
+graph_retrieval.counts.matched_entities = 2
+graph_retrieval.counts.chunks = 2
+graph_retrieval.counts.related_entities = 8
+vector_retrieval.result_count = 3
+fusion.result_count = 3
+fusion.source_counts.graph_only = 0
+fusion.source_counts.vector_only = 1
+fusion.source_counts.graph_and_vector = 2
+
+top fused chunks:
+  rank 1: knowledge/agent_basics.md::chunk-1, retrieval_sources = graph + vector
+  rank 2: knowledge/agent_basics.md::chunk-2, retrieval_sources = graph + vector
+  rank 3: knowledge/agent_basics.md::chunk-3, retrieval_sources = vector
+```
+
+Observed Day46 Chinese alias live fusion result for `智能体如何使用工具和短期记忆？`:
+
+```text
+trace_id = day46-graph-fusion-cn-alias-001
+query_entity_matches:
+  Agent matched by 智能体
+  Memory matched by 短期记忆
+  Tool matched by 工具
+
+graph_retrieval.status = retrieved
+graph_retrieval.counts.matched_entities = 3
+graph_retrieval.counts.chunks = 3
+graph_retrieval.counts.related_entities = 10
+vector_retrieval.result_count = 3
+fusion.result_count = 3
+fusion.source_counts.graph_and_vector = 3
+```
+
+Day46 validation:
+
+```text
+pytest tests/test_graph_fusion.py tests/test_graph_fusion_debug.py -q
+9 passed, 1 warning
+
+pytest tests/test_graph_schema.py \
+       tests/test_graph_debug.py \
+       tests/test_graph_extraction.py \
+       tests/test_graph_extract_debug.py \
+       tests/test_graph_ingestion.py \
+       tests/test_graph_ingest_debug.py \
+       tests/test_graph_retrieval.py \
+       tests/test_graph_retrieval_debug.py \
+       tests/test_graph_fusion.py \
+       tests/test_graph_fusion_debug.py -q
+40 passed, 1 warning
+
+pytest -q
+148 passed, 1 warning
+
+GitHub Actions CI: green
+```
+
 Important:
 
 ```text
-Day45 retrieves graph context from Neo4j, but it still does not fuse GraphRAG with VectorRAG.
-Day45 does not connect Agentic RAG to GraphRAG.
-Day45 does not generate final answers from graph retrieval results.
-The default Agentic RAG retrieval backend remains unchanged.
-Day46 should implement GraphRAG + VectorRAG fusion as a separate debug layer first.
+Day46 fuses graph and vector retrieval results in a standalone debug layer only.
+It does not connect Agentic RAG to GraphRAG.
+It does not change the default Agentic RAG retrieval backend.
+It does not generate final answers from the fused results.
+Day47 should connect Agentic RAG to GraphRAG through an explicit backend path.
 ```
+
 
 
 ## Current Router Agent Strategy
@@ -8286,39 +8747,33 @@ Day44 completed:
 - [x] Day44 Git push: success
 - [x] Day44 GitHub Actions CI: green
 
-Day45 completed:
+Day46 completed:
 
-- [x] Day45 Graph retrieval debug
-- [x] Day45 added Neo4j graph retrieval module over the Day44 seed graph
-- [x] Day45 matched query entities against ingested `Entity` nodes
-- [x] Day45 retrieved chunks connected through `MENTIONS`
-- [x] Day45 retrieved related entities connected through `RELATED_TO`
-- [x] Day45 returned explainable graph retrieval metadata
-- [x] Day45 added `/graph/retrieval-debug`
-- [x] Day45 kept CI-safe tests dry-run or mocked by default
-- [x] Day45 manually verified live Neo4j graph retrieval locally
-- [x] Day45 verified `RAG 和 LangGraph 有什么关系？` retrieves 2 matched entities, 2 chunks, and 8 related entities
-- [x] Day45 verified `智能体如何使用工具和短期记忆？` retrieves 3 matched entities, 3 chunks, and 10 related entities
-- [x] Day45 verified Neo4j Browser chunk retrieval for `RAG`
-- [x] Day45 verified Neo4j Browser related-entity retrieval for `RAG`
-- [x] Day45 did not fuse GraphRAG with VectorRAG
-- [x] Day45 did not connect Agentic RAG to GraphRAG
-- [x] Day45 local graph retrieval tests: 10 passed, 1 warning
-- [x] Day45 related GraphRAG tests: 31 passed, 1 warning
-- [x] Day45 full local pytest: 139 passed, 1 warning
-- [x] Day45 Git commit: `6606f39 add neo4j graph retrieval debug`
-- [x] Day45 Git push: success
-- [x] Day45 GitHub Actions CI: green
+- [x] Day46 GraphRAG + VectorRAG fusion
+- [x] Add fusion debug module combining graph retrieval and existing VectorRAG / hybrid retrieval
+- [x] Keep graph retrieval and vector retrieval as separate first-stage retrievers
+- [x] Add deterministic chunk_id-based result merging
+- [x] Return explainable fusion metadata: fusion_score, graph_score, vector_score, retrieval_sources
+- [x] Add `/graph/fusion-debug`
+- [x] Keep CI-safe tests deterministic with graph_dry_run=true by default
+- [x] Manually verify live graph + vector fusion locally
+- [x] Day46 local graph fusion tests: 9 passed, 1 warning
+- [x] Day46 related GraphRAG tests: 40 passed, 1 warning
+- [x] Day46 full local pytest: 148 passed, 1 warning
+- [x] Day46 Git commit: `22392d2 add graph vector fusion debug`
+- [x] Day46 Git push: success
+- [x] Day46 GitHub Actions CI: green
 
 Next:
 
-- [ ] Day46 GraphRAG + VectorRAG fusion
-- [ ] Add fusion debug module combining graph retrieval and existing VectorRAG / Chroma retrieval
-- [ ] Keep graph retrieval and vector retrieval as separate first-stage retrievers
-- [ ] Add deterministic fusion scoring or result merging
-- [ ] Return explainable fusion metadata such as graph_score, vector_score, and fused_score
-- [ ] Add `/graph/fusion-debug` or equivalent debug endpoint
-- [ ] Keep CI-safe tests deterministic and not dependent on live Neo4j by default
-- [ ] Manually verify live graph + vector fusion locally
-- [ ] Do not connect Agentic RAG to GraphRAG yet
-- [ ] Do not switch the default Agentic RAG retrieval backend yet
+- [ ] Day47 Agentic RAG connects to GraphRAG
+- [ ] Add explicit GraphRAG-capable retrieval backend for Agentic RAG
+- [ ] Reuse Day46 fusion module instead of duplicating graph/vector logic
+- [ ] Add `retrieval_backend="graph_fusion"` or equivalent
+- [ ] Normalize fused results into the existing Agentic RAG retrieval result format
+- [ ] Preserve citations and retrieval metadata
+- [ ] Add JSON debug tests for `/rag/agentic-debug` with the new backend
+- [ ] Keep default retrieval_backend unchanged
+- [ ] Keep CI-safe behavior by using graph dry-run or mocked graph retrieval by default
+- [ ] Manually verify live Neo4j-backed Agentic RAG locally
+- [ ] Do not make GraphRAG the default backend yet
