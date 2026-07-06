@@ -79,3 +79,39 @@ class GraphRetrievalDebugResponse(BaseModel):
     query_entity_matches: list[dict[str, Any]]
     plan: dict[str, Any]
     execution: dict[str, Any]
+
+
+class GraphFusionDebugRequest(BaseModel):
+    query: str
+    top_k: int = 5
+    source_filter: str | None = "agent_basics"
+    max_chars: int = 300
+    embedding_dim: int = 64
+    hybrid_keyword_weight: float = 0.6
+    hybrid_vector_weight: float = 0.4
+    fusion_graph_weight: float = 0.5
+    fusion_vector_weight: float = 0.5
+    graph_chunk_limit: int = 5
+    related_entity_limit: int = 10
+    graph_dry_run: bool = True
+
+
+class GraphFusionDebugResponse(BaseModel):
+    trace_id: str
+    query: str
+    top_k: int
+    source_filter: str | None
+    max_chars: int
+    embedding_dim: int
+    hybrid_keyword_weight: float
+    hybrid_vector_weight: float
+    fusion_graph_weight: float
+    fusion_vector_weight: float
+    graph_chunk_limit: int
+    related_entity_limit: int
+    graph_dry_run: bool
+    query_entity_matches: list[dict[str, Any]]
+    graph_retrieval: dict[str, Any]
+    vector_retrieval: dict[str, Any]
+    fusion: dict[str, Any]
+    results: list[dict[str, Any]]

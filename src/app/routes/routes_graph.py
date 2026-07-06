@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Request
 
+from src.app.graph import fusion as graph_fusion
 from src.app.graph import ingestion as graph_ingestion
 from src.app.graph import retrieval as graph_retrieval
 from src.app.graph.extraction import extract_graph_items
@@ -13,6 +14,8 @@ from src.app.graph.schema import get_graph_schema
 from src.app.schemas.graph import (
     GraphExtractDebugRequest,
     GraphExtractDebugResponse,
+    GraphFusionDebugRequest,
+    GraphFusionDebugResponse,
     GraphHealthDebugResponse,
     GraphIngestDebugRequest,
     GraphIngestDebugResponse,
@@ -115,4 +118,30 @@ def graph_retrieval_debug(
     return {
         "trace_id": _resolve_trace_id(request),
         **retrieval,
+    }
+
+
+@router.post("/fusion-debug", response_model=GraphFusionDebugResponse)
+def graph_fusion_debug(
+    payload: GraphFusionDebugRequest,
+    request: Request,
+) -> dict:
+    fusion = graph_fusion.run_graph_vector_fusion_debug(
+        query=payload.query,
+        top_k=payload.top_k,
+        source_filter=payload.source_filter,
+        max_chars=payload.max_chars,
+        embedding_dim=payload.embedding_dim,
+        hybrid_keyword_weight=payload.hybrid_keyword_weight,
+        hybrid_vector_weight=payload.hybrid_vector_weight,
+        fusion_graph_weight=payload.fusion_graph_weight,
+        fusion_vector_weight=payload.fusion_vector_weight,
+        graph_chunk_limit=payload.graph_chunk_limit,
+        related_entity_limit=payload.related_entity_limit,
+        graph_dry_run=payload.graph_dry_run,
+    )
+
+    return {
+        "trace_id": _resolve_trace_id(request),
+        **fusion,
     }
