@@ -145,6 +145,11 @@ class RagAgenticDebugRequest(BaseModel):
     embedding_provider: str = "deterministic"
     embedding_model: str | None = None
     rebuild_index: bool = True
+    graph_dry_run: bool = True
+    fusion_graph_weight: float = 0.5
+    fusion_vector_weight: float = 0.5
+    graph_chunk_limit: int = 5
+    related_entity_limit: int = 10
 
 
 class RagAgenticDebugResult(BaseModel):
@@ -171,6 +176,15 @@ class RagAgenticDebugResult(BaseModel):
     rerank_score: float | None = None
     rerank_keyword_score: float | None = None
     rerank_matched_terms: list[str] = Field(default_factory=list)
+
+    # Day47 GraphRAG fusion-compatible optional fields.
+    fusion_score: float | None = None
+    graph_score: float | None = None
+    retrieval_sources: list[str] = Field(default_factory=list)
+    matched_entities: list[dict[str, Any]] = Field(default_factory=list)
+    mentions: list[dict[str, Any]] = Field(default_factory=list)
+    graph_metadata: dict[str, Any] = Field(default_factory=dict)
+    vector_metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class RagAgenticDebugResponse(BaseModel):

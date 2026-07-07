@@ -36,6 +36,12 @@ class AgenticRagState(TypedDict, total=False):
     embedding_model: str | None
     rebuild_index: bool
 
+    graph_dry_run: bool
+    fusion_graph_weight: float
+    fusion_vector_weight: float
+    graph_chunk_limit: int
+    related_entity_limit: int
+
 
 def _normalize_query(query: str) -> str:
     normalized = query.strip()
@@ -99,16 +105,23 @@ def retrieve_node(state: AgenticRagState) -> dict:
 
     retrieval_result = retrieve_agentic_context(
         query=rewritten_query,
-        top_k=state.get("top_k", 3),
-        source_filter=state.get("source_filter"),
-        max_chars=state.get("max_chars", 500),
-        embedding_dim=state.get("embedding_dim", 64),
-        keyword_weight=state.get("keyword_weight", 0.6),
-        vector_weight=state.get("vector_weight", 0.4),
-        retrieval_backend=state.get("retrieval_backend", DEFAULT_RETRIEVAL_BACKEND),
-        embedding_provider=state.get("embedding_provider", DEFAULT_EMBEDDING_PROVIDER),
+        top_k=state["top_k"],
+        source_filter=state["source_filter"],
+        max_chars=state["max_chars"],
+        embedding_dim=state["embedding_dim"],
+        keyword_weight=state["keyword_weight"],
+        vector_weight=state["vector_weight"],
+        retrieval_backend=state["retrieval_backend"],
+        embedding_provider=state.get("embedding_provider", "deterministic"),
         embedding_model=state.get("embedding_model"),
-        rebuild_index=state.get("rebuild_index", True),
+        rebuild_index=state.get("rebuild_index", False),
+
+        # Day47 GraphRAG fusion options.
+        graph_dry_run=state.get("graph_dry_run", True),
+        fusion_graph_weight=state.get("fusion_graph_weight", 0.5),
+        fusion_vector_weight=state.get("fusion_vector_weight", 0.5),
+        graph_chunk_limit=state.get("graph_chunk_limit", 5),
+        related_entity_limit=state.get("related_entity_limit", 10),
     )
 
     backend = retrieval_result["retrieval_backend"]
@@ -117,13 +130,18 @@ def retrieve_node(state: AgenticRagState) -> dict:
         step_name = "chroma_retrieve"
     elif backend == "chroma_rerank":
         step_name = "chroma_rerank_retrieve"
+    elif backend == "graph_fusion":
+        step_name = "graph_fusion_retrieve"
     else:
         step_name = "hybrid_retrieve"
 
     return {
         "retrieval_results": retrieval_result["results"],
         "retrieval_backend": backend,
-        "retrieval_metadata": retrieval_result["metadata"],
+        "retrieval_metadata": retrieval_result.get(
+            "metadata",
+            retrieval_result.get("retrieval_metadata", {}),
+        ),
         "steps": [step_name],
     }
 
@@ -240,6 +258,11 @@ def invoke_agentic_rag(
         embedding_provider: str = DEFAULT_EMBEDDING_PROVIDER,
         embedding_model: str | None = None,
         rebuild_index: bool = True,
+        graph_dry_run: bool = True,
+        fusion_graph_weight: float = 0.5,
+        fusion_vector_weight: float = 0.5,
+        graph_chunk_limit: int = 5,
+        related_entity_limit: int = 10,
 ) -> dict[str, Any]:
     initial_state: AgenticRagState = {
         "query": query,
@@ -255,6 +278,11 @@ def invoke_agentic_rag(
         "embedding_model": embedding_model,
         "rebuild_index": rebuild_index,
         "steps": [],
+        "graph_dry_run": graph_dry_run,
+        "fusion_graph_weight": fusion_graph_weight,
+        "fusion_vector_weight": fusion_vector_weight,
+        "graph_chunk_limit": graph_chunk_limit,
+        "related_entity_limit": related_entity_limit,
     }
 
     result = agentic_rag_graph.invoke(initial_state)

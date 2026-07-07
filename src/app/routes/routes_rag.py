@@ -122,6 +122,11 @@ def rag_agentic_debug(
         embedding_provider=request.embedding_provider,
         embedding_model=request.embedding_model,
         rebuild_index=request.rebuild_index,
+        graph_dry_run=request.graph_dry_run,
+        fusion_graph_weight=request.fusion_graph_weight,
+        fusion_vector_weight=request.fusion_vector_weight,
+        graph_chunk_limit=request.graph_chunk_limit,
+        related_entity_limit=request.related_entity_limit,
     )
 
     trace_id = get_trace_id()
