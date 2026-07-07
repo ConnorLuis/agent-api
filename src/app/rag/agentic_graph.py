@@ -5,6 +5,7 @@ from langgraph.graph import END, START, StateGraph
 
 from src.app.rag.chunking import DEFAULT_MAX_CHARS
 from src.app.rag.hybrid import hybrid_search_knowledge
+from src.app.rag.graph_fusion_metadata import build_graph_vector_contribution
 from src.app.rag.vector_index import DEFAULT_EMBEDDING_DIM
 from src.app.rag.retrieval_backend import (
     DEFAULT_RETRIEVAL_BACKEND,
@@ -287,6 +288,14 @@ def invoke_agentic_rag(
 
     result = agentic_rag_graph.invoke(initial_state)
 
+    retrieval_backend = result.get("retrieval_backend", "hybrid")
+    retrieval_metadata = result.get("retrieval_metadata", {}) or {}
+
+    graph_vector_contribution = build_graph_vector_contribution(
+        retrieval_backend=retrieval_backend,
+        retrieval_metadata=retrieval_metadata,
+    )
+
     return {
         "query": result["query"],
         "rewritten_query": result.get("rewritten_query", result["query"]),
@@ -297,5 +306,6 @@ def invoke_agentic_rag(
         "final_answer": result.get("final_answer", ""),
         "retrieval_backend": result.get("retrieval_backend", retrieval_backend),
         "retrieval_metadata": result.get("retrieval_metadata", {}),
+        "graph_vector_contribution": graph_vector_contribution,
         "steps": result.get("steps", []),
     }

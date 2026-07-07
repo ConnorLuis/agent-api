@@ -144,6 +144,7 @@ def rag_agentic_debug(
             "retrieval_results_count": len(result["retrieval_results"]),
             "retrieval_backend": result.get("retrieval_backend"),
             "retrieval_metadata": result.get("retrieval_metadata", {}),
+            "graph_vector_contribution": result.get("graph_vector_contribution", {}),
         },
     )
 
@@ -189,6 +190,13 @@ def rag_eval_debug(
             "embedding_provider": result["embedding_provider"],
             "embedding_model": result["embedding_model"],
             "rebuild_index": result["rebuild_index"],
+            "graph_dry_run": result.get("graph_dry_run"),
+            "fusion_graph_weight": result.get("fusion_graph_weight"),
+            "fusion_vector_weight": result.get("fusion_vector_weight"),
+            "graph_chunk_limit": result.get("graph_chunk_limit"),
+            "related_entity_limit": result.get("related_entity_limit"),
+            "graph_evaluation_metadata": result.get("graph_evaluation_metadata", {}),
+            "cases": result.get("cases", []),
         },
     )
 
@@ -246,6 +254,13 @@ def rag_backend_eval_debug(
                 }
                 for item in result["results"]
             ],
+            "graph_dry_run": result.get("graph_dry_run"),
+            "fusion_graph_weight": result.get("fusion_graph_weight"),
+            "fusion_vector_weight": result.get("fusion_vector_weight"),
+            "graph_chunk_limit": result.get("graph_chunk_limit"),
+            "related_entity_limit": result.get("related_entity_limit"),
+            "graph_evaluation_metadata": result.get("graph_evaluation_metadata", {}),
+            "results": result.get("results", []),
         },
     )
 
@@ -292,6 +307,15 @@ def rag_answer_verify_debug(
         embedding_dim=request.embedding_dim,
         keyword_weight=request.keyword_weight,
         vector_weight=request.vector_weight,
+        retrieval_backend=request.retrieval_backend,
+        embedding_provider=request.embedding_provider,
+        embedding_model=request.embedding_model,
+        rebuild_index=request.rebuild_index,
+        graph_dry_run=request.graph_dry_run,
+        fusion_graph_weight=request.fusion_graph_weight,
+        fusion_vector_weight=request.fusion_vector_weight,
+        graph_chunk_limit=request.graph_chunk_limit,
+        related_entity_limit=request.related_entity_limit,
     )
 
     trace_id = get_trace_id()
@@ -307,6 +331,14 @@ def rag_answer_verify_debug(
             "citations": result["citations"],
             "steps": result["steps"],
             "verification": result["verification"],
+            "retrieval_backend": result.get("retrieval_backend"),
+            "retrieval_metadata": result.get("retrieval_metadata", {}),
+            "graph_vector_contribution": result.get("graph_vector_contribution", {}),
+            "graph_fusion_verification": result.get("graph_fusion_verification", {}),
+            "verification_pass": result.get("verification_pass"),
+            "answer_supported": result.get("answer_supported"),
+            "confidence": result.get("confidence"),
+            "risk_flags": result.get("risk_flags", []),
         },
     )
 

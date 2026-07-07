@@ -1,6 +1,7 @@
 from typing import Any
 
 from src.app.rag.agentic_graph import invoke_agentic_rag
+from src.app.rag.graph_fusion_metadata import build_graph_vector_contribution
 from src.app.rag.chunking import DEFAULT_MAX_CHARS
 from src.app.rag.vector_index import DEFAULT_EMBEDDING_DIM
 
@@ -141,6 +142,57 @@ def _build_verification(
     }
 
 
+def _build_graph_fusion_verification(
+    retrieval_backend: str,
+    retrieval_metadata: dict,
+    graph_vector_contribution: dict,
+) -> dict:
+    if retrieval_backend != "graph_fusion":
+        return {}
+
+    if not retrieval_metadata:
+        return {
+            "retrieval_backend": "graph_fusion",
+            "graph_metadata_present": False,
+            "graph_or_vector_evidence_present": False,
+            "graph_and_vector_evidence_present": False,
+            "graph_dry_run": True,
+            "graph_status": None,
+            "graph_ok": None,
+        }
+
+    graph_or_vector_evidence_count = (
+        graph_vector_contribution.get("graph_only_count", 0)
+        + graph_vector_contribution.get("vector_only_count", 0)
+        + graph_vector_contribution.get("graph_and_vector_count", 0)
+    )
+
+    return {
+        "retrieval_backend": "graph_fusion",
+        "graph_metadata_present": True,
+        "graph_or_vector_evidence_present": graph_or_vector_evidence_count > 0,
+        "graph_and_vector_evidence_present": (
+            graph_vector_contribution.get("graph_and_vector_count", 0) > 0
+        ),
+        "graph_dry_run": graph_vector_contribution.get("graph_dry_run", True),
+        "graph_status": graph_vector_contribution.get("graph_status"),
+        "graph_ok": graph_vector_contribution.get("graph_ok"),
+        "query_entity_match_count": graph_vector_contribution.get(
+            "query_entity_match_count",
+            0,
+        ),
+        "graph_chunk_count": graph_vector_contribution.get("graph_chunk_count", 0),
+        "vector_result_count": graph_vector_contribution.get(
+            "vector_result_count",
+            0,
+        ),
+        "fusion_result_count": graph_vector_contribution.get(
+            "fusion_result_count",
+            0,
+        ),
+    }
+
+
 def verify_agentic_rag_answer(
     query: str,
     top_k: int = 3,
@@ -149,6 +201,15 @@ def verify_agentic_rag_answer(
     embedding_dim: int = DEFAULT_EMBEDDING_DIM,
     keyword_weight: float = 0.6,
     vector_weight: float = 0.4,
+    retrieval_backend: str = "hybrid",
+    embedding_provider: str = "deterministic",
+    embedding_model: str | None = None,
+    rebuild_index: bool = True,
+    graph_dry_run: bool = True,
+    fusion_graph_weight: float = 0.5,
+    fusion_vector_weight: float = 0.5,
+    graph_chunk_limit: int = 5,
+    related_entity_limit: int = 10,
 ) -> dict[str, Any]:
     result = invoke_agentic_rag(
         query=query,
@@ -158,9 +219,33 @@ def verify_agentic_rag_answer(
         embedding_dim=embedding_dim,
         keyword_weight=keyword_weight,
         vector_weight=vector_weight,
+        retrieval_backend=retrieval_backend,
+        embedding_provider=embedding_provider,
+        embedding_model=embedding_model,
+        rebuild_index=rebuild_index,
+        graph_dry_run=graph_dry_run,
+        fusion_graph_weight=fusion_graph_weight,
+        fusion_vector_weight=fusion_vector_weight,
+        graph_chunk_limit=graph_chunk_limit,
+        related_entity_limit=related_entity_limit,
     )
 
+
     verification = _build_verification(result)
+
+    actual_backend = result.get("retrieval_backend", retrieval_backend)
+    retrieval_metadata = result.get("retrieval_metadata", {}) or {}
+
+    graph_vector_contribution = build_graph_vector_contribution(
+        retrieval_backend=actual_backend,
+        retrieval_metadata=retrieval_metadata,
+    )
+
+    graph_fusion_verification = _build_graph_fusion_verification(
+        retrieval_backend=actual_backend,
+        retrieval_metadata=retrieval_metadata,
+        graph_vector_contribution=graph_vector_contribution,
+    )
 
     return {
         "query": result["query"],
@@ -172,4 +257,20 @@ def verify_agentic_rag_answer(
         "final_answer": result["final_answer"],
         "steps": result["steps"],
         "verification": verification,
+        "retrieval_backend": actual_backend,
+        "retrieval_metadata": retrieval_metadata,
+        "graph_vector_contribution": graph_vector_contribution,
+        "graph_fusion_verification": graph_fusion_verification,
+        "verification_mode": verification["verification_mode"],
+        "answer_supported": verification["answer_supported"],
+        "verification_pass": verification["verification_pass"],
+        "confidence": verification["confidence"],
+        "answer_has_citation": verification["answer_has_citation"],
+        "citation_coverage_pass": verification["citation_coverage_pass"],
+        "cited_in_answer": verification.get("cited_in_answer", []),
+        "unsupported_citations": verification.get("unsupported_citations", []),
+        "grounding_terms": verification.get("grounding_terms", []),
+        "matched_grounding_terms": verification.get("matched_grounding_terms", []),
+        "risk_flags": verification.get("risk_flags", []),
+
     }

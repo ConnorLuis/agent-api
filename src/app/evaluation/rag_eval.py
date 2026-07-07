@@ -6,6 +6,7 @@ from src.app.rag.agentic_graph import invoke_agentic_rag
 from src.app.rag.embedding_provider import DEFAULT_EMBEDDING_PROVIDER
 from src.app.rag.retrieval_backend import DEFAULT_RETRIEVAL_BACKEND
 from src.app.evaluation.rag_report import build_backend_evaluation_report
+from src.app.rag.graph_fusion_metadata import build_graph_vector_contribution
 
 
 DEFAULT_RAG_EVAL_FILE = Path("eval_cases/rag_agentic_eval.jsonl")
@@ -79,38 +80,6 @@ def _safe_average(values: list[float]) -> float:
         6,
     )
 
-
-def _build_graph_vector_contribution(
-    retrieval_backend: str,
-    retrieval_metadata: dict,
-) -> dict:
-    if retrieval_backend != "graph_fusion":
-        return {}
-
-    if not retrieval_metadata:
-        return {}
-
-    graph_retrieval = retrieval_metadata.get("graph_retrieval", {}) or {}
-    vector_retrieval = retrieval_metadata.get("vector_retrieval", {}) or {}
-    fusion = retrieval_metadata.get("fusion", {}) or {}
-    source_counts = fusion.get("source_counts", {}) or {}
-
-    return {
-        "retrieval_backend": "graph_fusion",
-        "graph_dry_run": retrieval_metadata.get("graph_dry_run", True),
-        "graph_status": graph_retrieval.get("status"),
-        "graph_ok": graph_retrieval.get("ok"),
-        "graph_chunk_count": graph_retrieval.get("chunk_count", 0),
-        "graph_related_entity_count": graph_retrieval.get("related_entity_count", 0),
-        "vector_result_count": vector_retrieval.get("result_count", 0),
-        "fusion_result_count": fusion.get("result_count", 0),
-        "graph_only_count": source_counts.get("graph_only", 0),
-        "vector_only_count": source_counts.get("vector_only", 0),
-        "graph_and_vector_count": source_counts.get("graph_and_vector", 0),
-        "query_entity_match_count": len(
-            retrieval_metadata.get("query_entity_matches", []) or []
-        ),
-    }
 
 def evaluate_rag_cases(
     eval_file: Path | str = DEFAULT_RAG_EVAL_FILE,
@@ -211,7 +180,7 @@ def evaluate_rag_cases(
         retrieval_metadata = result.get("retrieval_metadata", {}) or {}
         actual_backend = result.get("retrieval_backend", retrieval_backend)
 
-        graph_vector_contribution = _build_graph_vector_contribution(
+        graph_vector_contribution = build_graph_vector_contribution(
             retrieval_backend=actual_backend,
             retrieval_metadata=retrieval_metadata,
         )
