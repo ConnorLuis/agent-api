@@ -13,13 +13,13 @@ Project 2 has officially started and is now the main development line.
 Current `agent-api` status:
 
 ```text
-Day1-Day47 completed.
-Day47 completed: Agentic RAG connects to GraphRAG through retrieval_backend="graph_fusion" on /rag/agentic-debug.
-Local pytest: 151 passed, 1 warning.
+Day1-Day48 completed.
+Day48 completed: GraphRAG evaluation support for retrieval_backend="graph_fusion" across /rag/eval-debug and /rag/backend-eval-debug.
+Local pytest: 155 passed, 1 warning.
 Git commit: committed and pushed by user; hash not provided in current message.
 Git push: success.
 GitHub Actions CI: green.
-Next: Day48 GraphRAG evaluation.
+Next: Day49 Observability / answer verification for GraphRAG.
 ```
 
 ## Strategic Project Positioning and Locked Roadmap
@@ -122,7 +122,7 @@ Day47:
   Completed Agentic RAG connection to GraphRAG
 
 Day48:
-  GraphRAG evaluation
+  Completed GraphRAG evaluation
 
 Day49:
   Observability / answer verification for GraphRAG
@@ -285,10 +285,11 @@ Future Day planning rules:
 6. Day45 has completed Graph retrieval debug over the ingested seed graph.
 7. Day46 has completed standalone GraphRAG + VectorRAG fusion debug.
 8. Day47 has completed Agentic RAG connection to GraphRAG through an explicit `graph_fusion` backend path.
-9. Day48 should evaluate GraphRAG without making it the default backend yet.
-10. Keep agent-api focused on Agentic RAG / GraphRAG / Multi-Agent.
-11. Keep chat-api focused on production LLM Gateway / Chat Backend engineering.
-12. Do not duplicate GraphRAG or Multi-Agent work in chat-api.
+9. Day48 completed GraphRAG evaluation without making graph_fusion the default backend.
+10. Day49 should add observability / answer verification hardening for GraphRAG.
+11. Keep agent-api focused on Agentic RAG / GraphRAG / Multi-Agent.
+12. Keep chat-api focused on production LLM Gateway / Chat Backend engineering.
+13. Do not duplicate GraphRAG or Multi-Agent work in chat-api.
 ```
 
 
@@ -1525,7 +1526,7 @@ Recommended next milestone:
 Day46: GraphRAG + VectorRAG fusion.
 ```
 
-Day46 and Day47 have now been completed. Day48 should evaluate the graph_fusion backend.
+Day46 and Day47 have now been completed. Day48 has evaluated the graph_fusion backend. Day49 should add GraphRAG observability / answer verification hardening.
 
 
 
@@ -1843,7 +1844,7 @@ Day47:
   Agentic RAG connects to GraphRAG.
 
 Day48:
-  GraphRAG evaluation.
+  Completed GraphRAG evaluation.
 
 Day49:
   Observability / answer verification for GraphRAG.
@@ -2159,7 +2160,7 @@ Likely follow-up milestones:
 
 ```text
 Day48:
-  GraphRAG evaluation.
+  Completed GraphRAG evaluation.
 
 Day49:
   Observability / answer verification for GraphRAG.
@@ -2412,19 +2413,311 @@ Completed:
 Recommended next milestone:
 
 ```text
-Day48: GraphRAG evaluation.
+Day49: Observability / answer verification for GraphRAG.
 ```
 
-Day48 should do the following:
+Day48 has now been completed. Day49 should do the following:
 
 ```text
-1. Add GraphRAG evaluation support for retrieval_backend="graph_fusion".
-2. Compare hybrid, chroma, chroma_rerank, and graph_fusion.
-3. Keep graph_fusion non-default until evaluation supports a switch.
-4. Keep CI-safe evaluation by using graph_dry_run=true or mocks by default.
-5. Add evaluation metadata for graph/vector contribution.
+1. Add GraphRAG-specific observability trace payloads.
+2. Add answer verification support for retrieval_backend="graph_fusion".
+3. Preserve graph/vector contribution metadata in verification output.
+4. Keep graph_fusion non-default.
+5. Keep CI-safe tests with graph_dry_run=true or mocked graph retrieval.
 6. Do not start Multi-Agent until Day51 GraphRAG interview material is complete.
 ```
+
+
+## Day48 - GraphRAG Evaluation
+
+Day48 completes GraphRAG evaluation support for the explicit `graph_fusion` backend.
+
+Scope:
+
+```text
+Day48 intentionally adds only the evaluation layer:
+  - add evaluation support for retrieval_backend="graph_fusion"
+  - compare hybrid, chroma, chroma_rerank, and graph_fusion
+  - keep graph_fusion non-default
+  - keep CI-safe evaluation through graph_dry_run=true
+  - add case-level graph/vector contribution metadata
+  - manually verify live Neo4j-backed evaluation locally
+
+Day48 does not:
+  - make GraphRAG the default backend
+  - start Multi-Agent
+  - change /agent/chat
+  - change Smart Chat defaults
+  - implement GraphRAG answer verification
+```
+
+New / modified files:
+
+```text
+src/app/schemas/rag.py
+src/app/evaluation/rag_eval.py
+src/app/routes/routes_rag.py
+tests/test_rag_graph_fusion_eval.py
+```
+
+New evaluation capability:
+
+```text
+/rag/eval-debug supports retrieval_backend="graph_fusion".
+/rag/backend-eval-debug can compare hybrid, chroma, chroma_rerank, and graph_fusion.
+```
+
+New request fields for evaluation:
+
+```text
+graph_dry_run
+fusion_graph_weight
+fusion_vector_weight
+graph_chunk_limit
+related_entity_limit
+```
+
+New response fields:
+
+```text
+graph_evaluation_metadata
+cases[*].graph_vector_contribution
+```
+
+`graph_vector_contribution` fields:
+
+```text
+retrieval_backend
+graph_dry_run
+graph_status
+graph_ok
+graph_chunk_count
+graph_related_entity_count
+vector_result_count
+fusion_result_count
+graph_only_count
+vector_only_count
+graph_and_vector_count
+query_entity_match_count
+```
+
+CI-safe validation:
+
+```text
+pytest tests/test_rag_graph_fusion_eval.py -q
+4 passed, 1 warning
+
+pytest tests/test_rag_eval.py \
+       tests/test_rag_backend_eval.py \
+       tests/test_rag_backend_pairwise_eval.py \
+       tests/test_rag_backend_comparison_summary.py \
+       tests/test_rag_backend_report.py \
+       tests/test_rag_graph_fusion_eval.py \
+       tests/test_rag_agentic_graph_fusion_backend.py -q
+23 passed, 1 warning
+
+pytest -q
+155 passed, 1 warning
+```
+
+Dry-run GraphRAG evaluation:
+
+```text
+trace_id = day48-rag-eval-graph-fusion-dry-run-001
+retrieval_backend = graph_fusion
+graph_dry_run = true
+graph_evaluation_metadata.graph_fusion_enabled = true
+
+metrics:
+  total_cases = 3
+  passed_cases = 3
+  pass_rate = 1.0
+  retrieval_decision_accuracy = 1.0
+  expected_terms_hit_rate = 1.0
+  citation_hit_rate = 1.0
+  average_relevance_score = 0.13841
+
+retrieval cases:
+  graph_retrieval.status = dry_run
+  vector_retrieval.result_count = 2
+  fusion.source_counts.vector_only = 2
+  fusion.source_counts.graph_and_vector = 0
+```
+
+Dry-run four-backend comparison:
+
+```text
+trace_id = day48-backend-eval-four-backends-dry-run-001
+backends = hybrid, chroma, chroma_rerank, graph_fusion
+graph_dry_run = true
+
+best_backend_by_pass_rate = hybrid
+best_backend_by_average_relevance = chroma_rerank
+
+graph_fusion:
+  passed_cases = 3 / 3
+  pass_rate = 1.0
+  average_relevance_score = 0.13841
+```
+
+Live Neo4j-backed validation:
+
+```text
+trace_id = day48-neo4j-health-before-eval-001
+connection.ok = true
+connection.status = connected
+
+trace_id = day48-reingest-seed-graph-001
+execution.ok = true
+execution.status = ingested
+Document = 1
+Chunk = 3
+Entity = 5
+```
+
+Live GraphRAG evaluation:
+
+```text
+trace_id = day48-rag-eval-graph-fusion-live-001
+retrieval_backend = graph_fusion
+graph_dry_run = false
+
+metrics:
+  total_cases = 3
+  passed_cases = 3
+  pass_rate = 1.0
+  retrieval_decision_accuracy = 1.0
+  expected_terms_hit_rate = 1.0
+  citation_hit_rate = 1.0
+  average_relevance_score = 0.471744
+
+rag_definition:
+  graph_status = retrieved
+  graph_ok = true
+  graph_chunk_count = 2
+  vector_result_count = 2
+  graph_and_vector_count = 2
+
+langgraph_definition:
+  graph_status = retrieved
+  graph_ok = true
+  graph_chunk_count = 1
+  vector_result_count = 2
+  graph_and_vector_count = 1
+```
+
+Live four-backend comparison:
+
+```text
+trace_id = day48-backend-eval-four-backends-live-001
+backends = hybrid, chroma, chroma_rerank, graph_fusion
+graph_dry_run = false
+
+best_backend_by_pass_rate = hybrid
+best_backend_by_average_relevance = graph_fusion
+
+graph_fusion:
+  passed_cases = 3 / 3
+  pass_rate = 1.0
+  average_relevance_score = 0.471744
+
+chroma_rerank:
+  passed_cases = 3 / 3
+  pass_rate = 1.0
+  average_relevance_score = 0.393338
+
+hybrid:
+  passed_cases = 3 / 3
+  pass_rate = 1.0
+  average_relevance_score = 0.276821
+
+chroma:
+  passed_cases = 2 / 3
+  pass_rate = 0.666667
+  average_relevance_score = 0.277211
+```
+
+Selection-policy result:
+
+```text
+evaluation_report.recommended_backend = graph_fusion
+evaluation_report.default_backend = hybrid
+evaluation_report.default_backend_should_change = false
+selection_policy = keep_default_hybrid_until_larger_eval_set
+```
+
+Reasons default still does not switch:
+
+```text
+The eval set has only 3 cases.
+The run uses deterministic embeddings.
+GraphRAG default switch requires a larger and more representative evaluation.
+```
+
+Safety validation:
+
+```text
+No evidence that graph_fusion was made the default backend.
+No Multi-Agent files were added.
+```
+
+Commit:
+
+```text
+add graph fusion rag evaluation support
+hash: committed and pushed by user; hash not provided in current message
+```
+
+Git push:
+
+```text
+success
+```
+
+GitHub Actions CI:
+
+```text
+green
+```
+
+### Day48 Checklist
+
+Completed:
+
+```text
+✅ Added evaluation support for retrieval_backend="graph_fusion"
+✅ Added graph_fusion support to /rag/eval-debug
+✅ Added four-backend comparison support for hybrid / chroma / chroma_rerank / graph_fusion
+✅ Kept graph_fusion non-default
+✅ Kept CI-safe evaluation with graph_dry_run=true
+✅ Added graph_evaluation_metadata
+✅ Added case-level graph_vector_contribution
+✅ Verified dry-run GraphRAG evaluation
+✅ Verified dry-run four-backend comparison
+✅ Verified live Neo4j health before evaluation
+✅ Re-ingested the seed graph before live validation
+✅ Verified live Neo4j-backed GraphRAG evaluation
+✅ Verified live graph + vector contribution with graph_and_vector_count >= 1
+✅ Verified live four-backend comparison
+✅ Verified evaluation_report.default_backend_should_change = false
+✅ Verified no Multi-Agent work started
+✅ Local Day48 tests: 4 passed, 1 warning
+✅ Local related tests: 23 passed, 1 warning
+✅ Full local pytest: 155 passed, 1 warning
+✅ Git push: success
+✅ GitHub Actions CI: green
+```
+
+### Next Work
+
+Recommended next milestone:
+
+```text
+Day49: Observability / answer verification for GraphRAG.
+```
+
+Day49 should harden the GraphRAG path by improving trace payloads and answer verification support for `graph_fusion`.
+
 
 ## Project Goal
 
@@ -2596,7 +2889,7 @@ Not yet implemented:
 - Replacing `/agent/chat` with the real LLM Agent as the default route
 - Making Smart Chat the default production entry point
 - Document upload and parsing pipeline
-- GraphRAG evaluation
+- GraphRAG observability / answer verification hardening
 - Multi-Agent Supervisor
 
 ---
@@ -3265,7 +3558,7 @@ Do not put source-controlled knowledge files under data/, because data/ is runti
 
 ## Current GraphRAG / Neo4j Strategy
 
-Day42 added the initial GraphRAG + Neo4j foundation. Day43 added deterministic Entity / Relation extraction over the existing knowledge chunks. Day44 added a Neo4j ingestion boundary that consumes the extraction output and writes the seed graph into Neo4j. Day45 added a Neo4j graph retrieval boundary over the ingested seed graph. Day46 added a standalone GraphRAG + VectorRAG fusion debug boundary. Day47 connected Agentic RAG to that fusion boundary through an explicit `graph_fusion` backend.
+Day42 added the initial GraphRAG + Neo4j foundation. Day43 added deterministic Entity / Relation extraction over the existing knowledge chunks. Day44 added a Neo4j ingestion boundary that consumes the extraction output and writes the seed graph into Neo4j. Day45 added a Neo4j graph retrieval boundary over the ingested seed graph. Day46 added a standalone GraphRAG + VectorRAG fusion debug boundary. Day47 connected Agentic RAG to that fusion boundary through an explicit `graph_fusion` backend. Day48 added GraphRAG evaluation support for graph_fusion.
 
 Current graph files:
 
@@ -3715,7 +4008,7 @@ Day46 fuses graph and vector retrieval results in a standalone debug layer only.
 It does not connect Agentic RAG to GraphRAG.
 It does not change the default Agentic RAG retrieval backend.
 It does not generate final answers from the fused results.
-Day47 has now been completed. Day48 should evaluate the graph_fusion backend.
+Day47 has now been completed. Day48 has evaluated the graph_fusion backend. Day49 should add GraphRAG observability / answer verification hardening.
 ```
 
 
@@ -9016,12 +9309,46 @@ Day46 completed:
 - [x] Day46 Git push: success
 - [x] Day46 GitHub Actions CI: green
 
+Day47 completed:
+
+- [x] Day47 Agentic RAG connects to GraphRAG
+- [x] Added explicit GraphRAG-capable retrieval backend for Agentic RAG
+- [x] Added `retrieval_backend="graph_fusion"`
+- [x] Reused Day46 fusion module instead of duplicating graph/vector logic
+- [x] Normalized fused results into the existing Agentic RAG retrieval result format
+- [x] Preserved citations and retrieval metadata
+- [x] Added JSON debug tests for `/rag/agentic-debug` with the new backend
+- [x] Kept default retrieval_backend unchanged as `hybrid`
+- [x] Kept CI-safe behavior through `graph_dry_run=true`
+- [x] Manually verified live Neo4j-backed Agentic RAG locally
+- [x] Day47 full local pytest: 151 passed, 1 warning
+- [x] Day47 Git push: success
+- [x] Day47 GitHub Actions CI: green
+
+Day48 completed:
+
+- [x] Day48 GraphRAG evaluation
+- [x] Added evaluation support for `retrieval_backend="graph_fusion"`
+- [x] Compared `hybrid`, `chroma`, `chroma_rerank`, and `graph_fusion`
+- [x] Kept `graph_fusion` non-default until evaluation supports a switch
+- [x] Kept CI-safe evaluation through `graph_dry_run=true` by default
+- [x] Added evaluation metadata for graph/vector contribution
+- [x] Verified `/rag/eval-debug` with `graph_fusion` dry-run
+- [x] Verified `/rag/backend-eval-debug` four-backend comparison dry-run
+- [x] Manually verified live Neo4j-backed GraphRAG evaluation with `graph_dry_run=false`
+- [x] Verified no Multi-Agent files were added
+- [x] Day48 local graph_fusion eval tests: 4 passed, 1 warning
+- [x] Day48 related evaluation tests: 23 passed, 1 warning
+- [x] Day48 full local pytest: 155 passed, 1 warning
+- [x] Day48 Git push: success
+- [x] Day48 GitHub Actions CI: green
+
 Next:
 
-- [ ] Day48 GraphRAG evaluation
-- [ ] Add evaluation support for `retrieval_backend="graph_fusion"`
-- [ ] Compare `hybrid`, `chroma`, `chroma_rerank`, and `graph_fusion`
-- [ ] Keep `graph_fusion` non-default until evaluation supports a switch
-- [ ] Keep CI-safe evaluation by using `graph_dry_run=true` or mocked graph retrieval by default
-- [ ] Add evaluation metadata for graph/vector contribution
+- [ ] Day49 Observability / answer verification for GraphRAG
+- [ ] Add GraphRAG-aware trace payload fields for `graph_fusion` retrieval and evaluation
+- [ ] Add or extend answer verification for `retrieval_backend="graph_fusion"`
+- [ ] Preserve graph/vector contribution metadata in verification and traces
+- [ ] Keep `graph_fusion` non-default
+- [ ] Keep CI-safe behavior through dry-run or mocked graph retrieval by default
 - [ ] Do not start Multi-Agent yet
