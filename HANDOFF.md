@@ -13,13 +13,13 @@ Project 2 has officially started and is now the main development line.
 Current `agent-api` status:
 
 ```text
-Day1-Day48 completed.
-Day48 completed: GraphRAG evaluation support for retrieval_backend="graph_fusion" across /rag/eval-debug and /rag/backend-eval-debug.
-Local pytest: 155 passed, 1 warning.
-Git commit: committed and pushed by user; hash not provided in current message.
+Day1-Day49 completed.
+Day49 completed: GraphRAG-aware observability trace payloads and answer verification support for retrieval_backend="graph_fusion".
+Local pytest: 160 passed, 1 warning.
+Git commit: 65aab7c add graph fusion observability and verification metadata.
 Git push: success.
 GitHub Actions CI: green.
-Next: Day49 Observability / answer verification for GraphRAG.
+Next: Day50 GraphRAG docs.
 ```
 
 ## Strategic Project Positioning and Locked Roadmap
@@ -125,7 +125,7 @@ Day48:
   Completed GraphRAG evaluation
 
 Day49:
-  Observability / answer verification for GraphRAG
+  Completed Observability / answer verification for GraphRAG
 
 Day50:
   GraphRAG docs
@@ -286,10 +286,11 @@ Future Day planning rules:
 7. Day46 has completed standalone GraphRAG + VectorRAG fusion debug.
 8. Day47 has completed Agentic RAG connection to GraphRAG through an explicit `graph_fusion` backend path.
 9. Day48 completed GraphRAG evaluation without making graph_fusion the default backend.
-10. Day49 should add observability / answer verification hardening for GraphRAG.
-11. Keep agent-api focused on Agentic RAG / GraphRAG / Multi-Agent.
-12. Keep chat-api focused on production LLM Gateway / Chat Backend engineering.
-13. Do not duplicate GraphRAG or Multi-Agent work in chat-api.
+10. Day49 completed observability / answer verification hardening for GraphRAG.
+11. Day50 should document the GraphRAG architecture, endpoints, evaluation, observability, and verification behavior.
+12. Keep agent-api focused on Agentic RAG / GraphRAG / Multi-Agent.
+13. Keep chat-api focused on production LLM Gateway / Chat Backend engineering.
+14. Do not duplicate GraphRAG or Multi-Agent work in chat-api.
 ```
 
 
@@ -1526,7 +1527,7 @@ Recommended next milestone:
 Day46: GraphRAG + VectorRAG fusion.
 ```
 
-Day46 and Day47 have now been completed. Day48 has evaluated the graph_fusion backend. Day49 should add GraphRAG observability / answer verification hardening.
+Day46 and Day47 have now been completed. Day48 has evaluated the graph_fusion backend. Day49 has added GraphRAG observability / answer verification hardening. Day50 should add GraphRAG docs.
 
 
 
@@ -1847,7 +1848,7 @@ Day48:
   Completed GraphRAG evaluation.
 
 Day49:
-  Observability / answer verification for GraphRAG.
+  Completed Observability / answer verification for GraphRAG.
 ```
 
 
@@ -2163,7 +2164,7 @@ Day48:
   Completed GraphRAG evaluation.
 
 Day49:
-  Observability / answer verification for GraphRAG.
+  Completed Observability / answer verification for GraphRAG.
 
 Day50:
   GraphRAG docs.
@@ -2413,19 +2414,10 @@ Completed:
 Recommended next milestone:
 
 ```text
-Day49: Observability / answer verification for GraphRAG.
+Day50: GraphRAG docs.
 ```
 
-Day48 has now been completed. Day49 should do the following:
-
-```text
-1. Add GraphRAG-specific observability trace payloads.
-2. Add answer verification support for retrieval_backend="graph_fusion".
-3. Preserve graph/vector contribution metadata in verification output.
-4. Keep graph_fusion non-default.
-5. Keep CI-safe tests with graph_dry_run=true or mocked graph retrieval.
-6. Do not start Multi-Agent until Day51 GraphRAG interview material is complete.
-```
+Day49 has now been completed. Day50 should document GraphRAG architecture, endpoints, evaluation, observability, and answer verification behavior.
 
 
 ## Day48 - GraphRAG Evaluation
@@ -2713,10 +2705,489 @@ Completed:
 Recommended next milestone:
 
 ```text
-Day49: Observability / answer verification for GraphRAG.
+Day50: GraphRAG docs.
 ```
 
-Day49 should harden the GraphRAG path by improving trace payloads and answer verification support for `graph_fusion`.
+Day49 has hardened the GraphRAG path by improving trace payloads and answer verification support for `graph_fusion`.
+
+
+
+## Day49 - GraphRAG Observability and Answer Verification
+
+## Goal
+
+Day49 hardens the GraphRAG path after Day48 evaluation by adding GraphRAG-aware observability and answer verification metadata for the explicit `retrieval_backend="graph_fusion"` path.
+
+Day49 intentionally does **not** make `graph_fusion` the default backend and does **not** start Multi-Agent work.
+
+## Scope
+
+```text
+Day49 implements:
+  - shared graph/vector contribution metadata helper
+  - GraphRAG-aware Agentic RAG trace payload fields
+  - GraphRAG-aware evaluation trace payload preservation
+  - answer verification support for retrieval_backend="graph_fusion"
+  - graph/vector contribution metadata in answer verification responses and traces
+  - CI-safe dry-run validation through graph_dry_run=true
+  - manual live Neo4j-backed answer verification validation
+
+Day49 does not:
+  - make graph_fusion the default backend
+  - change /agent/chat
+  - change Smart Chat defaults
+  - tune GraphRAG ranking strategy
+  - start Multi-Agent
+  - write GraphRAG docs or interview material
+```
+
+## New / Modified Files
+
+```text
+src/app/rag/graph_fusion_metadata.py
+src/app/evaluation/rag_eval.py
+src/app/rag/agentic_graph.py
+src/app/rag/answer_verifier.py
+src/app/schemas/rag.py
+src/app/routes/routes_rag.py
+tests/test_rag_graph_fusion_observability.py
+tests/test_rag_answer_verify_graph_fusion.py
+```
+
+## New GraphRAG Metadata Helper
+
+Day49 adds a shared helper module:
+
+```text
+src/app/rag/graph_fusion_metadata.py
+```
+
+Core helpers:
+
+```text
+build_graph_vector_contribution()
+build_graph_fusion_trace_payload()
+```
+
+The helper summarizes GraphRAG fusion metadata without calling Neo4j. It is pure and CI-safe.
+
+`graph_vector_contribution` contains:
+
+```text
+retrieval_backend
+graph_dry_run
+graph_status
+graph_ok
+graph_chunk_count
+graph_related_entity_count
+vector_result_count
+fusion_result_count
+graph_only_count
+vector_only_count
+graph_and_vector_count
+query_entity_match_count
+```
+
+This helper is reused by:
+
+```text
+Agentic RAG response / trace
+RAG evaluation case result / trace
+Answer verification response / trace
+```
+
+## Agentic RAG Observability Upgrade
+
+`/rag/agentic-debug` now returns and traces GraphRAG contribution metadata when `retrieval_backend="graph_fusion"` is explicitly requested.
+
+New response / trace field:
+
+```text
+graph_vector_contribution
+```
+
+CI-safe dry-run behavior:
+
+```text
+retrieval_backend = graph_fusion
+graph_dry_run = true
+graph_retrieval.status = dry_run
+vector_retrieval.result_count >= 1
+fusion.result_count >= 1
+```
+
+Trace validation verifies that `rag_agentic_debug` preserves:
+
+```text
+retrieval_backend
+retrieval_metadata
+graph_vector_contribution
+```
+
+## RAG Evaluation Observability Upgrade
+
+Day48 already added GraphRAG evaluation support. Day49 hardens the trace payload path so GraphRAG evaluation metadata remains visible through the observability store.
+
+`/rag/eval-debug` trace payload now preserves:
+
+```text
+retrieval_backend
+graph_evaluation_metadata
+cases[*].retrieval_metadata
+cases[*].graph_vector_contribution
+```
+
+`/rag/backend-eval-debug` trace payload now preserves GraphRAG contribution metadata inside backend comparison results:
+
+```text
+results[*].cases[*].retrieval_metadata
+results[*].cases[*].graph_vector_contribution
+evaluation_report
+```
+
+## Answer Verification Upgrade
+
+`/rag/answer-verify-debug` now supports:
+
+```text
+retrieval_backend="graph_fusion"
+```
+
+The endpoint still preserves the original Day28 nested verification payload:
+
+```text
+verification
+```
+
+Day49 also exposes flattened verification fields for easier assertions and trace inspection:
+
+```text
+verification_mode
+answer_supported
+verification_pass
+confidence
+answer_has_citation
+citation_coverage_pass
+cited_in_answer
+unsupported_citations
+grounding_terms
+matched_grounding_terms
+risk_flags
+```
+
+New GraphRAG-specific answer verification fields:
+
+```text
+retrieval_backend
+retrieval_metadata
+graph_vector_contribution
+graph_fusion_verification
+```
+
+`graph_fusion_verification` contains:
+
+```text
+retrieval_backend
+graph_metadata_present
+graph_or_vector_evidence_present
+graph_and_vector_evidence_present
+graph_dry_run
+graph_status
+graph_ok
+query_entity_match_count
+graph_chunk_count
+vector_result_count
+fusion_result_count
+```
+
+Important compatibility note:
+
+```text
+The nested `verification` object remains in the response for backward compatibility.
+The flattened verification fields are added in parallel.
+```
+
+## CI-safe Validation
+
+Day49 added two new test files:
+
+```text
+tests/test_rag_graph_fusion_observability.py
+tests/test_rag_answer_verify_graph_fusion.py
+```
+
+Observed local validation:
+
+```text
+pytest tests/test_rag_graph_fusion_observability.py        tests/test_rag_answer_verify_graph_fusion.py -q
+5 passed, 1 warning
+
+pytest tests/test_rag_graph_fusion_eval.py        tests/test_rag_agentic_graph_fusion_backend.py        tests/test_rag_answer_verify.py        tests/test_observability.py        tests/test_rag_graph_fusion_observability.py        tests/test_rag_answer_verify_graph_fusion.py -q
+18 passed, 1 warning
+
+pytest -q
+160 passed, 1 warning
+```
+
+The only warning remains:
+
+```text
+StarletteDeprecationWarning: Using httpx with starlette.testclient is deprecated; install httpx2 instead.
+```
+
+## Dry-run Manual Validation
+
+Dry-run answer verification request:
+
+```text
+trace_id = day49-answer-verify-graph-fusion-dry-run-001
+retrieval_backend = graph_fusion
+graph_dry_run = true
+```
+
+Observed answer verification result:
+
+```text
+verification.verification_pass = true
+verification.answer_supported = true
+verification.confidence = medium
+retrieval_metadata.retrieval_backend = graph_fusion
+retrieval_metadata.graph_dry_run = true
+retrieval_metadata.graph_retrieval.status = dry_run
+retrieval_metadata.vector_retrieval.result_count = 2
+retrieval_metadata.fusion.result_count = 2
+retrieval_metadata.fusion.source_counts.vector_only = 2
+retrieval_metadata.fusion.source_counts.graph_and_vector = 0
+```
+
+Observed `graph_vector_contribution`:
+
+```text
+retrieval_backend = graph_fusion
+graph_dry_run = true
+graph_status = dry_run
+graph_ok = null
+graph_chunk_count = 0
+vector_result_count = 2
+fusion_result_count = 2
+vector_only_count = 2
+graph_and_vector_count = 0
+query_entity_match_count = 1
+```
+
+Observed `graph_fusion_verification`:
+
+```text
+graph_metadata_present = true
+graph_or_vector_evidence_present = true
+graph_and_vector_evidence_present = false
+graph_dry_run = true
+graph_status = dry_run
+graph_ok = null
+```
+
+The dry-run trace preserves:
+
+```text
+retrieval_backend
+retrieval_metadata
+graph_vector_contribution
+graph_fusion_verification
+verification
+verification_pass
+answer_supported
+confidence
+risk_flags
+```
+
+## Evaluation Trace Manual Validation
+
+Dry-run GraphRAG evaluation request:
+
+```text
+trace_id = day49-rag-eval-graph-fusion-trace-001
+retrieval_backend = graph_fusion
+graph_dry_run = true
+```
+
+Observed evaluation result:
+
+```text
+metrics.total_cases = 3
+metrics.passed_cases = 3
+metrics.pass_rate = 1.0
+metrics.retrieval_decision_accuracy = 1.0
+metrics.expected_terms_hit_rate = 1.0
+metrics.citation_hit_rate = 1.0
+metrics.average_relevance_score = 0.13841
+graph_evaluation_metadata.graph_fusion_enabled = true
+```
+
+Observed trace preservation:
+
+```text
+cases[*].retrieval_metadata exists
+cases[*].graph_vector_contribution exists
+retrieval cases include graph_status = dry_run and vector_result_count = 2
+direct_chat case has graph_vector_contribution = {}
+```
+
+## Live Neo4j-backed Manual Validation
+
+Live Neo4j health check:
+
+```text
+trace_id = day49-neo4j-health-before-answer-verify-001
+connection.ok = true
+connection.status = connected
+connection.settings.uri = bolt://localhost:7687
+connection.settings.database = neo4j
+connection.settings.enabled = true
+```
+
+Seed graph re-ingestion before live verification:
+
+```text
+trace_id = day49-reingest-seed-graph-001
+execution.ok = true
+execution.status = ingested
+Document = 1
+Chunk = 3
+Entity = 5
+HAS_CHUNK = 3
+NEXT_CHUNK = 2
+MENTIONS = 10
+RELATED_TO = 14 attempted by extraction / ingestion plan
+```
+
+Live answer verification request:
+
+```text
+trace_id = day49-answer-verify-graph-fusion-live-001
+retrieval_backend = graph_fusion
+graph_dry_run = false
+```
+
+Observed live result:
+
+```text
+verification.verification_pass = true
+verification.answer_supported = true
+verification.confidence = high
+retrieval_metadata.graph_dry_run = false
+retrieval_metadata.graph_retrieval.status = retrieved
+retrieval_metadata.graph_retrieval.ok = true
+retrieval_metadata.graph_retrieval.chunk_count = 2
+retrieval_metadata.graph_retrieval.related_entity_count = 4
+retrieval_metadata.vector_retrieval.result_count = 2
+retrieval_metadata.fusion.result_count = 2
+retrieval_metadata.fusion.source_counts.graph_and_vector = 2
+```
+
+Observed live `graph_vector_contribution`:
+
+```text
+graph_status = retrieved
+graph_ok = true
+graph_chunk_count = 2
+graph_related_entity_count = 4
+vector_result_count = 2
+fusion_result_count = 2
+graph_and_vector_count = 2
+```
+
+Observed live `graph_fusion_verification`:
+
+```text
+graph_metadata_present = true
+graph_or_vector_evidence_present = true
+graph_and_vector_evidence_present = true
+graph_dry_run = false
+graph_status = retrieved
+graph_ok = true
+```
+
+## Safety Validation
+
+Default backend remains unchanged:
+
+```text
+/rag/answer-verify-debug without retrieval_backend still uses retrieval_backend = hybrid.
+/rag/agentic-debug without retrieval_backend still uses retrieval_backend = hybrid.
+```
+
+GraphRAG remains explicit:
+
+```text
+retrieval_backend="graph_fusion" must be requested explicitly.
+```
+
+Multi-Agent was not started:
+
+```text
+find src/app -maxdepth 3 -type f | grep -i "multi\|supervisor\|planner\|critic" || true
+# no output
+```
+
+## Commit
+
+```text
+65aab7c add graph fusion observability and verification metadata
+```
+
+Git push:
+
+```text
+success
+```
+
+GitHub Actions CI:
+
+```text
+green
+```
+
+## Day49 Checklist
+
+Completed:
+
+```text
+✅ Added GraphRAG-aware trace payload fields for graph_fusion retrieval
+✅ Added GraphRAG-aware trace payload fields for graph_fusion evaluation
+✅ Added shared graph_fusion metadata helper
+✅ Added graph_vector_contribution to /rag/agentic-debug response and trace
+✅ Preserved cases[*].graph_vector_contribution in /rag/eval-debug trace
+✅ Preserved results[*].cases[*].graph_vector_contribution in /rag/backend-eval-debug trace
+✅ Added answer verification support for retrieval_backend="graph_fusion"
+✅ Preserved nested verification object for backward compatibility
+✅ Added flattened verification fields to answer verification response
+✅ Added retrieval_metadata to graph_fusion answer verification response
+✅ Added graph_vector_contribution to answer verification response and trace
+✅ Added graph_fusion_verification to answer verification response and trace
+✅ Kept graph_fusion non-default
+✅ Kept CI-safe behavior through graph_dry_run=true
+✅ Verified dry-run answer verification and trace
+✅ Verified dry-run evaluation trace preservation
+✅ Verified live Neo4j-backed answer verification
+✅ Verified graph_and_vector evidence in live answer verification
+✅ Verified no Multi-Agent files were added
+✅ Local Day49 new tests: 5 passed, 1 warning
+✅ Local Day49 related tests: 18 passed, 1 warning
+✅ Full local pytest: 160 passed, 1 warning
+✅ Git commit: 65aab7c add graph fusion observability and verification metadata
+✅ Git push: success
+✅ GitHub Actions CI: green
+```
+
+## Next Work
+
+Recommended next milestone:
+
+```text
+Day50: GraphRAG docs.
+```
+
+Day50 should document the GraphRAG architecture, GraphRAG endpoints, graph_fusion backend, evaluation flow, observability fields, and answer verification behavior.
 
 
 ## Project Goal
@@ -2889,7 +3360,7 @@ Not yet implemented:
 - Replacing `/agent/chat` with the real LLM Agent as the default route
 - Making Smart Chat the default production entry point
 - Document upload and parsing pipeline
-- GraphRAG observability / answer verification hardening
+- GraphRAG docs
 - Multi-Agent Supervisor
 
 ---
@@ -4008,7 +4479,7 @@ Day46 fuses graph and vector retrieval results in a standalone debug layer only.
 It does not connect Agentic RAG to GraphRAG.
 It does not change the default Agentic RAG retrieval backend.
 It does not generate final answers from the fused results.
-Day47 has now been completed. Day48 has evaluated the graph_fusion backend. Day49 should add GraphRAG observability / answer verification hardening.
+Day47 has now been completed. Day48 has evaluated the graph_fusion backend. Day49 has added GraphRAG observability / answer verification hardening. Day50 should add GraphRAG docs.
 ```
 
 
@@ -8988,367 +9459,9 @@ Completed:
 
 Next:
 
-- [x] Day25 RAG Evaluation Debug
-- [x] Day25 `/rag/eval-debug`
-- [x] Day25 JSONL eval cases
-- [x] Day25 retrieval_decision_accuracy
-- [x] Day25 expected_terms_hit_rate
-- [x] Day25 citation_hit_rate
-- [x] Day25 pass_rate
-- [x] Day25 RAG eval tests
-- [x] Day25 Git push
-
-Next:
-
-- [x] Day26 Observability Trace Store
-- [x] Day26 `/observability/traces/{trace_id}`
-- [x] Day26 `/observability/traces`
-- [x] Day26 `record_trace_event()`
-- [x] Day26 `get_trace_events()`
-- [x] Day26 `list_recent_trace_ids()`
-- [x] Day26 `rag_agentic_debug` trace event
-- [x] Day26 `rag_eval_debug` trace event
-- [x] Day26 observability tests
-- [x] Day26 GitHub Actions CI
-- [x] Day26 Git push
-
-Next:
-
-- [x] Day27 Agentic RAG Streaming
-- [x] Day27 `/rag/agentic-stream`
-- [x] Day27 `stream_agentic_rag_events()`
-- [x] Day27 retrieval path SSE events
-- [x] Day27 direct path SSE events
-- [x] Day27 `rag_agentic_stream` trace event
-- [x] Day27 observability lookup for stream trace
-- [x] Day27 Agentic RAG stream tests
-- [x] Day27 GitHub Actions CI
-- [x] Day27 Git push
-
-Next:
-
-- [x] Day28 Agentic RAG Answer Verification
-- [x] Day28 `/rag/answer-verify-debug`
-- [x] Day28 `verify_agentic_rag_answer()`
-- [x] Day28 retrieval path verification
-- [x] Day28 direct path verification
-- [x] Day28 `verification_pass`
-- [x] Day28 `confidence`
-- [x] Day28 citation coverage checks
-- [x] Day28 grounding terms checks
-- [x] Day28 `risk_flags`
-- [x] Day28 `rag_answer_verify_debug` trace event
-- [x] Day28 answer verification tests
-- [x] Day28 GitHub Actions CI
-- [x] Day28 Git push
-
-Next:
-
-- [x] Day29 SQLite Vector Store Debug
-- [x] Day29 `/rag/vector-store-debug`
-- [x] Day29 `build_vector_store_index()`
-- [x] Day29 `query_vector_store()`
-- [x] Day29 `debug_vector_store_search()`
-- [x] Day29 SQLite chunk embedding persistence
-- [x] Day29 `index_stats`
-- [x] Day29 `rag_vector_store_debug` trace event
-- [x] Day29 vector store tests
-- [x] Day29 local pytest
-- [x] Day29 Git push
-
-Next:
-
-- [x] Day30 EmbeddingProvider abstraction
-- [x] Day30 `/rag/embedding-debug`
-- [x] Day30 `EmbeddingProvider`
-- [x] Day30 `DeterministicEmbeddingProvider`
-- [x] Day30 reserved `SentenceTransformersEmbeddingProvider`
-- [x] Day30 `get_embedding_provider()`
-- [x] Day30 `debug_embeddings()`
-- [x] Day30 provider-aware `/rag/vector-store-debug`
-- [x] Day30 `rag_embedding_debug` trace event
-- [x] Day30 embedding provider tests
-- [x] Day30 local pytest
-- [x] Day30 GitHub Actions CI
-- [x] Day30 Git push
-
-Next:
-
-- [x] Day31 Chroma persistent vector store debug
-- [x] Day31 `chromadb` dependency
-- [x] Day31 `/rag/chroma-search-debug`
-- [x] Day31 `build_chroma_index()`
-- [x] Day31 `query_chroma_store()`
-- [x] Day31 `debug_chroma_search()`
-- [x] Day31 Chroma PersistentClient path
-- [x] Day31 Chroma index stats
-- [x] Day31 `rag_chroma_search_debug` trace event
-- [x] Day31 Chroma tests
-- [x] Day31 local pytest
-- [x] Day31 GitHub Actions CI
-- [x] Day31 Git push
-
-Next:
-
-- [x] Day32 Agentic RAG retrieval backend switch
-- [x] Day32 Chroma collection short hash naming
-- [x] Day32 `src/app/rag/retrieval_backend.py`
-- [x] Day32 `retrieve_agentic_context()`
-- [x] Day32 `retrieval_backend="hybrid"`
-- [x] Day32 `retrieval_backend="chroma"`
-- [x] Day32 `/rag/agentic-debug` Chroma backend
-- [x] Day32 `retrieval_backend` response field
-- [x] Day32 `retrieval_metadata` response field
-- [x] Day32 trace backend metadata
-- [x] Day32 Agentic RAG backend tests
-- [x] Day32 local pytest
-- [x] Day32 Git push
-
-Next:
-
-- [x] Day33 Chroma-backed RAG evaluation and backend comparison
-- [x] Day33 `/rag/eval-debug` backend-aware evaluation
-- [x] Day33 `/rag/backend-eval-debug`
-- [x] Day33 `compare_rag_retrieval_backends()`
-- [x] Day33 hybrid evaluation metrics
-- [x] Day33 Chroma evaluation metrics
-- [x] Day33 backend comparison trace event
-- [x] Day33 backend eval tests
-- [x] Day33 local pytest
-- [x] Day33 GitHub Actions CI
-- [x] Day33 Git push
-
-Next:
-
-- [x] Day34 Backend metrics refinement and stream/backend alignment
-- [x] Day34 `metric_deltas`
-- [x] Day34 `case_comparisons`
-- [x] Day34 `comparison_summary`
-- [x] Day34 refined `rag_backend_eval_debug` trace payload
-- [x] Day34 `/rag/agentic-stream` supports `retrieval_backend="hybrid"`
-- [x] Day34 `/rag/agentic-stream` supports `retrieval_backend="chroma"`
-- [x] Day34 stream `metadata` event includes backend metadata
-- [x] Day34 stream `retrieval` event includes backend metadata
-- [x] Day34 stream `final` event includes backend metadata
-- [x] Day34 `rag_agentic_stream` trace includes backend metadata
-- [x] Day34 stream backend tests
-- [x] Day34 local pytest
-- [x] Day34 GitHub Actions CI
-- [x] Day34 Git push
-
-Next:
-
-- [x] Day35 Reranker-ready retrieval backend extension
-- [x] Day35 `src/app/rag/reranker.py`
-- [x] Day35 `retrieval_backend="chroma_rerank"`
-- [x] Day35 `chroma_rerank_retrieve` Agentic RAG step
-- [x] Day35 reranker metadata fields
-- [x] Day35 `/rag/agentic-debug` Chroma rerank path
-- [x] Day35 `/rag/backend-eval-debug` comparison with `chroma_rerank`
-- [x] Day35 `tests/test_rag_reranker.py`
-- [x] Day35 local pytest
-- [x] Day35 GitHub Actions CI
-- [x] Day35 Git push
-
-Next:
-
-- [x] Day36 Pairwise backend comparison refinement
-- [x] Day36 `_calculate_metric_delta()`
-- [x] Day36 `_build_pairwise_metric_deltas()`
-- [x] Day36 `pairwise_metric_deltas` response field
-- [x] Day36 `pairwise_metric_deltas` trace payload
-- [x] Day36 `tests/test_rag_backend_pairwise_eval.py`
-- [x] Day36 local pytest
-- [x] Day36 GitHub Actions CI
-- [x] Day36 Git push
-
-Next:
-
-- [x] Day37 Multi-backend comparison summary refinement
-- [x] Day37 `comparison_summary.evaluated_backends`
-- [x] Day37 `comparison_summary.metric_winners`
-- [x] Day37 `comparison_summary.metric_rankings`
-- [x] Day37 `comparison_summary.top_improvement_pairs`
-- [x] Day37 multi-backend-aware `comparison_summary.notes`
-- [x] Day37 `tests/test_rag_backend_comparison_summary.py`
-- [x] Day37 local pytest
-- [x] Day37 GitHub Actions CI
-- [x] Day37 Git push
-
-Next:
-
-- [x] Day38 Semantic embedding provider local validation
-- [x] Day38 local semantic BCE model validation
-- [x] Day38 `/rag/embedding-debug` semantic provider validation
-- [x] Day38 `/rag/chroma-search-debug` semantic provider validation
-- [x] Day38 `/rag/agentic-debug` Chroma semantic validation
-- [x] Day38 `/rag/backend-eval-debug` semantic backend comparison
-- [x] Day38 semantic provider CI-safe skip test
-- [x] Day38 local pytest
-- [x] Day38 GitHub Actions CI
-- [x] Day38 Git push
-
-Next:
-
-- [x] Day39 Backend evaluation report layer
-- [x] Day39 `src/app/evaluation/rag_report.py`
-- [x] Day39 `build_backend_evaluation_report()`
-- [x] Day39 `/rag/backend-eval-debug` returns `evaluation_report`
-- [x] Day39 `rag_backend_eval_debug` trace payload includes `evaluation_report`
-- [x] Day39 `evaluation_report.recommended_backend`
-- [x] Day39 `evaluation_report.metric_highlights`
-- [x] Day39 `evaluation_report.risk_notes`
-- [x] Day39 `evaluation_report.backend_rank_summary`
-- [x] Day39 `tests/test_rag_backend_report.py`
-- [x] Day39 focused backend report tests
-- [x] Day39 backend evaluation related tests
-- [x] Day39 full local pytest
-- [x] Day39 GitHub Actions CI
-- [x] Day39 Git push
-Day40 completed:
-
-- [x] Day40 first stage Extended RAG evaluation dataset
-- [x] Day40 `eval_cases/rag_agentic_eval_extended.jsonl`
-- [x] Day40 `tests/test_rag_eval_extended_dataset.py`
-- [x] Day40 extended eval case count = 12
-- [x] Day40 `/rag/backend-eval-debug` supports extended eval file
-- [x] Day40 `evaluation_report.eval_case_count = 12`
-- [x] Day40 extended report removes small/tiny eval-set caveat
-- [x] Day40 extended trace payload includes `evaluation_report`
-- [x] Day40 second stage extended backend failure analysis
-- [x] Day40 `evaluation_report.failure_analysis`
-- [x] Day40 `evaluation_report.selection_policy_evaluation`
-- [x] Day40 common failed cases identified: `agent_definition`, `agent_graph_flow`
-- [x] Day40 conservative policy keeps `default_backend = hybrid`
-- [x] Day40 `default_backend_should_change = false`
-- [x] Day40 `selection_policy = keep_default_hybrid_until_semantic_eval`
-- [x] Day40 full local pytest: 106 passed, 1 warning
-- [x] Day40 GitHub Actions CI: green
-- [x] Day40 Git push
-
-Day41 completed:
-
-- [x] Day41 semantic embedding evaluation on the extended RAG eval dataset
-- [x] Day41 local BCE sentence-transformers model validation
-- [x] Day41 `scripts/validate_semantic_extended_backend_eval.py`
-- [x] Day41 `scripts/review_semantic_backend_eval_report.py`
-- [x] Day41 `src/app/evaluation/semantic_review.py`
-- [x] Day41 `tests/test_semantic_backend_review.py`
-- [x] Day41 semantic review result: `semantic_candidate_validated = true`
-- [x] Day41 semantic review result: `review_decision = candidate_ready_for_default_switch_review`
-- [x] Day41 resolved `agent_graph_flow` common failed case by clarifying `START -> agent -> tools -> agent -> END`
-- [x] Day41 preserved `default_backend = hybrid`
-- [x] Day41 full local pytest: 108 passed, 1 warning
-- [x] Day41 GitHub Actions CI: green
-- [x] Day41 Git push
-
-Day42 completed:
-
-- [x] Day42 GraphRAG + Neo4j environment and schema
-- [x] Day42 added `src/app/graph/`
-- [x] Day42 added initial GraphRAG schema version `day42_graph_schema_v1`
-- [x] Day42 added node labels: `Document`, `Chunk`, `Entity`
-- [x] Day42 added relationship types: `HAS_CHUNK`, `NEXT_CHUNK`, `MENTIONS`, `RELATED_TO`
-- [x] Day42 added Neo4j client boundary and settings
-- [x] Day42 added `/graph/schema-debug`
-- [x] Day42 added `/graph/health-debug`
-- [x] Day42 kept Graph health debug CI-safe by skipping connection checks by default
-- [x] Day42 manually verified live Neo4j connection with `check_connection=true`
-- [x] Day42 full local pytest: 115 passed, 1 warning
-- [x] Day42 Git commit: `8963760 add graph schema and neo4j health debug`
-- [x] Day42 Git push: success
-- [x] Day42 GitHub Actions CI: green
-
-Day43 completed:
-
-- [x] Day43 Entity / Relation extraction
-- [x] Day43 added deterministic entity extraction over existing knowledge chunks
-- [x] Day43 added deterministic relation extraction for GraphRAG seed relations
-- [x] Day43 added `/graph/extract-debug`
-- [x] Day43 extracted `Agent`, `RAG`, `LangGraph`, `Tool`, and `Memory`
-- [x] Day43 generated `HAS_CHUNK`, `NEXT_CHUNK`, `MENTIONS`, and optional `RELATED_TO`
-- [x] Day43 verified `include_related_entities=false` disables `RELATED_TO`
-- [x] Day43 verified no Neo4j write statements were added
-- [x] Day43 full local pytest: 122 passed, 1 warning
-- [x] Day43 Git commit: `775a6ef add deterministic graph extraction debug`
-- [x] Day43 Git push: success
-- [x] Day43 GitHub Actions CI: green
-
-Day44 completed:
-
-- [x] Day44 Graph ingestion
-- [x] Day44 added Neo4j ingestion module
-- [x] Day44 reused Day43 extraction output
-- [x] Day44 added controlled schema constraint / index application helper
-- [x] Day44 upserted `Document`, `Chunk`, and `Entity` nodes
-- [x] Day44 upserted `HAS_CHUNK`, `NEXT_CHUNK`, `MENTIONS`, and `RELATED_TO` relationships
-- [x] Day44 added `/graph/ingest-debug`
-- [x] Day44 kept CI-safe tests dry-run by default
-- [x] Day44 manually verified live Neo4j ingestion locally
-- [x] Day44 verified Neo4j node counts: Document=1, Chunk=3, Entity=5
-- [x] Day44 verified Neo4j relationship counts: HAS_CHUNK=3, NEXT_CHUNK=2, MENTIONS=10, RELATED_TO=10
-- [x] Day44 full local pytest: 129 passed, 1 warning
-- [x] Day44 Git commit: `c6af3c5 add neo4j graph ingestion debug`
-- [x] Day44 Git push: success
-- [x] Day44 GitHub Actions CI: green
-
-Day46 completed:
-
-- [x] Day46 GraphRAG + VectorRAG fusion
-- [x] Add fusion debug module combining graph retrieval and existing VectorRAG / hybrid retrieval
-- [x] Keep graph retrieval and vector retrieval as separate first-stage retrievers
-- [x] Add deterministic chunk_id-based result merging
-- [x] Return explainable fusion metadata: fusion_score, graph_score, vector_score, retrieval_sources
-- [x] Add `/graph/fusion-debug`
-- [x] Keep CI-safe tests deterministic with graph_dry_run=true by default
-- [x] Manually verify live graph + vector fusion locally
-- [x] Day46 local graph fusion tests: 9 passed, 1 warning
-- [x] Day46 related GraphRAG tests: 40 passed, 1 warning
-- [x] Day46 full local pytest: 148 passed, 1 warning
-- [x] Day46 Git commit: `22392d2 add graph vector fusion debug`
-- [x] Day46 Git push: success
-- [x] Day46 GitHub Actions CI: green
-
-Day47 completed:
-
-- [x] Day47 Agentic RAG connects to GraphRAG
-- [x] Added explicit GraphRAG-capable retrieval backend for Agentic RAG
-- [x] Added `retrieval_backend="graph_fusion"`
-- [x] Reused Day46 fusion module instead of duplicating graph/vector logic
-- [x] Normalized fused results into the existing Agentic RAG retrieval result format
-- [x] Preserved citations and retrieval metadata
-- [x] Added JSON debug tests for `/rag/agentic-debug` with the new backend
-- [x] Kept default retrieval_backend unchanged as `hybrid`
-- [x] Kept CI-safe behavior through `graph_dry_run=true`
-- [x] Manually verified live Neo4j-backed Agentic RAG locally
-- [x] Day47 full local pytest: 151 passed, 1 warning
-- [x] Day47 Git push: success
-- [x] Day47 GitHub Actions CI: green
-
-Day48 completed:
-
-- [x] Day48 GraphRAG evaluation
-- [x] Added evaluation support for `retrieval_backend="graph_fusion"`
-- [x] Compared `hybrid`, `chroma`, `chroma_rerank`, and `graph_fusion`
-- [x] Kept `graph_fusion` non-default until evaluation supports a switch
-- [x] Kept CI-safe evaluation through `graph_dry_run=true` by default
-- [x] Added evaluation metadata for graph/vector contribution
-- [x] Verified `/rag/eval-debug` with `graph_fusion` dry-run
-- [x] Verified `/rag/backend-eval-debug` four-backend comparison dry-run
-- [x] Manually verified live Neo4j-backed GraphRAG evaluation with `graph_dry_run=false`
-- [x] Verified no Multi-Agent files were added
-- [x] Day48 local graph_fusion eval tests: 4 passed, 1 warning
-- [x] Day48 related evaluation tests: 23 passed, 1 warning
-- [x] Day48 full local pytest: 155 passed, 1 warning
-- [x] Day48 Git push: success
-- [x] Day48 GitHub Actions CI: green
-
-Next:
-
-- [ ] Day49 Observability / answer verification for GraphRAG
-- [ ] Add GraphRAG-aware trace payload fields for `graph_fusion` retrieval and evaluation
-- [ ] Add or extend answer verification for `retrieval_backend="graph_fusion"`
-- [ ] Preserve graph/vector contribution metadata in verification and traces
+- [ ] Day50 GraphRAG docs
+- [ ] Document GraphRAG architecture and endpoint flow
+- [ ] Document graph schema, extraction, ingestion, retrieval, fusion, evaluation, observability, and verification
+- [ ] Add or update README/HANDOFF GraphRAG sections after docs are written
 - [ ] Keep `graph_fusion` non-default
-- [ ] Keep CI-safe behavior through dry-run or mocked graph retrieval by default
 - [ ] Do not start Multi-Agent yet
