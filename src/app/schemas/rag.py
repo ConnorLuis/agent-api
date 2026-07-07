@@ -212,6 +212,11 @@ class RagEvalDebugRequest(BaseModel):
     embedding_provider: str = "deterministic"
     embedding_model: str | None = None
     rebuild_index: bool = True
+    graph_dry_run: bool = True
+    fusion_graph_weight: float = 0.5
+    fusion_vector_weight: float = 0.5
+    graph_chunk_limit: int = 5
+    related_entity_limit: int = 10
 
 
 class RagEvalMetrics(BaseModel):
@@ -239,6 +244,7 @@ class RagEvalCaseResult(BaseModel):
     relevance_score: float
     retrieval_backend: str | None = None
     retrieval_metadata: dict = Field(default_factory=dict)
+    graph_vector_contribution: dict[str, Any] = Field(default_factory=dict)
     steps: list[str] = Field(default_factory=list)
     final_answer_preview: str
     passed: bool
@@ -258,7 +264,12 @@ class RagEvalDebugResponse(BaseModel):
     embedding_provider: str = "deterministic"
     embedding_model: str | None = None
     rebuild_index: bool = True
-
+    graph_dry_run: bool = True
+    fusion_graph_weight: float = 0.5
+    fusion_vector_weight: float = 0.5
+    graph_chunk_limit: int = 5
+    related_entity_limit: int = 10
+    graph_evaluation_metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class RagAnswerVerifyDebugRequest(BaseModel):
@@ -444,6 +455,11 @@ class RagBackendEvalDebugRequest(BaseModel):
     embedding_provider: str = "deterministic"
     embedding_model: str | None = None
     rebuild_index: bool = True
+    graph_dry_run: bool = True
+    fusion_graph_weight: float = 0.5
+    fusion_vector_weight: float = 0.5
+    graph_chunk_limit: int = 5
+    related_entity_limit: int = 10
 
 
 class RagBackendEvalDebugResponse(BaseModel):
@@ -466,3 +482,9 @@ class RagBackendEvalDebugResponse(BaseModel):
     evaluation_report: dict[str, Any]
     results: list[RagEvalDebugResponse]
     trace_id: str | None = None
+    graph_dry_run: bool = True
+    fusion_graph_weight: float = 0.5
+    fusion_vector_weight: float = 0.5
+    graph_chunk_limit: int = 5
+    related_entity_limit: int = 10
+    graph_evaluation_metadata: dict[str, Any] = Field(default_factory=dict)

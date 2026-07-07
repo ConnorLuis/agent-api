@@ -80,6 +80,38 @@ def _safe_average(values: list[float]) -> float:
     )
 
 
+def _build_graph_vector_contribution(
+    retrieval_backend: str,
+    retrieval_metadata: dict,
+) -> dict:
+    if retrieval_backend != "graph_fusion":
+        return {}
+
+    if not retrieval_metadata:
+        return {}
+
+    graph_retrieval = retrieval_metadata.get("graph_retrieval", {}) or {}
+    vector_retrieval = retrieval_metadata.get("vector_retrieval", {}) or {}
+    fusion = retrieval_metadata.get("fusion", {}) or {}
+    source_counts = fusion.get("source_counts", {}) or {}
+
+    return {
+        "retrieval_backend": "graph_fusion",
+        "graph_dry_run": retrieval_metadata.get("graph_dry_run", True),
+        "graph_status": graph_retrieval.get("status"),
+        "graph_ok": graph_retrieval.get("ok"),
+        "graph_chunk_count": graph_retrieval.get("chunk_count", 0),
+        "graph_related_entity_count": graph_retrieval.get("related_entity_count", 0),
+        "vector_result_count": vector_retrieval.get("result_count", 0),
+        "fusion_result_count": fusion.get("result_count", 0),
+        "graph_only_count": source_counts.get("graph_only", 0),
+        "vector_only_count": source_counts.get("vector_only", 0),
+        "graph_and_vector_count": source_counts.get("graph_and_vector", 0),
+        "query_entity_match_count": len(
+            retrieval_metadata.get("query_entity_matches", []) or []
+        ),
+    }
+
 def evaluate_rag_cases(
     eval_file: Path | str = DEFAULT_RAG_EVAL_FILE,
     source_filter: str | None = None,
@@ -91,6 +123,11 @@ def evaluate_rag_cases(
     embedding_provider: str = DEFAULT_EMBEDDING_PROVIDER,
     embedding_model: str | None = None,
     rebuild_index: bool = True,
+    graph_dry_run: bool = True,
+    fusion_graph_weight: float = 0.5,
+    fusion_vector_weight: float = 0.5,
+    graph_chunk_limit: int = 5,
+    related_entity_limit: int = 10,
 ) -> dict[str, Any]:
     cases = load_rag_eval_cases(eval_file=eval_file)
 
@@ -120,6 +157,11 @@ def evaluate_rag_cases(
             embedding_provider=embedding_provider,
             embedding_model=embedding_model,
             rebuild_index=rebuild_index,
+            graph_dry_run=graph_dry_run,
+            fusion_graph_weight=fusion_graph_weight,
+            fusion_vector_weight=fusion_vector_weight,
+            graph_chunk_limit=graph_chunk_limit,
+            related_entity_limit=related_entity_limit,
         )
 
         final_answer = result["final_answer"]
@@ -166,6 +208,14 @@ def evaluate_rag_cases(
             if str(keyword).strip()
         ]
 
+        retrieval_metadata = result.get("retrieval_metadata", {}) or {}
+        actual_backend = result.get("retrieval_backend", retrieval_backend)
+
+        graph_vector_contribution = _build_graph_vector_contribution(
+            retrieval_backend=actual_backend,
+            retrieval_metadata=retrieval_metadata,
+        )
+
         case_results.append(
             {
                 "case_id": case.get("case_id", ""),
@@ -190,7 +240,8 @@ def evaluate_rag_cases(
                 "pass": case_pass,
                 "final_answer": final_answer,
                 "retrieval_backend": result.get("retrieval_backend", retrieval_backend),
-                "retrieval_metadata": result.get("retrieval_metadata", {}),
+                "retrieval_metadata": retrieval_metadata,
+                "graph_vector_contribution": graph_vector_contribution,
                 "steps": result.get("steps", []),
             }
         )
@@ -240,6 +291,17 @@ def evaluate_rag_cases(
         "rebuild_index": rebuild_index,
         "metrics": metrics,
         "cases": case_results,
+        "graph_dry_run": graph_dry_run,
+        "fusion_graph_weight": fusion_graph_weight,
+        "fusion_vector_weight": fusion_vector_weight,
+        "graph_chunk_limit": graph_chunk_limit,
+        "related_entity_limit": related_entity_limit,
+        "graph_evaluation_metadata": {
+            "graph_fusion_enabled": retrieval_backend == "graph_fusion",
+            "graph_dry_run": graph_dry_run,
+            "fusion_graph_weight": fusion_graph_weight,
+            "fusion_vector_weight": fusion_vector_weight,
+        },
     }
 
 
@@ -629,6 +691,11 @@ def compare_rag_retrieval_backends(
     embedding_provider: str = DEFAULT_EMBEDDING_PROVIDER,
     embedding_model: str | None = None,
     rebuild_index: bool = True,
+    graph_dry_run: bool = True,
+    fusion_graph_weight: float = 0.5,
+    fusion_vector_weight: float = 0.5,
+    graph_chunk_limit: int = 5,
+    related_entity_limit: int = 10,
 ) -> dict[str, Any]:
     selected_backends = backends or ["hybrid", "chroma"]
 
@@ -646,6 +713,11 @@ def compare_rag_retrieval_backends(
             embedding_provider=embedding_provider,
             embedding_model=embedding_model,
             rebuild_index=rebuild_index,
+            graph_dry_run=graph_dry_run,
+            fusion_graph_weight=fusion_graph_weight,
+            fusion_vector_weight=fusion_vector_weight,
+            graph_chunk_limit=graph_chunk_limit,
+            related_entity_limit=related_entity_limit,
         )
 
         backend_results.append(result)
@@ -688,6 +760,17 @@ def compare_rag_retrieval_backends(
         "case_comparisons": case_comparisons,
         "comparison_summary": comparison_summary,
         "results": backend_results,
+        "graph_dry_run": graph_dry_run,
+        "fusion_graph_weight": fusion_graph_weight,
+        "fusion_vector_weight": fusion_vector_weight,
+        "graph_chunk_limit": graph_chunk_limit,
+        "related_entity_limit": related_entity_limit,
+        "graph_evaluation_metadata": {
+            "graph_fusion_included": "graph_fusion" in backends,
+            "graph_dry_run": graph_dry_run,
+            "fusion_graph_weight": fusion_graph_weight,
+            "fusion_vector_weight": fusion_vector_weight,
+        },
     }
 
     comparison_result["evaluation_report"] = build_backend_evaluation_report(
