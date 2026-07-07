@@ -2,19 +2,19 @@
 
 `agent-api` is a FastAPI + LangGraph backend project for building an Agent service step by step.
 
-This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent, SQLite-based short-term memory, graph debug output, request tracing, LLM provider abstraction, a real Ollama-backed LLM Tool Calling Agent path, SSE streaming endpoints, a lightweight local RAG search tool, a RAG search-debug endpoint with explainability metadata, a deterministic Router Agent that delegates calculator and RAG routes to the existing Agent graph, a Router Agent SSE streaming endpoint, an initial LLM Router Agent endpoint with mock and Ollama router providers, a Smart Chat endpoint as a future unified Agent entry point preview, a Smart Chat SSE streaming endpoint, route validation metadata for Router and Smart Chat paths, and a RAG chunk pipeline debug endpoint for vector DB preparation, a deterministic RAG vector-search debug endpoint, a hybrid retrieval debug endpoint that combines keyword and vector signals, an Agentic RAG debug graph with query analysis, query rewriting, hybrid retrieval, relevance grading, citation-aware answers, an Agentic RAG SSE streaming endpoint, an Agentic RAG answer verification debug endpoint, a SQLite-backed vector store debug layer for real vector database preparation, an EmbeddingProvider abstraction layer with an embedding debug endpoint, a Chroma-backed persistent vector store debug endpoint, an Agentic RAG retrieval backend switch that supports both hybrid and Chroma backends, and a backend-aware RAG evaluation comparison layer for hybrid-vs-Chroma metrics, refined backend comparison metrics, backend-aware Agentic RAG SSE streaming alignment, a reranker-ready retrieval backend extension with `chroma_rerank`, pairwise backend metric deltas for multi-backend comparison, a multi-backend-aware comparison summary, local semantic embedding provider validation with a CI-safe fallback, and a backend evaluation report layer that converts raw backend metrics into engineering selection guidance, with observability trace payload alignment for that report, an extended RAG evaluation dataset for less tiny backend comparison signals, Day40 failure-analysis plus selection-policy evaluation for conservative backend decisions, and Day41 semantic embedding evaluation plus failure-case review for backend switch readiness, Day42 GraphRAG + Neo4j schema/health-debug foundation, Day43 deterministic Entity / Relation extraction with `/graph/extract-debug`, Day44 Neo4j graph ingestion with `/graph/ingest-debug`, Day45 Neo4j graph retrieval with `/graph/retrieval-debug`, and Day46 GraphRAG + VectorRAG fusion with `/graph/fusion-debug`.
+This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent, SQLite-based short-term memory, graph debug output, request tracing, LLM provider abstraction, a real Ollama-backed LLM Tool Calling Agent path, SSE streaming endpoints, a lightweight local RAG search tool, a RAG search-debug endpoint with explainability metadata, a deterministic Router Agent that delegates calculator and RAG routes to the existing Agent graph, a Router Agent SSE streaming endpoint, an initial LLM Router Agent endpoint with mock and Ollama router providers, a Smart Chat endpoint as a future unified Agent entry point preview, a Smart Chat SSE streaming endpoint, route validation metadata for Router and Smart Chat paths, and a RAG chunk pipeline debug endpoint for vector DB preparation, a deterministic RAG vector-search debug endpoint, a hybrid retrieval debug endpoint that combines keyword and vector signals, an Agentic RAG debug graph with query analysis, query rewriting, hybrid retrieval, relevance grading, citation-aware answers, an Agentic RAG SSE streaming endpoint, an Agentic RAG answer verification debug endpoint, a SQLite-backed vector store debug layer for real vector database preparation, an EmbeddingProvider abstraction layer with an embedding debug endpoint, a Chroma-backed persistent vector store debug endpoint, an Agentic RAG retrieval backend switch that supports both hybrid and Chroma backends, and a backend-aware RAG evaluation comparison layer for hybrid-vs-Chroma metrics, refined backend comparison metrics, backend-aware Agentic RAG SSE streaming alignment, a reranker-ready retrieval backend extension with `chroma_rerank`, pairwise backend metric deltas for multi-backend comparison, a multi-backend-aware comparison summary, local semantic embedding provider validation with a CI-safe fallback, and a backend evaluation report layer that converts raw backend metrics into engineering selection guidance, with observability trace payload alignment for that report, an extended RAG evaluation dataset for less tiny backend comparison signals, Day40 failure-analysis plus selection-policy evaluation for conservative backend decisions, and Day41 semantic embedding evaluation plus failure-case review for backend switch readiness, Day42 GraphRAG + Neo4j schema/health-debug foundation, Day43 deterministic Entity / Relation extraction with `/graph/extract-debug`, Day44 Neo4j graph ingestion with `/graph/ingest-debug`, Day45 Neo4j graph retrieval with `/graph/retrieval-debug`, Day46 GraphRAG + VectorRAG fusion with `/graph/fusion-debug`, and Day47 Agentic RAG connection to GraphRAG through `retrieval_backend="graph_fusion"` on `/rag/agentic-debug`.
 
 ## Current Status
 
 ```text
-Day1-Day46 completed.
-Current stage: Day46 completed.
-Day46 completed: GraphRAG + VectorRAG fusion debug boundary through `/graph/fusion-debug`.
-Local pytest: 148 passed, 1 warning.
-Git commit: 22392d2 add graph vector fusion debug.
+Day1-Day47 completed.
+Current stage: Day47 completed.
+Day47 completed: Agentic RAG connects to GraphRAG through retrieval_backend="graph_fusion" on /rag/agentic-debug.
+Local pytest: 151 passed, 1 warning.
+Git commit: committed and pushed by user; hash not provided in current message.
 Git push: success.
 GitHub Actions CI: green.
-Next milestone: Day47 Agentic RAG connects to GraphRAG.
+Next milestone: Day48 GraphRAG evaluation.
 ```
 
 ## Project Positioning
@@ -74,7 +74,7 @@ Day46:
   Completed GraphRAG + VectorRAG fusion.
 
 Day47:
-  Agentic RAG connects to GraphRAG.
+  Completed Agentic RAG connection to GraphRAG.
 
 Day48:
   GraphRAG evaluation.
@@ -103,7 +103,8 @@ Day43 completed deterministic Entity / Relation extraction.
 Day44 completed Neo4j graph ingestion.
 Day45 completed Graph retrieval debug over the ingested Neo4j seed graph.
 Day46 completed GraphRAG + VectorRAG fusion debug as a standalone boundary.
-Day47 should connect Agentic RAG to GraphRAG.
+Day47 completed Agentic RAG connection to GraphRAG through an explicit graph_fusion backend.
+Day48 should evaluate the GraphRAG backend without making it the default yet.
 Do not continue VectorRAG production selection-policy polishing before GraphRAG.
 ```
 
@@ -139,6 +140,10 @@ Current features:
 * `/graph/ingest-debug` Neo4j graph ingestion debug endpoint
 * `/graph/retrieval-debug` Neo4j graph retrieval debug endpoint
 * `/graph/fusion-debug` GraphRAG + VectorRAG fusion debug endpoint
+* `/rag/agentic-debug` supports `retrieval_backend="graph_fusion"` as an explicit GraphRAG-capable Agentic RAG backend
+* Agentic RAG `graph_fusion` backend reuses Day46 `run_graph_vector_fusion_debug()` instead of duplicating graph/vector logic
+* Agentic RAG graph fusion retrieval results preserve `fusion_score`, `graph_score`, `vector_score`, `retrieval_sources`, `matched_entities`, `mentions`, `graph_metadata`, and `vector_metadata`
+* Manual live Neo4j-backed Agentic RAG graph fusion verified with graph + vector evidence merged by `chunk_id`
 * Extended RAG evaluation dataset with 12 cases through `eval_cases/rag_agentic_eval_extended.jsonl`
 * Extended backend failure analysis through `evaluation_report.failure_analysis`
 * Conservative backend selection-policy evaluation through `evaluation_report.selection_policy_evaluation`
@@ -296,7 +301,7 @@ Not implemented yet:
 * Replacing `/agent/chat` with the real LLM Agent as the default main route
 * Making Smart Chat the default production entry point
 * Document upload and parsing pipeline
-* Agentic RAG connects to GraphRAG
+* GraphRAG evaluation
 * Multi-Agent workflow
 
 ## Tech Stack
@@ -336,6 +341,7 @@ Not implemented yet:
 * Neo4j graph ingestion debug boundary
 * Neo4j graph retrieval debug boundary
 * GraphRAG + VectorRAG fusion debug boundary
+* Agentic RAG GraphRAG backend path through `retrieval_backend="graph_fusion"`
 * Agentic RAG retrieval backend switch
 * pytest
 * GitHub Actions
@@ -501,6 +507,7 @@ agent-api/
     ├── test_graph_retrieval_debug.py
     ├── test_graph_fusion.py
     ├── test_graph_fusion_debug.py
+    ├── test_rag_agentic_graph_fusion_backend.py
     ├── test_llm.py
     ├── test_stream.py
     ├── test_rag.py
@@ -1795,7 +1802,7 @@ GitHub Actions CI: green
 
 ## Current GraphRAG / Neo4j Foundation, Extraction, Ingestion, and Retrieval
 
-Day42 started the GraphRAG + Neo4j stage while keeping the existing Agentic RAG default retrieval backend unchanged. Day43 added deterministic Entity / Relation extraction over the existing Markdown knowledge chunks. Day44 added a Neo4j ingestion boundary that consumes the Day43 extraction output and writes the seed graph into Neo4j through controlled upsert queries. Day45 added a Neo4j graph retrieval boundary over that seed graph. Day46 adds a standalone GraphRAG + VectorRAG fusion debug boundary.
+Day42 started the GraphRAG + Neo4j stage while keeping the existing Agentic RAG default retrieval backend unchanged. Day43 added deterministic Entity / Relation extraction over the existing Markdown knowledge chunks. Day44 added a Neo4j ingestion boundary that consumes the Day43 extraction output and writes the seed graph into Neo4j through controlled upsert queries. Day45 added a Neo4j graph retrieval boundary over that seed graph. Day46 added a standalone GraphRAG + VectorRAG fusion debug boundary. Day47 connected that fusion boundary to Agentic RAG through an explicit `graph_fusion` backend while keeping the default backend unchanged.
 
 ```text
 /graph/schema-debug
@@ -2234,6 +2241,129 @@ It does not generate final answers from graph retrieval results.
 The default Agentic RAG retrieval backend remains unchanged.
 ```
 
+
+## Current Day47 Agentic RAG GraphRAG Backend
+
+Day47 connects Agentic RAG to GraphRAG through an explicit backend path while preserving the existing default backend.
+
+```text
+/rag/agentic-debug
+  ↓
+invoke_agentic_rag(retrieval_backend="graph_fusion")
+  ↓
+retrieve_agentic_context()
+  ↓
+run_graph_vector_fusion_debug()
+  ├── graph_dry_run=true  -> CI-safe vector-only fusion with graph plan metadata
+  └── graph_dry_run=false -> live Neo4j graph retrieval + vector retrieval fusion
+  ↓
+normalized Agentic RAG retrieval_results
+  ↓
+relevance_grade
+  ↓
+answer_with_citations
+```
+
+New / modified files:
+
+```text
+src/app/rag/retrieval_backend.py
+src/app/rag/agentic_graph.py
+src/app/schemas/rag.py
+src/app/routes/routes_rag.py
+tests/test_rag_agentic_graph_fusion_backend.py
+```
+
+Supported Agentic RAG retrieval backends now include:
+
+```text
+hybrid
+chroma
+chroma_rerank
+graph_fusion
+```
+
+Default backend:
+
+```text
+hybrid
+```
+
+Day47 request example:
+
+```bash
+curl -s -X POST http://localhost:8000/rag/agentic-debug \
+  -H "Content-Type: application/json" \
+  -H "x-trace-id: day47-agentic-rag-graph-fusion-live-001" \
+  -d '{"query":"RAG 和 LangGraph 有什么关系？","top_k":2,"source_filter":"agent_basics","max_chars":300,"embedding_dim":64,"retrieval_backend":"graph_fusion","graph_dry_run":false}' \
+  | python -m json.tool --no-ensure-ascii
+```
+
+Day47 normalized retrieval result fields:
+
+```text
+fusion_score
+graph_score
+vector_score
+retrieval_sources
+matched_entities
+mentions
+graph_metadata
+vector_metadata
+```
+
+Observed live Neo4j-backed Agentic RAG result:
+
+```text
+retrieval_backend = graph_fusion
+steps include graph_fusion_retrieve
+graph_dry_run = false
+graph_retrieval.status = retrieved
+graph_retrieval.ok = true
+graph_retrieval.chunk_count = 2
+vector_retrieval.result_count = 2
+fusion.source_counts.graph_and_vector = 2
+retrieval_sources = graph + vector
+graph_score = 1.0
+```
+
+Observed CI-safe dry-run result:
+
+```text
+graph_dry_run = true
+graph_retrieval.status = dry_run
+vector_retrieval.result_count = 2
+fusion.source_counts.vector_only = 2
+```
+
+Validation:
+
+```text
+pytest tests/test_rag_agentic_graph_fusion_backend.py -q
+3 passed, 1 warning
+
+pytest tests/test_rag_agentic_debug.py \
+       tests/test_rag_agentic_backend.py \
+       tests/test_graph_fusion.py \
+       tests/test_graph_fusion_debug.py \
+       tests/test_rag_agentic_graph_fusion_backend.py -q
+19 passed, 1 warning
+
+pytest -q
+151 passed, 1 warning
+
+GitHub Actions CI: green
+```
+
+Important Day47 boundary:
+
+```text
+Day47 connects Agentic RAG to GraphRAG only through an explicit backend.
+It does not make GraphRAG the default backend.
+It does not replace hybrid, chroma, or chroma_rerank.
+It does not change /agent/chat or Smart Chat default behavior.
+Day48 should evaluate graph_fusion against existing RAG backends.
+```
 
 ## Current Observability Trace Store Architecture
 
@@ -5200,7 +5330,6 @@ mv /tmp/agent_basics.md knowledge/agent_basics.md
 
 Next milestones:
 
-* Day47: Agentic RAG connects to GraphRAG
 * Day48: GraphRAG evaluation
 * Day49: Observability / answer verification for GraphRAG
 * Day50: GraphRAG docs
