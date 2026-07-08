@@ -2,19 +2,19 @@
 
 `agent-api` is a FastAPI + LangGraph backend project for building an Agent service step by step.
 
-This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent, SQLite-based short-term memory, graph debug output, request tracing, LLM provider abstraction, a real Ollama-backed LLM Tool Calling Agent path, SSE streaming endpoints, a lightweight local RAG search tool, a RAG search-debug endpoint with explainability metadata, a deterministic Router Agent that delegates calculator and RAG routes to the existing Agent graph, a Router Agent SSE streaming endpoint, an initial LLM Router Agent endpoint with mock and Ollama router providers, a Smart Chat endpoint as a future unified Agent entry point preview, a Smart Chat SSE streaming endpoint, route validation metadata for Router and Smart Chat paths, and a RAG chunk pipeline debug endpoint for vector DB preparation, a deterministic RAG vector-search debug endpoint, a hybrid retrieval debug endpoint that combines keyword and vector signals, an Agentic RAG debug graph with query analysis, query rewriting, hybrid retrieval, relevance grading, citation-aware answers, an Agentic RAG SSE streaming endpoint, an Agentic RAG answer verification debug endpoint, a SQLite-backed vector store debug layer for real vector database preparation, an EmbeddingProvider abstraction layer with an embedding debug endpoint, a Chroma-backed persistent vector store debug endpoint, an Agentic RAG retrieval backend switch that supports both hybrid and Chroma backends, and a backend-aware RAG evaluation comparison layer for hybrid-vs-Chroma metrics, refined backend comparison metrics, backend-aware Agentic RAG SSE streaming alignment, a reranker-ready retrieval backend extension with `chroma_rerank`, pairwise backend metric deltas for multi-backend comparison, a multi-backend-aware comparison summary, local semantic embedding provider validation with a CI-safe fallback, and a backend evaluation report layer that converts raw backend metrics into engineering selection guidance, with observability trace payload alignment for that report, an extended RAG evaluation dataset for less tiny backend comparison signals, Day40 failure-analysis plus selection-policy evaluation for conservative backend decisions, and Day41 semantic embedding evaluation plus failure-case review for backend switch readiness, Day42 GraphRAG + Neo4j schema/health-debug foundation, Day43 deterministic Entity / Relation extraction with `/graph/extract-debug`, Day44 Neo4j graph ingestion with `/graph/ingest-debug`, Day45 Neo4j graph retrieval with `/graph/retrieval-debug`, Day46 GraphRAG + VectorRAG fusion with `/graph/fusion-debug`, Day47 Agentic RAG connection to GraphRAG through `retrieval_backend="graph_fusion"` on `/rag/agentic-debug`, Day48 GraphRAG evaluation support for `graph_fusion` across `/rag/eval-debug` and `/rag/backend-eval-debug`, Day49 GraphRAG-aware observability / answer verification hardening for `graph_fusion`, Day50 GraphRAG architecture documentation through `docs/GRAPHRAG.md`, Day51 GraphRAG interview material prepared locally through Chinese talk track and Q&A notes, and Day52 Multi-Agent state foundation through `/multi-agent/state-debug`.
+This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent, SQLite-based short-term memory, graph debug output, request tracing, LLM provider abstraction, a real Ollama-backed LLM Tool Calling Agent path, SSE streaming endpoints, a lightweight local RAG search tool, a RAG search-debug endpoint with explainability metadata, a deterministic Router Agent that delegates calculator and RAG routes to the existing Agent graph, a Router Agent SSE streaming endpoint, an initial LLM Router Agent endpoint with mock and Ollama router providers, a Smart Chat endpoint as a future unified Agent entry point preview, a Smart Chat SSE streaming endpoint, route validation metadata for Router and Smart Chat paths, and a RAG chunk pipeline debug endpoint for vector DB preparation, a deterministic RAG vector-search debug endpoint, a hybrid retrieval debug endpoint that combines keyword and vector signals, an Agentic RAG debug graph with query analysis, query rewriting, hybrid retrieval, relevance grading, citation-aware answers, an Agentic RAG SSE streaming endpoint, an Agentic RAG answer verification debug endpoint, a SQLite-backed vector store debug layer for real vector database preparation, an EmbeddingProvider abstraction layer with an embedding debug endpoint, a Chroma-backed persistent vector store debug endpoint, an Agentic RAG retrieval backend switch that supports both hybrid and Chroma backends, and a backend-aware RAG evaluation comparison layer for hybrid-vs-Chroma metrics, refined backend comparison metrics, backend-aware Agentic RAG SSE streaming alignment, a reranker-ready retrieval backend extension with `chroma_rerank`, pairwise backend metric deltas for multi-backend comparison, a multi-backend-aware comparison summary, local semantic embedding provider validation with a CI-safe fallback, and a backend evaluation report layer that converts raw backend metrics into engineering selection guidance, with observability trace payload alignment for that report, an extended RAG evaluation dataset for less tiny backend comparison signals, Day40 failure-analysis plus selection-policy evaluation for conservative backend decisions, and Day41 semantic embedding evaluation plus failure-case review for backend switch readiness, Day42 GraphRAG + Neo4j schema/health-debug foundation, Day43 deterministic Entity / Relation extraction with `/graph/extract-debug`, Day44 Neo4j graph ingestion with `/graph/ingest-debug`, Day45 Neo4j graph retrieval with `/graph/retrieval-debug`, Day46 GraphRAG + VectorRAG fusion with `/graph/fusion-debug`, Day47 Agentic RAG connection to GraphRAG through `retrieval_backend="graph_fusion"` on `/rag/agentic-debug`, Day48 GraphRAG evaluation support for `graph_fusion` across `/rag/eval-debug` and `/rag/backend-eval-debug`, Day49 GraphRAG-aware observability / answer verification hardening for `graph_fusion`, Day50 GraphRAG architecture documentation through `docs/GRAPHRAG.md`, Day51 GraphRAG interview material prepared locally through Chinese talk track and Q&A notes, Day52 Multi-Agent state foundation through `/multi-agent/state-debug`, and Day53 deterministic Planner Agent through `/multi-agent/plan-debug`.
 
 ## Current Status
 
 ```text
-Day1-Day52 completed.
-Current stage: Day52 completed.
-Day52 completed: Multi-Agent state foundation with shared task / event / artifact / memory structures and /multi-agent/state-debug.
-Local pytest baseline after Day52: 167 passed, 1 warning.
-Git commit: c07bd45 add multi agent state debug.
+Day1-Day53 completed.
+Current stage: Day53 completed.
+Day53 completed: deterministic Planner Agent on top of Day52 Multi-Agent state, with /multi-agent/plan-debug.
+Local pytest baseline after Day53: 173 passed, 1 warning.
+Git commit: 1a199c6 add deterministic multi agent planner.
 Git push: success.
 GitHub Actions CI: green.
-Next milestone: Day53 Planner Agent.
+Next milestone: Day54 Research Agent.
 ```
 
 
@@ -46,6 +46,7 @@ New capability:
 
 ```text
 POST /multi-agent/state-debug
+POST /multi-agent/plan-debug
 ```
 
 Day52 added:
@@ -119,10 +120,98 @@ It does not connect Multi-Agent to Neo4j.
 It does not make graph_fusion the default backend.
 ```
 
+## Day53 Planner Agent
+
+Day53 builds the first deterministic Planner Agent on top of the Day52 Multi-Agent state foundation.
+
+New capability:
+
+```text
+POST /multi-agent/plan-debug
+```
+
+Day53 added:
+
+```text
+src/app/multi_agent/planner.py
+src/app/schemas/multi_agent.py
+src/app/routes/routes_multi_agent.py
+tests/multi_agent/test_multi_agent_planner.py
+tests/multi_agent/test_multi_agent_plan_debug.py
+```
+
+Planner behavior:
+
+```text
+build_deterministic_plan()
+  ↓
+initialize_multi_agent_state()
+  ↓
+infer_planning_mode()
+  ↓
+create planner-generated pending tasks
+  ↓
+record planner-only events
+  ↓
+store planner output in memory["planner"]
+  ↓
+create deterministic markdown plan artifact
+```
+
+Planning modes:
+
+```text
+implementation
+debugging
+research
+documentation
+review
+general
+```
+
+Manual `/multi-agent/plan-debug` validation confirmed:
+
+```text
+current_role = planner
+status = pending
+planning_mode = implementation
+plan.execution_boundary = planning_only
+plan.llm_used = false
+initial task status = completed
+planner-created tasks status = pending
+event roles are limited to supervisor / planner
+artifact_count = 1
+```
+
+Validation:
+
+```text
+pytest tests/multi_agent -q
+13 passed, 1 warning
+
+pytest -q
+173 passed, 1 warning
+
+Git commit: 1a199c6 add deterministic multi agent planner
+Git push: success
+GitHub Actions CI: green
+```
+
+Important Day53 boundary:
+
+```text
+Day53 only adds deterministic planning.
+It does not execute Researcher / Tool / Critic / Memory / Reflection agents.
+It does not implement Supervisor graph.
+It does not call LLM.
+It does not connect Multi-Agent to Neo4j.
+It does not make graph_fusion the default backend.
+```
+
 Next milestone:
 
 ```text
-Day53: Planner Agent.
+Day54: Research Agent.
 ```
 
 
@@ -204,7 +293,10 @@ Day52:
   Completed Multi-Agent state foundation.
 
 Day53:
-  Planner Agent.
+  Completed deterministic Planner Agent.
+
+Day54:
+  Research Agent.
 
 Day64-Day66:
   Final review, README / HANDOFF refactor, and resume / interview material cleanup
@@ -222,7 +314,7 @@ Day47 completed Agentic RAG connection to GraphRAG through an explicit graph_fus
 Day48 completed GraphRAG evaluation for the explicit graph_fusion backend without making it the default.
 Day49 completed observability / answer verification hardening for GraphRAG.
 Day50 completed GraphRAG architecture documentation.
-Day51 completed GraphRAG interview material. Day52 completed Multi-Agent state foundation. Day53 should start Planner Agent.
+Day51 completed GraphRAG interview material. Day52 completed Multi-Agent state foundation. Day53 completed deterministic Planner Agent. Day54 should start Research Agent.
 Do not continue VectorRAG production selection-policy polishing before GraphRAG.
 ```
 
@@ -430,6 +522,11 @@ Current features:
 * Multi-Agent task / event / artifact structures for future workflow orchestration
 * Multi-Agent state summary with task, event, artifact, status, and role counts
 * CI-safe Multi-Agent state tests under `tests/multi_agent/`
+* `/multi-agent/plan-debug` deterministic Planner Agent debug endpoint
+* Deterministic Planner Agent through `src/app/multi_agent/planner.py`
+* Planner mode inference for implementation, debugging, research, documentation, review, and general tasks
+* Planner-generated pending task decomposition over `MultiAgentState`
+* Planner memory output through `memory["planner"]` and deterministic markdown plan artifacts
 
 Not implemented yet:
 
@@ -437,7 +534,7 @@ Not implemented yet:
 * Replacing `/agent/chat` with the real LLM Agent as the default main route
 * Making Smart Chat the default production entry point
 * Document upload and parsing pipeline
-* Full Multi-Agent workflow beyond Day52 state foundation
+* Full Multi-Agent workflow beyond Day53 deterministic Planner Agent
 
 ## Tech Stack
 
@@ -483,6 +580,8 @@ Not implemented yet:
 * Agentic RAG retrieval backend switch
 * Multi-Agent state foundation
 * Multi-Agent state debug endpoint
+* Deterministic Planner Agent
+* Multi-Agent plan debug endpoint
 * pytest
 * GitHub Actions
 * Server-Sent Events
@@ -559,6 +658,7 @@ agent-api/
 │   ├── DAY49.md
 │   ├── DAY50.md
 │   ├── DAY52.md
+│   ├── DAY53.md
 │   └── GRAPHRAG.md
 ├── knowledge/
 │   └── agent_basics.md
@@ -621,6 +721,7 @@ agent-api/
 │       │   └── retriever.py
 │       ├── multi_agent/
 │       │   ├── __init__.py
+│       │   ├── planner.py
 │       │   └── state.py
 │       ├── llm/
 │       │   ├── base.py
@@ -2514,7 +2615,7 @@ Day47 connects Agentic RAG to GraphRAG only through an explicit backend.
 It does not make GraphRAG the default backend.
 It does not replace hybrid, chroma, or chroma_rerank.
 It does not change /agent/chat or Smart Chat default behavior.
-Day48 evaluated graph_fusion against existing RAG backends. Day49 completed GraphRAG observability / answer verification hardening. Day50 completed GraphRAG architecture documentation. Day51 completed GraphRAG interview material. Day52 completed Multi-Agent state foundation. Day53 should start Planner Agent.
+Day48 evaluated graph_fusion against existing RAG backends. Day49 completed GraphRAG observability / answer verification hardening. Day50 completed GraphRAG architecture documentation. Day51 completed GraphRAG interview material. Day52 completed Multi-Agent state foundation. Day53 completed deterministic Planner Agent. Day54 should start Research Agent.
 ```
 
 
@@ -5745,9 +5846,9 @@ pytest -q
 Current CI status:
 
 ```text
-Day52 local pytest passed: 167 passed, 1 warning.
-Day52 Git commit: c07bd45 add multi agent state debug.
-Day52 Git push succeeded.
+Day53 local pytest passed: 173 passed, 1 warning.
+Day53 Git commit: 1a199c6 add deterministic multi agent planner.
+Day53 Git push succeeded.
 GitHub Actions CI: green.
 ```
 
@@ -5812,12 +5913,31 @@ iconv -f gbk -t utf-8 knowledge/agent_basics.md -o /tmp/agent_basics.md
 mv /tmp/agent_basics.md knowledge/agent_basics.md
 ```
 
+## Current Milestone Summary
+
+Day53 completed:
+
+```text
+- Day53 Planner Agent
+- Deterministic planner built on top of Day52 Multi-Agent state
+- /multi-agent/plan-debug added
+- Planner is CI-safe and LLM-free
+- Researcher / Tool / Critic / Supervisor graph not started
+- graph_fusion remains non-default
+```
+
+Next:
+
+```text
+Day54: Research Agent
+```
+
 ## Roadmap
 
 Next milestones:
 
-* Day53: Planner Agent
-* Day54-Day63: Continue Complex Multi-Agent Workflow
+* Day54: Research Agent
+* Day55-Day63: Continue Complex Multi-Agent Workflow
 * Day64-Day66: Final review, README / HANDOFF refactor, and resume / interview material cleanup
 
 Deferred:

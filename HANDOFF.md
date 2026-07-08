@@ -13,13 +13,13 @@ Project 2 has officially started and is now the main development line.
 Current `agent-api` status:
 
 ```text
-Day1-Day52 completed.
-Day52 completed: Multi-Agent state foundation with shared task / event / artifact / memory structures and /multi-agent/state-debug.
-Local pytest baseline after Day52: 167 passed, 1 warning.
-Git commit: c07bd45 add multi agent state debug.
+Day1-Day53 completed.
+Day53 completed: deterministic Planner Agent on top of Day52 Multi-Agent state, with /multi-agent/plan-debug.
+Local pytest baseline after Day53: 173 passed, 1 warning.
+Git commit: 1a199c6 add deterministic multi agent planner.
 Git push: success.
 GitHub Actions CI: green.
-Next: Day53 Planner Agent.
+Next: Day54 Research Agent.
 ```
 
 ## Strategic Project Positioning and Locked Roadmap
@@ -140,7 +140,7 @@ Day52:
   Completed Multi-Agent state foundation
 
 Day53:
-  Planner Agent
+  Completed deterministic Planner Agent
 
 Day54:
   Research Agent
@@ -290,10 +290,11 @@ Future Day planning rules:
 11. Day50 completed GraphRAG architecture documentation.
 12. Day51 completed GraphRAG interview material.
 13. Day52 completed Multi-Agent state foundation.
-14. Day53 should start Planner Agent.
-15. Keep agent-api focused on Agentic RAG / GraphRAG / Multi-Agent.
-16. Keep chat-api focused on production LLM Gateway / Chat Backend engineering.
-17. Do not duplicate GraphRAG or Multi-Agent work in chat-api.
+14. Day53 completed deterministic Planner Agent.
+15. Day54 should start Research Agent.
+16. Keep agent-api focused on Agentic RAG / GraphRAG / Multi-Agent.
+17. Keep chat-api focused on production LLM Gateway / Chat Backend engineering.
+18. Do not duplicate GraphRAG or Multi-Agent work in chat-api.
 ```
 
 
@@ -2852,6 +2853,7 @@ New endpoint:
 
 ```text
 POST /multi-agent/state-debug
+POST /multi-agent/plan-debug
 ```
 
 State foundation:
@@ -3216,7 +3218,7 @@ Not yet implemented:
 - Replacing `/agent/chat` with the real LLM Agent as the default route
 - Making Smart Chat the default production entry point
 - Document upload and parsing pipeline
-- Planner / Researcher / Tool / Critic / Memory / Reflection agents
+- Researcher / Tool / Critic / Memory / Reflection agents
 - Multi-Agent Supervisor graph
 
 ---
@@ -3340,6 +3342,7 @@ agent-api/
 │       │   └── retriever.py
 │       ├── multi_agent/
 │       │   ├── __init__.py
+│       │   ├── planner.py
 │       │   └── state.py
 │       ├── llm/
 │       │   ├── base.py
@@ -9755,10 +9758,32 @@ Day52 completed:
 - [x] Git push: success
 - [x] GitHub Actions CI: green
 
+Day53 completed:
+
+- [x] Day53 Planner Agent
+- [x] Built deterministic planner on top of Day52 Multi-Agent state
+- [x] Added `src/app/multi_agent/planner.py`
+- [x] Added `/multi-agent/plan-debug` endpoint
+- [x] Added planning mode inference for implementation / debugging / research / documentation / review / general tasks
+- [x] Planner marks the initial task as completed and creates pending follow-up tasks
+- [x] Planner stores structured output in `memory["planner"]`
+- [x] Planner creates a deterministic markdown plan artifact
+- [x] Planner events are limited to `supervisor` and `planner`
+- [x] Researcher / Tool / Critic / Reflection roles are planned but not executed
+- [x] Kept Planner CI-safe and LLM-free
+- [x] Did not start Researcher / Tool / Critic / Supervisor graph yet
+- [x] Kept `graph_fusion` non-default
+- [x] Local `pytest tests/multi_agent -q`: 13 passed, 1 warning
+- [x] Full local `pytest -q`: 173 passed, 1 warning
+- [x] Manual `/multi-agent/plan-debug` validation passed
+- [x] Git commit: `1a199c6 add deterministic multi agent planner`
+- [x] Git push: success
+- [x] GitHub Actions CI: green
+
 Next:
 
-- [ ] Day53 Planner Agent
-- [ ] Build deterministic planner on top of Day52 Multi-Agent state
-- [ ] Keep Planner CI-safe and LLM-free for the first implementation
-- [ ] Do not start Researcher / Tool / Critic / Supervisor graph yet
+- [ ] Day54 Research Agent
+- [ ] Build deterministic researcher on top of Day53 planner output
+- [ ] Keep Researcher CI-safe and LLM-free for the first implementation
+- [ ] Do not start Tool / Critic / Supervisor graph yet
 - [ ] Keep `graph_fusion` non-default
