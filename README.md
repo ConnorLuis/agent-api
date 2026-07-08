@@ -9,9 +9,9 @@ This project is the second project in the AI internship preparation roadmap, fol
 ```text
 Day1-Day51 completed.
 Current stage: Day51 completed.
-Day51 completed: GraphRAG interview material, including Chinese talk track, Q&A, and Day51 summary documentation.
-Local pytest baseline before Day51 docs: 160 passed, 1 warning.
-Git commit: pending Day51 documentation commit.
+Day51 completed: GraphRAG interview material prepared locally, including Chinese talk track, Q&A, and project explanation notes.
+Local pytest baseline before Day51 status update: 160 passed, 1 warning.
+Git commit: pending Day51 status-only commit.
 Git push: pending.
 GitHub Actions CI: pending.
 Next milestone: Day52 Multi-Agent state.
@@ -20,34 +20,20 @@ Next milestone: Day52 Multi-Agent state.
 
 ## Day51 GraphRAG Interview Material
 
-Day51 converts the completed GraphRAG implementation into interview-ready Chinese documentation.
+Day51 converts the completed GraphRAG implementation into interview-ready Chinese material.
 
-New documentation:
-
-```text
-docs/DAY51.md
-docs/interview/graphrag_talk_track.md
-docs/interview/graphrag_qa.md
-```
-
-Purpose:
+Status-only repository decision:
 
 ```text
-graphrag_talk_track.md:
-  Provides 30-second, 2-minute, and 5-minute Chinese talk tracks for explaining the GraphRAG implementation.
-
-graphrag_qa.md:
-  Provides Chinese Q&A for common GraphRAG interview follow-up questions.
-
-DAY51.md:
-  Records the Day51 documentation goal, scope, checklist, and next milestone.
+The Chinese talk track, Q&A, and Day51 summary were prepared locally / in the project conversation.
+The files docs/DAY51.md and docs/interview/* are intentionally not committed in this update.
+README.md and HANDOFF.md only record that Day51 is complete and that the next milestone is Day52.
 ```
 
 Important Day51 boundary:
 
 ```text
-Day51 only adds interview documentation.
-It does not modify core GraphRAG logic.
+Day51 does not modify core GraphRAG logic.
 It does not make graph_fusion the default backend.
 It does not start Multi-Agent.
 ```
@@ -191,8 +177,6 @@ Current features:
 * GraphRAG answer verification returns `graph_fusion_verification` with graph/vector evidence flags
 * Manual live Neo4j-backed GraphRAG answer verification verified with graph + vector evidence
 * `docs/GRAPHRAG.md` documents the full GraphRAG architecture, including schema, extraction, ingestion, retrieval, fusion, Agentic RAG integration, evaluation, observability, and answer verification.
-* `docs/interview/graphrag_talk_track.md` provides a Chinese interview talk track for explaining the GraphRAG implementation.
-* `docs/interview/graphrag_qa.md` provides Chinese GraphRAG interview Q&A for project defense and mock interviews.
 * `/graph/schema-debug` GraphRAG schema debug endpoint
 * `/graph/health-debug` Neo4j health debug endpoint
 * `/graph/extract-debug` deterministic GraphRAG Entity / Relation extraction debug endpoint
@@ -479,11 +463,7 @@ agent-api/
 │   ├── DAY48.md
 │   ├── DAY49.md
 │   ├── DAY50.md
-│   ├── DAY51.md
-│   ├── GRAPHRAG.md
-│   └── interview/
-│       ├── graphrag_talk_track.md
-│       └── graphrag_qa.md
+│   └── GRAPHRAG.md
 ├── knowledge/
 │   └── agent_basics.md
 ├── data/
@@ -5734,7 +5714,6 @@ mv /tmp/agent_basics.md knowledge/agent_basics.md
 
 Next milestones:
 
-* Day51: GraphRAG interview material
 * Day52-Day63: Complex Multi-Agent Workflow
 * Day64-Day66: Final review, README / HANDOFF refactor, and resume / interview material cleanup
 

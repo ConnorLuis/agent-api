@@ -14,9 +14,9 @@ Current `agent-api` status:
 
 ```text
 Day1-Day51 completed.
-Day51 completed: GraphRAG interview material, including Chinese talk track, Q&A, and Day51 summary documentation.
-Local pytest baseline before Day51 docs: 160 passed, 1 warning.
-Git commit: pending Day51 documentation commit.
+Day51 completed: GraphRAG interview material prepared locally, including Chinese talk track, Q&A, resume bullets, and project explanation notes.
+Local pytest baseline before Day51 status update: 160 passed, 1 warning.
+Git commit: pending Day51 status-only commit.
 Git push: pending.
 GitHub Actions CI: pending.
 Next: Day52 Multi-Agent state.
@@ -2743,12 +2743,16 @@ Day51 does not:
   - start Multi-Agent implementation
 ```
 
-New documentation files:
+Day51 interview material status:
 
 ```text
-docs/DAY51.md
-docs/interview/graphrag_talk_track.md
-docs/interview/graphrag_qa.md
+Chinese GraphRAG talk track: prepared locally / in the project conversation.
+Chinese GraphRAG Q&A: prepared locally / in the project conversation.
+Day51 summary: prepared locally / in the project conversation.
+
+Repository decision:
+  docs/DAY51.md and docs/interview/* are intentionally not committed in this status-only update.
+  README.md and HANDOFF.md record the completed Day51 milestone and route the project to Day52.
 ```
 
 Interview material focus:
@@ -2972,7 +2976,6 @@ Not yet implemented:
 - Replacing `/agent/chat` with the real LLM Agent as the default route
 - Making Smart Chat the default production entry point
 - Document upload and parsing pipeline
-- GraphRAG interview material
 - Multi-Agent Supervisor
 
 ---
@@ -9472,15 +9475,19 @@ Day50 completed:
 - [x] Kept `graph_fusion` non-default
 - [x] Did not start Multi-Agent
 - [x] Day50 local pytest baseline before docs: 160 passed, 1 warning
-- [ ] Day50 Git commit: pending
-- [ ] Day50 Git push: pending
-- [ ] Day50 GitHub Actions CI: pending
+- [x] Day50 completed before Day51 status update
+
+Day51 completed:
+
+- [x] Day51 GraphRAG interview material prepared locally
+- [x] Prepared GraphRAG project explanation script
+- [x] Prepared resume bullets for GraphRAG / Neo4j / `graph_fusion`
+- [x] Prepared interview Q&A for schema, extraction, ingestion, retrieval, fusion, evaluation, observability, and verification
+- [x] Kept `graph_fusion` non-default
+- [x] Did not start Multi-Agent
 
 Next:
 
-- [ ] Day51 GraphRAG interview material
-- [ ] Prepare GraphRAG project explanation script
-- [ ] Prepare resume bullets for GraphRAG / Neo4j / `graph_fusion`
-- [ ] Prepare interview Q&A for schema, extraction, ingestion, retrieval, fusion, evaluation, observability, and verification
-- [ ] Keep `graph_fusion` non-default
-- [ ] Do not start Multi-Agent yet
+- [ ] Day52 Multi-Agent state
+- [ ] Do not restart GraphRAG documentation work
+- [ ] Do not submit `docs/DAY51.md` or `docs/interview/*` unless explicitly needed later
