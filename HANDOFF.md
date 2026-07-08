@@ -13,13 +13,13 @@ Project 2 has officially started and is now the main development line.
 Current `agent-api` status:
 
 ```text
-Day1-Day53 completed.
-Day53 completed: deterministic Planner Agent on top of Day52 Multi-Agent state, with /multi-agent/plan-debug.
-Local pytest baseline after Day53: 173 passed, 1 warning.
-Git commit: 1a199c6 add deterministic multi agent planner.
+Day1-Day54 completed.
+Day54 completed: deterministic Research Agent on top of Day53 Planner output, with /multi-agent/research-debug.
+Local pytest baseline after Day54: 178 passed, 1 warning.
+Git commit: 327c6fb add deterministic multi agent researcher.
 Git push: success.
 GitHub Actions CI: green.
-Next: Day54 Research Agent.
+Next: Day55 Tool Agent.
 ```
 
 ## Strategic Project Positioning and Locked Roadmap
@@ -143,7 +143,7 @@ Day53:
   Completed deterministic Planner Agent
 
 Day54:
-  Research Agent
+  Completed deterministic Research Agent
 
 Day55:
   Tool Agent
@@ -291,10 +291,11 @@ Future Day planning rules:
 12. Day51 completed GraphRAG interview material.
 13. Day52 completed Multi-Agent state foundation.
 14. Day53 completed deterministic Planner Agent.
-15. Day54 should start Research Agent.
-16. Keep agent-api focused on Agentic RAG / GraphRAG / Multi-Agent.
-17. Keep chat-api focused on production LLM Gateway / Chat Backend engineering.
-18. Do not duplicate GraphRAG or Multi-Agent work in chat-api.
+15. Day54 completed deterministic Research Agent.
+16. Day55 should start Tool Agent.
+17. Keep agent-api focused on Agentic RAG / GraphRAG / Multi-Agent.
+18. Keep chat-api focused on production LLM Gateway / Chat Backend engineering.
+19. Do not duplicate GraphRAG or Multi-Agent work in chat-api.
 ```
 
 
@@ -2854,6 +2855,8 @@ New endpoint:
 ```text
 POST /multi-agent/state-debug
 POST /multi-agent/plan-debug
+POST /multi-agent/research-debug
+POST /multi-agent/plan-debug
 ```
 
 State foundation:
@@ -3046,6 +3049,174 @@ Day53 should build a deterministic Planner Agent on top of the Day52 state found
 
 
 
+## Day54 - Research Agent
+
+Day54 completes the deterministic Research Agent on top of the Day53 Planner output.
+
+Scope:
+
+```text
+Day54 intentionally adds only the Researcher layer:
+  - deterministic researcher module
+  - researcher task selection from Day53 planner output
+  - deterministic research findings
+  - researcher memory output
+  - deterministic markdown research artifact
+  - /multi-agent/research-debug endpoint
+  - CI-safe unit and endpoint tests
+
+Day54 does not:
+  - implement Tool Agent
+  - implement Critic Agent
+  - implement Memory Agent
+  - implement Reflection Agent
+  - implement Supervisor graph
+  - call LLM
+  - connect Multi-Agent to Neo4j
+  - make graph_fusion the default backend
+```
+
+New / modified files:
+
+```text
+src/app/multi_agent/researcher.py
+src/app/schemas/multi_agent.py
+src/app/routes/routes_multi_agent.py
+tests/multi_agent/test_multi_agent_researcher.py
+tests/multi_agent/test_multi_agent_research_debug.py
+```
+
+New endpoint:
+
+```text
+POST /multi-agent/research-debug
+```
+
+Researcher pipeline:
+
+```text
+/multi-agent/research-debug
+  ↓
+run_deterministic_research()
+  ↓
+build_deterministic_plan()
+  ↓
+find pending researcher task
+  ↓
+complete researcher task
+  ↓
+memory["researcher"]
+  ↓
+deterministic_research_notes artifact
+```
+
+Researcher output fields:
+
+```text
+researcher_role
+planning_mode
+objective
+source_task_id
+findings
+constraints_checked
+next_role
+execution_boundary
+llm_used
+note
+```
+
+Manual validation confirmed:
+
+```text
+current_role = researcher
+status = pending
+planning_mode = implementation
+research.execution_boundary = research_only
+research.llm_used = false
+memory.planner exists
+memory.researcher exists
+researcher task status = completed
+tool task status = pending
+critic task status = pending
+artifact_count = 2
+event roles are limited to supervisor / planner / researcher
+```
+
+Validation:
+
+```text
+pytest tests/multi_agent -q
+18 passed, 1 warning
+
+pytest -q
+178 passed, 1 warning
+```
+
+Commit:
+
+```text
+327c6fb add deterministic multi agent researcher
+```
+
+Git push:
+
+```text
+success
+```
+
+GitHub Actions CI:
+
+```text
+green
+```
+
+### Day54 Checklist
+
+Completed:
+
+```text
+✅ Added deterministic Research Agent.
+✅ Added `src/app/multi_agent/researcher.py`.
+✅ Built Researcher on top of Day53 Planner output.
+✅ Added `/multi-agent/research-debug` endpoint.
+✅ Added researcher task selection from planner-generated tasks.
+✅ Researcher marks the researcher task as completed.
+✅ Researcher stores structured output in `memory["researcher"]`.
+✅ Researcher creates a deterministic markdown research artifact.
+✅ Tool / Critic / Memory / Reflection roles remain pending and unexecuted.
+✅ Kept Researcher CI-safe and LLM-free.
+✅ Did not start Tool / Critic / Supervisor graph.
+✅ Kept `graph_fusion` non-default.
+✅ Local `pytest tests/multi_agent -q`: 18 passed, 1 warning.
+✅ Full local `pytest -q`: 178 passed, 1 warning.
+✅ Manual `/multi-agent/research-debug` validation passed.
+✅ Git commit: `327c6fb add deterministic multi agent researcher`.
+✅ Git push: success.
+✅ GitHub Actions CI: green.
+```
+
+### Next Work
+
+Recommended next milestone:
+
+```text
+Day55: Tool Agent.
+```
+
+Day55 should add the deterministic Tool Agent on top of the Day54 state flow:
+
+```text
+1. Add tool agent module.
+2. Consume the pending assigned_role="tool" task from MultiAgentState.
+3. Execute only CI-safe deterministic internal tools.
+4. Store tool results in memory and artifacts.
+5. Add /multi-agent/tool-debug.
+6. Keep CI-safe and LLM-free.
+7. Do not start Critic / Supervisor graph yet.
+8. Keep graph_fusion non-default.
+```
+
+
 ## Project Goal
 
 Build an Agent backend service based on FastAPI + LangGraph.
@@ -3209,6 +3380,10 @@ Current:
 - Agent graph-flow knowledge clarification with START -> agent -> tools -> agent -> END
 - Multi-Agent state foundation
 - Multi-Agent state debug endpoint
+- Deterministic Planner Agent
+- Multi-Agent plan debug endpoint
+- Deterministic Research Agent
+- Multi-Agent research debug endpoint
 - pytest
 - GitHub Actions CI
 
@@ -3218,7 +3393,7 @@ Not yet implemented:
 - Replacing `/agent/chat` with the real LLM Agent as the default route
 - Making Smart Chat the default production entry point
 - Document upload and parsing pipeline
-- Researcher / Tool / Critic / Memory / Reflection agents
+- Tool / Critic / Memory / Reflection agents
 - Multi-Agent Supervisor graph
 
 ---
@@ -3343,6 +3518,7 @@ agent-api/
 │       ├── multi_agent/
 │       │   ├── __init__.py
 │       │   ├── planner.py
+│       │   ├── researcher.py
 │       │   └── state.py
 │       ├── llm/
 │       │   ├── base.py
@@ -3540,6 +3716,8 @@ POST /graph/retrieval-debug
 GET /observability/traces/{trace_id}
 GET /observability/traces
 POST /multi-agent/state-debug
+POST /multi-agent/plan-debug
+POST /multi-agent/research-debug
 ```
 
 ### Router Agent
@@ -7691,6 +7869,8 @@ Current endpoints:
 GET /observability/traces/{trace_id}
 GET /observability/traces
 POST /multi-agent/state-debug
+POST /multi-agent/plan-debug
+POST /multi-agent/research-debug
 ```
 
 Current trace database:
@@ -9780,10 +9960,31 @@ Day53 completed:
 - [x] Git push: success
 - [x] GitHub Actions CI: green
 
+Day54 completed:
+
+- [x] Day54 Research Agent
+- [x] Built deterministic researcher on top of Day53 planner output
+- [x] Added `src/app/multi_agent/researcher.py`
+- [x] Added `/multi-agent/research-debug` endpoint
+- [x] Researcher consumes the pending planner-generated researcher task
+- [x] Researcher marks the researcher task as completed
+- [x] Researcher stores structured output in `memory["researcher"]`
+- [x] Researcher creates a deterministic markdown research artifact
+- [x] Tool / Critic / Memory / Reflection roles remain pending and unexecuted
+- [x] Kept Researcher CI-safe and LLM-free
+- [x] Did not start Tool / Critic / Supervisor graph yet
+- [x] Kept `graph_fusion` non-default
+- [x] Local `pytest tests/multi_agent -q`: 18 passed, 1 warning
+- [x] Full local `pytest -q`: 178 passed, 1 warning
+- [x] Manual `/multi-agent/research-debug` validation passed
+- [x] Git commit: `327c6fb add deterministic multi agent researcher`
+- [x] Git push: success
+- [x] GitHub Actions CI: green
+
 Next:
 
-- [ ] Day54 Research Agent
-- [ ] Build deterministic researcher on top of Day53 planner output
-- [ ] Keep Researcher CI-safe and LLM-free for the first implementation
-- [ ] Do not start Tool / Critic / Supervisor graph yet
+- [ ] Day55 Tool Agent
+- [ ] Build deterministic Tool Agent on top of Day54 Researcher state flow
+- [ ] Keep Tool Agent CI-safe and LLM-free for the first implementation
+- [ ] Do not start Critic / Supervisor graph yet
 - [ ] Keep `graph_fusion` non-default
