@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 from src.app.core.request_context import get_trace_id
 from src.app.multi_agent.critic import run_deterministic_critic_agent
+from src.app.multi_agent.memory_agent import run_deterministic_memory_agent
 from src.app.multi_agent.planner import build_deterministic_plan
 from src.app.multi_agent.researcher import run_deterministic_research
 from src.app.multi_agent.state import (
@@ -14,6 +15,7 @@ from src.app.schemas.multi_agent import (
     MultiAgentStateDebugResponse, MultiAgentPlanDebugResponse, MultiAgentPlanDebugRequest,
     MultiAgentResearchDebugResponse, MultiAgentResearchDebugRequest, MultiAgentToolDebugResponse,
     MultiAgentToolDebugRequest, MultiAgentCriticDebugResponse, MultiAgentCriticDebugRequest,
+    MultiAgentMemoryDebugResponse, MultiAgentMemoryDebugRequest,
 )
 
 
@@ -159,6 +161,36 @@ def debug_multi_agent_critic(
         status=state["status"],
         planning_mode=critic["planning_mode"],
         critic=critic,
+        tasks=state["tasks"],
+        events=state["events"],
+        artifacts=state["artifacts"],
+        memory=state["memory"],
+        summary=summarize_multi_agent_state(state),
+    )
+
+
+@router.post("/memory-debug", response_model=MultiAgentMemoryDebugResponse)
+def debug_multi_agent_memory(
+    request: MultiAgentMemoryDebugRequest,
+) -> MultiAgentMemoryDebugResponse:
+    trace_id = get_trace_id()
+
+    state = run_deterministic_memory_agent(
+        task=request.task,
+        thread_id=request.thread_id,
+        trace_id=trace_id,
+        metadata=request.metadata,
+    )
+    memory_output = state["memory"]["memory"]
+
+    return MultiAgentMemoryDebugResponse(
+        task=state["task"],
+        thread_id=state["thread_id"],
+        trace_id=state["trace_id"],
+        current_role=state["current_role"],
+        status=state["status"],
+        planning_mode=memory_output["planning_mode"],
+        memory_output=memory_output,
         tasks=state["tasks"],
         events=state["events"],
         artifacts=state["artifacts"],
