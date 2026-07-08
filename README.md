@@ -2,19 +2,19 @@
 
 `agent-api` is a FastAPI + LangGraph backend project for building an Agent service step by step.
 
-This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent, SQLite-based short-term memory, graph debug output, request tracing, LLM provider abstraction, a real Ollama-backed LLM Tool Calling Agent path, SSE streaming endpoints, a lightweight local RAG search tool, a RAG search-debug endpoint with explainability metadata, a deterministic Router Agent that delegates calculator and RAG routes to the existing Agent graph, a Router Agent SSE streaming endpoint, an initial LLM Router Agent endpoint with mock and Ollama router providers, a Smart Chat endpoint as a future unified Agent entry point preview, a Smart Chat SSE streaming endpoint, route validation metadata for Router and Smart Chat paths, and a RAG chunk pipeline debug endpoint for vector DB preparation, a deterministic RAG vector-search debug endpoint, a hybrid retrieval debug endpoint that combines keyword and vector signals, an Agentic RAG debug graph with query analysis, query rewriting, hybrid retrieval, relevance grading, citation-aware answers, an Agentic RAG SSE streaming endpoint, an Agentic RAG answer verification debug endpoint, a SQLite-backed vector store debug layer for real vector database preparation, an EmbeddingProvider abstraction layer with an embedding debug endpoint, a Chroma-backed persistent vector store debug endpoint, an Agentic RAG retrieval backend switch that supports both hybrid and Chroma backends, and a backend-aware RAG evaluation comparison layer for hybrid-vs-Chroma metrics, refined backend comparison metrics, backend-aware Agentic RAG SSE streaming alignment, a reranker-ready retrieval backend extension with `chroma_rerank`, pairwise backend metric deltas for multi-backend comparison, a multi-backend-aware comparison summary, local semantic embedding provider validation with a CI-safe fallback, and a backend evaluation report layer that converts raw backend metrics into engineering selection guidance, with observability trace payload alignment for that report, an extended RAG evaluation dataset for less tiny backend comparison signals, Day40 failure-analysis plus selection-policy evaluation for conservative backend decisions, and Day41 semantic embedding evaluation plus failure-case review for backend switch readiness, Day42 GraphRAG + Neo4j schema/health-debug foundation, Day43 deterministic Entity / Relation extraction with `/graph/extract-debug`, Day44 Neo4j graph ingestion with `/graph/ingest-debug`, Day45 Neo4j graph retrieval with `/graph/retrieval-debug`, Day46 GraphRAG + VectorRAG fusion with `/graph/fusion-debug`, Day47 Agentic RAG connection to GraphRAG through `retrieval_backend="graph_fusion"` on `/rag/agentic-debug`, Day48 GraphRAG evaluation support for `graph_fusion` across `/rag/eval-debug` and `/rag/backend-eval-debug`, Day49 GraphRAG-aware observability / answer verification hardening for `graph_fusion`, Day50 GraphRAG architecture documentation through `docs/GRAPHRAG.md`, Day51 GraphRAG interview material prepared locally through Chinese talk track and Q&A notes, Day52 Multi-Agent state foundation through `/multi-agent/state-debug`, Day53 deterministic Planner Agent through `/multi-agent/plan-debug`, Day54 deterministic Research Agent through `/multi-agent/research-debug`, Day55 deterministic Tool Agent through `/multi-agent/tool-debug`, and Day56 deterministic Critic Agent through `/multi-agent/critic-debug`.
+This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent, SQLite-based short-term memory, graph debug output, request tracing, LLM provider abstraction, a real Ollama-backed LLM Tool Calling Agent path, SSE streaming endpoints, a lightweight local RAG search tool, a RAG search-debug endpoint with explainability metadata, a deterministic Router Agent that delegates calculator and RAG routes to the existing Agent graph, a Router Agent SSE streaming endpoint, an initial LLM Router Agent endpoint with mock and Ollama router providers, a Smart Chat endpoint as a future unified Agent entry point preview, a Smart Chat SSE streaming endpoint, route validation metadata for Router and Smart Chat paths, and a RAG chunk pipeline debug endpoint for vector DB preparation, a deterministic RAG vector-search debug endpoint, a hybrid retrieval debug endpoint that combines keyword and vector signals, an Agentic RAG debug graph with query analysis, query rewriting, hybrid retrieval, relevance grading, citation-aware answers, an Agentic RAG SSE streaming endpoint, an Agentic RAG answer verification debug endpoint, a SQLite-backed vector store debug layer for real vector database preparation, an EmbeddingProvider abstraction layer with an embedding debug endpoint, a Chroma-backed persistent vector store debug endpoint, an Agentic RAG retrieval backend switch that supports both hybrid and Chroma backends, and a backend-aware RAG evaluation comparison layer for hybrid-vs-Chroma metrics, refined backend comparison metrics, backend-aware Agentic RAG SSE streaming alignment, a reranker-ready retrieval backend extension with `chroma_rerank`, pairwise backend metric deltas for multi-backend comparison, a multi-backend-aware comparison summary, local semantic embedding provider validation with a CI-safe fallback, and a backend evaluation report layer that converts raw backend metrics into engineering selection guidance, with observability trace payload alignment for that report, an extended RAG evaluation dataset for less tiny backend comparison signals, Day40 failure-analysis plus selection-policy evaluation for conservative backend decisions, and Day41 semantic embedding evaluation plus failure-case review for backend switch readiness, Day42 GraphRAG + Neo4j schema/health-debug foundation, Day43 deterministic Entity / Relation extraction with `/graph/extract-debug`, Day44 Neo4j graph ingestion with `/graph/ingest-debug`, Day45 Neo4j graph retrieval with `/graph/retrieval-debug`, Day46 GraphRAG + VectorRAG fusion with `/graph/fusion-debug`, Day47 Agentic RAG connection to GraphRAG through `retrieval_backend="graph_fusion"` on `/rag/agentic-debug`, Day48 GraphRAG evaluation support for `graph_fusion` across `/rag/eval-debug` and `/rag/backend-eval-debug`, Day49 GraphRAG-aware observability / answer verification hardening for `graph_fusion`, Day50 GraphRAG architecture documentation through `docs/GRAPHRAG.md`, Day51 GraphRAG interview material prepared locally through Chinese talk track and Q&A notes, Day52 Multi-Agent state foundation through `/multi-agent/state-debug`, Day53 deterministic Planner Agent through `/multi-agent/plan-debug`, Day54 deterministic Research Agent through `/multi-agent/research-debug`, Day55 deterministic Tool Agent through `/multi-agent/tool-debug`, Day56 deterministic Critic Agent through `/multi-agent/critic-debug`, and Day57 deterministic Memory Agent through `/multi-agent/memory-debug`.
 
 ## Current Status
 
 ```text
-Day1-Day56 completed.
-Current stage: Day56 completed.
-Day56 completed: deterministic Critic Agent on top of Day55 Tool Agent state flow, with /multi-agent/critic-debug.
-Local pytest baseline after Day56: 188 passed, 1 warning.
-Git commit: ed990c9 add deterministic multi agent critic.
+Day1-Day57 completed.
+Current stage: Day57 completed.
+Day57 completed: deterministic Memory Agent on top of Day56 Critic Agent state flow, with /multi-agent/memory-debug.
+Local pytest baseline after Day57: 193 passed, 1 warning.
+Git commit: dc03359 add deterministic multi agent memory agent.
 Git push: success.
 GitHub Actions CI: green.
-Next milestone: Day57 Memory Agent.
+Next milestone: Day58 Reflection Agent.
 ```
 
 
@@ -298,7 +298,7 @@ It does not make graph_fusion the default backend.
 Next milestone:
 
 ```text
-Day55 and Day56 have now been completed. Day57 should start Memory Agent.
+Day55, Day56, and Day57 have now been completed. Day58 should start Reflection Agent.
 ```
 
 
@@ -392,7 +392,7 @@ It does not make graph_fusion the default backend.
 Next milestone:
 
 ```text
-Day56 has now been completed. Day57 should start Memory Agent.
+Day56 and Day57 have now been completed. Day58 should start Reflection Agent.
 ```
 
 
@@ -494,9 +494,139 @@ It does not make graph_fusion the default backend.
 Next milestone:
 
 ```text
-Day57: Memory Agent.
+Day58: Reflection Agent.
 ```
 
+
+## Day57 Memory Agent
+
+Day57 builds the deterministic Memory Agent on top of the Day56 Critic Agent state flow.
+
+New capability:
+
+```text
+POST /multi-agent/memory-debug
+```
+
+Day57 added:
+
+```text
+src/app/multi_agent/memory_agent.py
+src/app/schemas/multi_agent.py
+src/app/routes/routes_multi_agent.py
+tests/multi_agent/test_multi_agent_memory_agent.py
+tests/multi_agent/test_multi_agent_memory_debug.py
+```
+
+Memory Agent behavior:
+
+```text
+run_deterministic_memory_agent()
+  ↓
+run_deterministic_critic_agent()
+  ↓
+read critic.validation_pass
+  ↓
+consume or create assigned_role="memory" task
+  ↓
+mark memory task as running
+  ↓
+build approved memory items from planner / researcher / tool / critic memory
+  ↓
+build persisted_summary as CI-safe state snapshot
+  ↓
+mark memory task as completed
+  ↓
+store memory output in memory["memory"]
+  ↓
+create deterministic_memory_snapshot artifact
+```
+
+Memory Agent output fields:
+
+```text
+memory_role
+planning_mode
+objective
+source_task_id
+approved
+approval_source
+memory_items
+persisted_summary
+storage_backend
+persistence_mode
+constraints_checked
+next_role
+execution_boundary
+llm_used
+external_storage_used
+note
+```
+
+Manual `/multi-agent/memory-debug` validation confirmed:
+
+```text
+current_role = memory
+status = pending
+planning_mode = implementation
+memory_output.approved = true
+memory_output.approval_source = critic
+memory_output.execution_boundary = memory_snapshot_only
+memory_output.llm_used = false
+memory_output.external_storage_used = false
+memory_output.storage_backend = multi_agent_state_memory
+memory_output.persistence_mode = ci_safe_state_snapshot_only
+approved_memory_item_count = 4
+roles_summarized = planner / researcher / tool / critic
+memory.planner exists
+memory.researcher exists
+memory.tool exists
+memory.critic exists
+memory.memory exists
+critic.validation_pass = true
+memory task status = completed
+reflection task status = pending
+artifact_count = 5
+event roles are limited to supervisor / planner / researcher / tool / critic / memory
+Reflection Agent is not executed
+Supervisor graph is not started
+graph_fusion remains non-default
+```
+
+Validation:
+
+```text
+pytest tests/multi_agent -q
+33 passed, 1 warning
+
+pytest -q
+193 passed, 1 warning
+
+Git commit: dc03359 add deterministic multi agent memory agent
+Git push: success
+GitHub Actions CI: green
+```
+
+Important Day57 boundary:
+
+```text
+Day57 only adds deterministic memory summarization on top of the Critic Agent state flow.
+It persists only into MultiAgentState memory and artifacts.
+It does not use external storage.
+It does not write to a real database.
+It does not modify repository files through the Memory Agent.
+It does not execute Reflection Agent.
+It does not implement Supervisor graph.
+It does not call LLM.
+It does not connect Multi-Agent to Neo4j.
+It does not make graph_fusion the default backend.
+```
+
+Next milestone:
+
+```text
+Day58: Reflection Agent.
+```
 
 ## Project Positioning
 
@@ -588,7 +718,7 @@ Day56:
   Completed deterministic Critic Agent.
 
 Day57:
-  Memory Agent.
+  Completed deterministic Memory Agent.
 
 Day58:
   Reflection Agent.
@@ -624,7 +754,7 @@ Day47 completed Agentic RAG connection to GraphRAG through an explicit graph_fus
 Day48 completed GraphRAG evaluation for the explicit graph_fusion backend without making it the default.
 Day49 completed observability / answer verification hardening for GraphRAG.
 Day50 completed GraphRAG architecture documentation.
-Day51 completed GraphRAG interview material. Day52 completed Multi-Agent state foundation. Day53 completed deterministic Planner Agent. Day54 completed deterministic Research Agent. Day55 completed deterministic Tool Agent. Day56 completed deterministic Critic Agent. Day57 should start Memory Agent.
+Day51 completed GraphRAG interview material. Day52 completed Multi-Agent state foundation. Day53 completed deterministic Planner Agent. Day54 completed deterministic Research Agent. Day55 completed deterministic Tool Agent. Day56 completed deterministic Critic Agent. Day57 completed deterministic Memory Agent. Day58 should start Reflection Agent.
 Do not continue VectorRAG production selection-policy polishing before GraphRAG.
 ```
 
@@ -844,18 +974,24 @@ Current features:
 * Researcher creates deterministic markdown research artifacts
 * `/multi-agent/tool-debug` deterministic Tool Agent debug endpoint
 * `/multi-agent/critic-debug` deterministic Critic Agent debug endpoint
+* `/multi-agent/memory-debug` deterministic Memory Agent debug endpoint
 * `/multi-agent/critic-debug` deterministic Critic Agent debug endpoint
+* `/multi-agent/memory-debug` deterministic Memory Agent debug endpoint
 * Deterministic Tool Agent through `src/app/multi_agent/tool_agent.py`
 * Tool Agent consumes the pending planner-generated tool task
 * Tool Agent stores structured output through `memory["tool"]`
 * Tool Agent creates deterministic markdown tool artifacts
 * Tool Agent records CI-safe tool execution records without running real shell commands or modifying repository files
 * Deterministic Critic Agent through `src/app/multi_agent/critic.py`
+* Deterministic Memory Agent through `src/app/multi_agent/memory_agent.py`
 * Critic Agent consumes the pending planner-generated critic task
 * Critic Agent validates Planner / Researcher / Tool task transitions
 * Critic Agent validates memory outputs, artifacts, and boundary flags
 * Critic Agent stores structured output through `memory["critic"]`
 * Critic Agent creates deterministic markdown critic artifacts
+* Memory Agent summarizes Critic-approved Planner / Researcher / Tool / Critic memory
+* Memory Agent stores structured output through `memory["memory"]`
+* Memory Agent creates deterministic markdown memory snapshot artifacts without external storage
 
 Not implemented yet:
 
@@ -863,7 +999,7 @@ Not implemented yet:
 * Replacing `/agent/chat` with the real LLM Agent as the default main route
 * Making Smart Chat the default production entry point
 * Document upload and parsing pipeline
-* Full Multi-Agent workflow beyond Day56 deterministic Critic Agent
+* Full Multi-Agent workflow beyond Day57 deterministic Memory Agent
 
 ## Tech Stack
 
@@ -917,6 +1053,8 @@ Not implemented yet:
 * Multi-Agent tool debug endpoint
 * Deterministic Critic Agent
 * Multi-Agent critic debug endpoint
+* Deterministic Memory Agent
+* Multi-Agent memory debug endpoint
 * pytest
 * GitHub Actions
 * Server-Sent Events
@@ -997,6 +1135,7 @@ agent-api/
 │   ├── DAY54.md
 │   ├── DAY55.md
 │   ├── DAY56.md
+│   ├── DAY57.md
 │   └── GRAPHRAG.md
 ├── knowledge/
 │   └── agent_basics.md
@@ -1063,6 +1202,7 @@ agent-api/
 │       │   ├── researcher.py
 │       │   ├── tool_agent.py
 │       │   ├── critic.py
+│       │   ├── memory_agent.py
 │       │   └── state.py
 │       ├── llm/
 │       │   ├── base.py
@@ -2956,7 +3096,7 @@ Day47 connects Agentic RAG to GraphRAG only through an explicit backend.
 It does not make GraphRAG the default backend.
 It does not replace hybrid, chroma, or chroma_rerank.
 It does not change /agent/chat or Smart Chat default behavior.
-Day48 evaluated graph_fusion against existing RAG backends. Day49 completed GraphRAG observability / answer verification hardening. Day50 completed GraphRAG architecture documentation. Day51 completed GraphRAG interview material. Day52 completed Multi-Agent state foundation. Day53 completed deterministic Planner Agent. Day54 completed deterministic Research Agent. Day55 completed deterministic Tool Agent. Day56 completed deterministic Critic Agent. Day57 should start Memory Agent.
+Day48 evaluated graph_fusion against existing RAG backends. Day49 completed GraphRAG observability / answer verification hardening. Day50 completed GraphRAG architecture documentation. Day51 completed GraphRAG interview material. Day52 completed Multi-Agent state foundation. Day53 completed deterministic Planner Agent. Day54 completed deterministic Research Agent. Day55 completed deterministic Tool Agent. Day56 completed deterministic Critic Agent. Day57 completed deterministic Memory Agent. Day58 should start Reflection Agent.
 ```
 
 
@@ -6187,9 +6327,9 @@ pytest -q
 Current CI status:
 
 ```text
-Day56 local pytest passed: 188 passed, 1 warning.
-Day56 Git commit: ed990c9 add deterministic multi agent critic.
-Day56 Git push succeeded.
+Day57 local pytest passed: 193 passed, 1 warning.
+Day57 Git commit: dc03359 add deterministic multi agent memory agent.
+Day57 Git push succeeded.
 GitHub Actions CI: green.
 ```
 
@@ -6256,37 +6396,35 @@ mv /tmp/agent_basics.md knowledge/agent_basics.md
 
 ## Current Milestone Summary
 
-Day56 completed:
+Day57 completed:
 
 ```text
-- Day56 Critic Agent
-- Deterministic Critic Agent built on top of Day55 Tool Agent state flow
-- /multi-agent/critic-debug added
-- Planner / Researcher / Tool task transitions validated
-- Planner / Researcher / Tool memory validated
-- Planner / Researcher / Tool artifacts validated
-- Boundary flags validated
-- Critic task completed
-- Critic memory added
-- Critic artifact added
-- Critic Agent is CI-safe and LLM-free
+- Day57 Memory Agent
+- Deterministic Memory Agent built on top of Day56 Critic Agent state flow
+- /multi-agent/memory-debug added
+- Critic-approved memory summarized
+- memory["memory"] added
+- deterministic_memory_snapshot artifact added
+- Memory task completed
+- Memory Agent is CI-safe and LLM-free
+- No external storage used
+- Reflection Agent not started
 - Supervisor graph not started
-- Memory / Reflection agents not executed
 - graph_fusion remains non-default
 ```
 
 Next:
 
 ```text
-Day57: Memory Agent
+Day58: Reflection Agent
 ```
 
 ## Roadmap
 
 Next milestones:
 
-* Day57: Memory Agent
-* Day58-Day63: Continue Complex Multi-Agent Workflow
+* Day58: Reflection Agent
+* Day59-Day63: Continue Complex Multi-Agent Workflow
 * Day64-Day66: Final review, README / HANDOFF refactor, and resume / interview material cleanup
 
 Deferred:
