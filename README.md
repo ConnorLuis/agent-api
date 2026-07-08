@@ -2,19 +2,19 @@
 
 `agent-api` is a FastAPI + LangGraph backend project for building an Agent service step by step.
 
-This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent, SQLite-based short-term memory, graph debug output, request tracing, LLM provider abstraction, a real Ollama-backed LLM Tool Calling Agent path, SSE streaming endpoints, a lightweight local RAG search tool, a RAG search-debug endpoint with explainability metadata, a deterministic Router Agent that delegates calculator and RAG routes to the existing Agent graph, a Router Agent SSE streaming endpoint, an initial LLM Router Agent endpoint with mock and Ollama router providers, a Smart Chat endpoint as a future unified Agent entry point preview, a Smart Chat SSE streaming endpoint, route validation metadata for Router and Smart Chat paths, and a RAG chunk pipeline debug endpoint for vector DB preparation, a deterministic RAG vector-search debug endpoint, a hybrid retrieval debug endpoint that combines keyword and vector signals, an Agentic RAG debug graph with query analysis, query rewriting, hybrid retrieval, relevance grading, citation-aware answers, an Agentic RAG SSE streaming endpoint, an Agentic RAG answer verification debug endpoint, a SQLite-backed vector store debug layer for real vector database preparation, an EmbeddingProvider abstraction layer with an embedding debug endpoint, a Chroma-backed persistent vector store debug endpoint, an Agentic RAG retrieval backend switch that supports both hybrid and Chroma backends, and a backend-aware RAG evaluation comparison layer for hybrid-vs-Chroma metrics, refined backend comparison metrics, backend-aware Agentic RAG SSE streaming alignment, a reranker-ready retrieval backend extension with `chroma_rerank`, pairwise backend metric deltas for multi-backend comparison, a multi-backend-aware comparison summary, local semantic embedding provider validation with a CI-safe fallback, and a backend evaluation report layer that converts raw backend metrics into engineering selection guidance, with observability trace payload alignment for that report, an extended RAG evaluation dataset for less tiny backend comparison signals, Day40 failure-analysis plus selection-policy evaluation for conservative backend decisions, and Day41 semantic embedding evaluation plus failure-case review for backend switch readiness, Day42 GraphRAG + Neo4j schema/health-debug foundation, Day43 deterministic Entity / Relation extraction with `/graph/extract-debug`, Day44 Neo4j graph ingestion with `/graph/ingest-debug`, Day45 Neo4j graph retrieval with `/graph/retrieval-debug`, Day46 GraphRAG + VectorRAG fusion with `/graph/fusion-debug`, Day47 Agentic RAG connection to GraphRAG through `retrieval_backend="graph_fusion"` on `/rag/agentic-debug`, Day48 GraphRAG evaluation support for `graph_fusion` across `/rag/eval-debug` and `/rag/backend-eval-debug`, Day49 GraphRAG-aware observability / answer verification hardening for `graph_fusion`, Day50 GraphRAG architecture documentation through `docs/GRAPHRAG.md`, Day51 GraphRAG interview material prepared locally through Chinese talk track and Q&A notes, Day52 Multi-Agent state foundation through `/multi-agent/state-debug`, Day53 deterministic Planner Agent through `/multi-agent/plan-debug`, Day54 deterministic Research Agent through `/multi-agent/research-debug`, Day55 deterministic Tool Agent through `/multi-agent/tool-debug`, Day56 deterministic Critic Agent through `/multi-agent/critic-debug`, Day57 deterministic Memory Agent through `/multi-agent/memory-debug`, and Day58 deterministic Reflection Agent through `/multi-agent/reflection-debug`.
+This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent, SQLite-based short-term memory, graph debug output, request tracing, LLM provider abstraction, a real Ollama-backed LLM Tool Calling Agent path, SSE streaming endpoints, a lightweight local RAG search tool, a RAG search-debug endpoint with explainability metadata, a deterministic Router Agent that delegates calculator and RAG routes to the existing Agent graph, a Router Agent SSE streaming endpoint, an initial LLM Router Agent endpoint with mock and Ollama router providers, a Smart Chat endpoint as a future unified Agent entry point preview, a Smart Chat SSE streaming endpoint, route validation metadata for Router and Smart Chat paths, and a RAG chunk pipeline debug endpoint for vector DB preparation, a deterministic RAG vector-search debug endpoint, a hybrid retrieval debug endpoint that combines keyword and vector signals, an Agentic RAG debug graph with query analysis, query rewriting, hybrid retrieval, relevance grading, citation-aware answers, an Agentic RAG SSE streaming endpoint, an Agentic RAG answer verification debug endpoint, a SQLite-backed vector store debug layer for real vector database preparation, an EmbeddingProvider abstraction layer with an embedding debug endpoint, a Chroma-backed persistent vector store debug endpoint, an Agentic RAG retrieval backend switch that supports both hybrid and Chroma backends, and a backend-aware RAG evaluation comparison layer for hybrid-vs-Chroma metrics, refined backend comparison metrics, backend-aware Agentic RAG SSE streaming alignment, a reranker-ready retrieval backend extension with `chroma_rerank`, pairwise backend metric deltas for multi-backend comparison, a multi-backend-aware comparison summary, local semantic embedding provider validation with a CI-safe fallback, and a backend evaluation report layer that converts raw backend metrics into engineering selection guidance, with observability trace payload alignment for that report, an extended RAG evaluation dataset for less tiny backend comparison signals, Day40 failure-analysis plus selection-policy evaluation for conservative backend decisions, and Day41 semantic embedding evaluation plus failure-case review for backend switch readiness, Day42 GraphRAG + Neo4j schema/health-debug foundation, Day43 deterministic Entity / Relation extraction with `/graph/extract-debug`, Day44 Neo4j graph ingestion with `/graph/ingest-debug`, Day45 Neo4j graph retrieval with `/graph/retrieval-debug`, Day46 GraphRAG + VectorRAG fusion with `/graph/fusion-debug`, Day47 Agentic RAG connection to GraphRAG through `retrieval_backend="graph_fusion"` on `/rag/agentic-debug`, Day48 GraphRAG evaluation support for `graph_fusion` across `/rag/eval-debug` and `/rag/backend-eval-debug`, Day49 GraphRAG-aware observability / answer verification hardening for `graph_fusion`, Day50 GraphRAG architecture documentation through `docs/GRAPHRAG.md`, Day51 GraphRAG interview material prepared locally through Chinese talk track and Q&A notes, Day52 Multi-Agent state foundation through `/multi-agent/state-debug`, Day53 deterministic Planner Agent through `/multi-agent/plan-debug`, Day54 deterministic Research Agent through `/multi-agent/research-debug`, Day55 deterministic Tool Agent through `/multi-agent/tool-debug`, Day56 deterministic Critic Agent through `/multi-agent/critic-debug`, Day57 deterministic Memory Agent through `/multi-agent/memory-debug`, and Day58 deterministic Reflection Agent through `/multi-agent/reflection-debug`, and Day59 deterministic Supervisor graph through `/multi-agent/supervisor-debug`.
 
 ## Current Status
 
 ```text
-Day1-Day58 completed.
-Current stage: Day58 completed.
-Day58 completed: deterministic Reflection Agent on top of Day57 Memory Agent state flow, with /multi-agent/reflection-debug.
-Local pytest baseline after Day58: 198 passed, 1 warning.
-Git commit: 833f03b add deterministic multi agent reflection agent.
+Day1-Day59 completed.
+Current stage: Day59 completed.
+Day59 completed: deterministic Supervisor graph on top of Day58 Reflection Agent state flow, with /multi-agent/supervisor-debug.
+Local pytest baseline after Day59: 204 passed, 1 warning.
+Git commit: bce1c89 add deterministic multi agent supervisor graph.
 Git push: success.
 GitHub Actions CI: green.
-Next milestone: Day59 Supervisor graph.
+Next milestone: Day60 Multi-Agent streaming.
 ```
 
 
@@ -298,7 +298,7 @@ It does not make graph_fusion the default backend.
 Next milestone:
 
 ```text
-Day55, Day56, and Day57 have now been completed. Day58 completed deterministic Reflection Agent. Day59 should start Supervisor graph.
+Day55, Day56, and Day57 have now been completed. Day58 completed deterministic Reflection Agent. Day59 completed deterministic Supervisor graph. Day60 should start Multi-Agent streaming.
 ```
 
 
@@ -392,7 +392,7 @@ It does not make graph_fusion the default backend.
 Next milestone:
 
 ```text
-Day56 and Day57 have now been completed. Day58 completed deterministic Reflection Agent. Day59 should start Supervisor graph.
+Day56 and Day57 have now been completed. Day58 completed deterministic Reflection Agent. Day59 completed deterministic Supervisor graph. Day60 should start Multi-Agent streaming.
 ```
 
 
@@ -494,7 +494,7 @@ It does not make graph_fusion the default backend.
 Next milestone:
 
 ```text
-Day58 has now been completed. Day59 should start Supervisor graph.
+Day58 has now been completed. Day59 completed deterministic Supervisor graph. Day60 should start Multi-Agent streaming.
 ```
 
 
@@ -625,7 +625,7 @@ It does not make graph_fusion the default backend.
 Next milestone:
 
 ```text
-Day58 has now been completed. Day59 should start Supervisor graph.
+Day58 has now been completed. Day59 completed deterministic Supervisor graph. Day60 should start Multi-Agent streaming.
 ```
 
 ## Day58 Reflection Agent
@@ -759,9 +759,173 @@ It does not make graph_fusion the default backend.
 Next milestone:
 
 ```text
-Day59: Supervisor graph.
+Day60: Multi-Agent streaming.
 ```
 
+
+## Day59 Supervisor Graph
+
+Day59 builds the deterministic Supervisor graph on top of the Day58 Reflection Agent state flow.
+
+New capability:
+
+```text
+POST /multi-agent/supervisor-debug
+```
+
+Day59 added:
+
+```text
+src/app/multi_agent/supervisor_graph.py
+src/app/schemas/multi_agent.py
+src/app/routes/routes_multi_agent.py
+tests/multi_agent/test_multi_agent_supervisor_graph.py
+tests/multi_agent/test_multi_agent_supervisor_debug.py
+```
+
+Supervisor graph behavior:
+
+```text
+run_deterministic_supervisor_graph()
+  ↓
+run_deterministic_reflection_agent()
+  ↓
+consume or create assigned_role="supervisor" orchestration task
+  ↓
+mark supervisor task as running
+  ↓
+build explicit supervisor graph nodes
+  ↓
+build explicit graph edges
+  ↓
+record execution_order
+  ↓
+record role_readiness for planner / researcher / tool / critic / memory / reflection
+  ↓
+validate orchestration_pass
+  ↓
+mark supervisor task as completed
+  ↓
+store supervisor output in memory["supervisor"]
+  ↓
+create deterministic_supervisor_graph_report artifact
+```
+
+Supervisor graph output fields:
+
+```text
+supervisor_role
+planning_mode
+objective
+source_task_id
+graph_name
+graph_version
+nodes
+edges
+execution_order
+role_readiness
+orchestration_pass
+completed_role_count
+constraints_checked
+preserved_debug_endpoints
+next_role
+execution_boundary
+llm_used
+note
+```
+
+Explicit graph nodes:
+
+```text
+planner
+researcher
+tool
+critic
+memory
+reflection
+```
+
+Explicit graph edges:
+
+```text
+planner -> researcher
+researcher -> tool
+tool -> critic
+critic -> memory
+memory -> reflection
+```
+
+Preserved role-specific debug endpoints:
+
+```text
+/multi-agent/plan-debug
+/multi-agent/research-debug
+/multi-agent/tool-debug
+/multi-agent/critic-debug
+/multi-agent/memory-debug
+/multi-agent/reflection-debug
+```
+
+Manual `/multi-agent/supervisor-debug` validation confirmed:
+
+```text
+current_role = supervisor
+status = completed
+planning_mode = implementation
+supervisor.graph_name = deterministic_multi_agent_supervisor_graph
+supervisor.graph_version = day59_supervisor_graph_v1
+supervisor.execution_boundary = supervisor_orchestration_only
+supervisor.llm_used = false
+supervisor.orchestration_pass = true
+supervisor.completed_role_count = 6
+execution_order = planner / researcher / tool / critic / memory / reflection
+role_readiness ready=true for all six roles
+memory.planner exists
+memory.researcher exists
+memory.tool exists
+memory.critic exists
+memory.memory exists
+memory.reflection exists
+memory.supervisor exists
+supervisor task status = completed
+artifact_count = 7
+preserved_debug_endpoints include all role-specific debug endpoints
+graph_fusion remains non-default
+```
+
+Validation:
+
+```text
+pytest tests/multi_agent -q
+44 passed, 1 warning
+
+pytest -q
+204 passed, 1 warning
+
+Git commit: bce1c89 add deterministic multi agent supervisor graph
+Git push: success
+GitHub Actions CI: green
+```
+
+Important Day59 boundary:
+
+```text
+Day59 adds deterministic Supervisor graph orchestration on top of the Reflection Agent state flow.
+It explicitly represents Planner / Researcher / Tool / Critic / Memory / Reflection as graph nodes.
+It records explicit graph edges and execution_order.
+It records role_readiness for all orchestrated roles.
+It preserves existing role-specific debug endpoints.
+It does not call LLM.
+It does not use external tools or external storage.
+It does not connect Multi-Agent to Neo4j.
+It does not make graph_fusion the default backend.
+```
+
+Next milestone:
+
+```text
+Day60: Multi-Agent streaming.
+```
 
 ## Project Positioning
 
@@ -859,7 +1023,7 @@ Day58:
   Completed deterministic Reflection Agent.
 
 Day59:
-  Supervisor graph.
+  Completed Supervisor graph.
 
 Day60:
   Multi-Agent streaming.
@@ -889,7 +1053,7 @@ Day47 completed Agentic RAG connection to GraphRAG through an explicit graph_fus
 Day48 completed GraphRAG evaluation for the explicit graph_fusion backend without making it the default.
 Day49 completed observability / answer verification hardening for GraphRAG.
 Day50 completed GraphRAG architecture documentation.
-Day51 completed GraphRAG interview material. Day52 completed Multi-Agent state foundation. Day53 completed deterministic Planner Agent. Day54 completed deterministic Research Agent. Day55 completed deterministic Tool Agent. Day56 completed deterministic Critic Agent. Day57 completed deterministic Memory Agent. Day58 completed deterministic Reflection Agent. Day59 should start Supervisor graph.
+Day51 completed GraphRAG interview material. Day52 completed Multi-Agent state foundation. Day53 completed deterministic Planner Agent. Day54 completed deterministic Research Agent. Day55 completed deterministic Tool Agent. Day56 completed deterministic Critic Agent. Day57 completed deterministic Memory Agent. Day58 completed deterministic Reflection Agent. Day59 completed deterministic Supervisor graph. Day60 should start Multi-Agent streaming.
 Do not continue VectorRAG production selection-policy polishing before GraphRAG.
 ```
 
@@ -1111,6 +1275,7 @@ Current features:
 * `/multi-agent/critic-debug` deterministic Critic Agent debug endpoint
 * `/multi-agent/memory-debug` deterministic Memory Agent debug endpoint
 * `/multi-agent/reflection-debug` deterministic Reflection Agent debug endpoint
+* `/multi-agent/supervisor-debug` deterministic Supervisor graph debug endpoint
 
 * `/multi-agent/critic-debug` deterministic Critic Agent debug endpoint
 * `/multi-agent/memory-debug` deterministic Memory Agent debug endpoint
@@ -1134,6 +1299,11 @@ Current features:
 * Reflection Agent stores structured output through `memory["reflection"]`
 * Reflection Agent creates deterministic markdown reflection artifacts
 * Reflection Agent records future Supervisor graph readiness without starting Supervisor graph
+* Deterministic Supervisor graph through `src/app/multi_agent/supervisor_graph.py`
+* Supervisor graph orchestrates Planner / Researcher / Tool / Critic / Memory / Reflection as explicit graph nodes
+* Supervisor graph stores structured output through `memory["supervisor"]`
+* Supervisor graph creates deterministic supervisor graph artifacts
+* Supervisor graph preserves existing role-specific debug endpoints
 
 Not implemented yet:
 
@@ -1141,7 +1311,7 @@ Not implemented yet:
 * Replacing `/agent/chat` with the real LLM Agent as the default main route
 * Making Smart Chat the default production entry point
 * Document upload and parsing pipeline
-* Full Multi-Agent workflow beyond Day58 deterministic Reflection Agent
+* Multi-Agent streaming beyond Day59 deterministic Supervisor graph
 
 ## Tech Stack
 
@@ -1197,6 +1367,10 @@ Not implemented yet:
 * Multi-Agent critic debug endpoint
 * Deterministic Memory Agent
 * Multi-Agent memory debug endpoint
+* Deterministic Reflection Agent
+* Multi-Agent reflection debug endpoint
+* Deterministic Supervisor graph
+* Multi-Agent supervisor debug endpoint
 * pytest
 * GitHub Actions
 * Server-Sent Events
@@ -1279,6 +1453,7 @@ agent-api/
 │   ├── DAY56.md
 │   ├── DAY57.md
 │   ├── DAY58.md
+│   ├── DAY59.md
 │   └── GRAPHRAG.md
 ├── knowledge/
 │   └── agent_basics.md
@@ -1347,6 +1522,7 @@ agent-api/
 │       │   ├── critic.py
 │       │   ├── memory_agent.py
 │       │   ├── reflection_agent.py
+│       │   ├── supervisor_graph.py
 │       │   └── state.py
 │       ├── llm/
 │       │   ├── base.py
@@ -3240,7 +3416,7 @@ Day47 connects Agentic RAG to GraphRAG only through an explicit backend.
 It does not make GraphRAG the default backend.
 It does not replace hybrid, chroma, or chroma_rerank.
 It does not change /agent/chat or Smart Chat default behavior.
-Day48 evaluated graph_fusion against existing RAG backends. Day49 completed GraphRAG observability / answer verification hardening. Day50 completed GraphRAG architecture documentation. Day51 completed GraphRAG interview material. Day52 completed Multi-Agent state foundation. Day53 completed deterministic Planner Agent. Day54 completed deterministic Research Agent. Day55 completed deterministic Tool Agent. Day56 completed deterministic Critic Agent. Day57 completed deterministic Memory Agent. Day58 completed deterministic Reflection Agent. Day59 should start Supervisor graph.
+Day48 evaluated graph_fusion against existing RAG backends. Day49 completed GraphRAG observability / answer verification hardening. Day50 completed GraphRAG architecture documentation. Day51 completed GraphRAG interview material. Day52 completed Multi-Agent state foundation. Day53 completed deterministic Planner Agent. Day54 completed deterministic Research Agent. Day55 completed deterministic Tool Agent. Day56 completed deterministic Critic Agent. Day57 completed deterministic Memory Agent. Day58 completed deterministic Reflection Agent. Day59 completed deterministic Supervisor graph. Day60 should start Multi-Agent streaming.
 ```
 
 
@@ -6471,9 +6647,9 @@ pytest -q
 Current CI status:
 
 ```text
-Day58 local pytest passed: 198 passed, 1 warning.
-Day58 Git commit: 833f03b add deterministic multi agent reflection agent.
-Day58 Git push succeeded.
+Day59 local pytest passed: 204 passed, 1 warning.
+Day59 Git commit: bce1c89 add deterministic multi agent supervisor graph.
+Day59 Git push succeeded.
 GitHub Actions CI: green.
 ```
 
@@ -6540,34 +6716,39 @@ mv /tmp/agent_basics.md knowledge/agent_basics.md
 
 ## Current Milestone Summary
 
-Day58 completed:
+Day59 completed:
 
 ```text
-- Day58 Reflection Agent
-- Deterministic Reflection Agent built on top of Day57 Memory Agent state flow
-- /multi-agent/reflection-debug added
-- Planner / Researcher / Tool / Critic / Memory outputs reflected
-- memory["reflection"] added
-- deterministic_reflection_report artifact added
-- Reflection task completed
-- Reflection Agent is CI-safe and LLM-free
-- No external tools used
-- Supervisor graph not started
+- Day59 Supervisor graph
+- Deterministic Supervisor graph built on top of Day58 Reflection Agent state flow
+- /multi-agent/supervisor-debug added
+- Planner / Researcher / Tool / Critic / Memory / Reflection orchestrated through an explicit graph
+- Explicit graph nodes recorded
+- Explicit graph edges recorded
+- execution_order recorded
+- role_readiness recorded
+- memory["supervisor"] added
+- deterministic_supervisor_graph_report artifact added
+- Existing role-specific debug endpoints preserved
+- Supervisor task completed
+- Orchestration pass true
+- Supervisor graph is CI-safe and LLM-free
+- No external tools or external storage used
 - graph_fusion remains non-default
 ```
 
 Next:
 
 ```text
-Day59: Supervisor graph
+Day60: Multi-Agent streaming
 ```
 
 ## Roadmap
 
 Next milestones:
 
-* Day59: Supervisor graph
-* Day60-Day63: Continue Complex Multi-Agent Workflow
+* Day60: Multi-Agent streaming
+* Day61-Day63: Continue Complex Multi-Agent Workflow
 * Day64-Day66: Final review, README / HANDOFF refactor, and resume / interview material cleanup
 
 Deferred:

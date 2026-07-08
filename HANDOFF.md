@@ -13,13 +13,13 @@ Project 2 has officially started and is now the main development line.
 Current `agent-api` status:
 
 ```text
-Day1-Day58 completed.
-Day58 completed: deterministic Reflection Agent on top of Day57 Memory Agent state flow, with /multi-agent/reflection-debug.
-Local pytest baseline after Day58: 198 passed, 1 warning.
-Git commit: 833f03b add deterministic multi agent reflection agent.
+Day1-Day59 completed.
+Day59 completed: deterministic Supervisor graph on top of Day58 Reflection Agent state flow, with /multi-agent/supervisor-debug.
+Local pytest baseline after Day59: 204 passed, 1 warning.
+Git commit: bce1c89 add deterministic multi agent supervisor graph.
 Git push: success.
 GitHub Actions CI: green.
-Next: Day59 Supervisor graph.
+Next: Day60 Multi-Agent streaming.
 ```
 
 ## Strategic Project Positioning and Locked Roadmap
@@ -158,7 +158,7 @@ Day58:
   Completed deterministic Reflection Agent
 
 Day59:
-  Supervisor graph
+  Completed Supervisor graph
 
 Day60:
   Multi-Agent streaming
@@ -295,10 +295,12 @@ Future Day planning rules:
 16. Day55 completed deterministic Tool Agent.
 17. Day56 completed deterministic Critic Agent.
 18. Day57 completed deterministic Memory Agent.
-19. Day58 completed deterministic Reflection Agent. Day59 should start Supervisor graph.
-20. Keep agent-api focused on Agentic RAG / GraphRAG / Multi-Agent.
-21. Keep chat-api focused on production LLM Gateway / Chat Backend engineering.
-22. Do not duplicate GraphRAG or Multi-Agent work in chat-api.
+19. Day58 completed deterministic Reflection Agent.
+20. Day59 completed deterministic Supervisor graph.
+21. Keep agent-api focused on Agentic RAG / GraphRAG / Multi-Agent.
+21. Keep agent-api focused on Agentic RAG / GraphRAG / Multi-Agent.
+22. Keep chat-api focused on production LLM Gateway / Chat Backend engineering.
+23. Do not duplicate GraphRAG or Multi-Agent work in chat-api.
 ```
 
 
@@ -3205,7 +3207,7 @@ Completed:
 Recommended next milestone:
 
 ```text
-Day55, Day56, and Day57 have now been completed. Day58 completed deterministic Reflection Agent. Day59 should start Supervisor graph.
+Day55, Day56, and Day57 have now been completed. Day58 completed deterministic Reflection Agent. Day59 completed deterministic Supervisor graph. Day60 should start Multi-Agent streaming.
 ```
 
 
@@ -3373,7 +3375,7 @@ Completed:
 Recommended next milestone:
 
 ```text
-Day56 and Day57 have now been completed. Day58 completed deterministic Reflection Agent. Day59 should start Supervisor graph.
+Day56 and Day57 have now been completed. Day58 completed deterministic Reflection Agent. Day59 completed deterministic Supervisor graph. Day60 should start Multi-Agent streaming.
 ```
 
 
@@ -3596,10 +3598,10 @@ Completed:
 Recommended next milestone:
 
 ```text
-Day58 has now been completed. Day59 should start Supervisor graph.
+Day58 has now been completed. Day59 completed deterministic Supervisor graph. Day60 should start Multi-Agent streaming.
 ```
 
-Day57 and Day58 have now been completed. Day59 should start Supervisor graph.
+Day57 and Day58 have now been completed. Day59 completed deterministic Supervisor graph. Day60 should start Multi-Agent streaming.
 
 
 
@@ -3790,22 +3792,19 @@ Day58 has now been completed.
 Recommended next milestone:
 
 ```text
-Day59: Supervisor graph.
+Day60: Multi-Agent streaming.
 ```
 
-Day59 should add deterministic Supervisor graph orchestration on top of the Day58 state flow:
+Day60 should add CI-safe Multi-Agent streaming on top of the Day59 Supervisor graph:
 
 ```text
-1. Add reflection agent module.
-2. Consume the pending assigned_role="reflection" task from MultiAgentState.
-3. Reflect on Planner / Researcher / Tool / Critic / Memory outputs.
-4. Produce compact lessons learned and handoff summary.
-5. Store reflection output in memory["reflection"].
-6. Create deterministic reflection artifact.
-7. Add /multi-agent/reflection-debug.
-8. Keep CI-safe and LLM-free.
-9. Do not start Supervisor graph yet.
-10. Keep graph_fusion non-default.
+1. Add Multi-Agent streaming module.
+2. Stream deterministic supervisor orchestration events in execution order.
+3. Preserve planner / researcher / tool / critic / memory / reflection / supervisor visibility.
+4. Add a Multi-Agent streaming endpoint.
+5. Preserve existing role-specific debug endpoints and /multi-agent/supervisor-debug.
+6. Keep streaming CI-safe and LLM-free for the first implementation.
+7. Keep graph_fusion non-default.
 ```
 
 ## Day58 - Reflection Agent
@@ -3996,18 +3995,253 @@ Completed:
 Recommended next milestone:
 
 ```text
-Day59: Supervisor graph.
+Day60: Multi-Agent streaming.
 ```
 
-Day59 should add the Supervisor graph on top of the Day58 state flow:
+Day60 should add Multi-Agent streaming on top of the completed Day59 Supervisor graph:
 
 ```text
-1. Add Supervisor graph module.
-2. Orchestrate Planner / Researcher / Tool / Critic / Memory / Reflection through an explicit graph.
-3. Preserve deterministic and CI-safe execution for the first implementation.
+1. Add Multi-Agent streaming module.
+2. Stream deterministic role events for Planner / Researcher / Tool / Critic / Memory / Reflection / Supervisor.
+3. Add a Multi-Agent streaming endpoint.
 4. Keep existing debug endpoints stable.
-5. Add /multi-agent/supervisor-debug or equivalent endpoint.
-6. Keep LLM-free for the first implementation.
+5. Preserve /multi-agent/supervisor-debug.
+6. Keep streaming LLM-free for the first implementation.
+7. Keep graph_fusion non-default.
+```
+
+
+## Day59 - Supervisor Graph
+
+Day59 completes the deterministic Supervisor graph on top of the Day58 Reflection Agent state flow.
+
+Scope:
+
+```text
+Day59 intentionally adds only the Supervisor orchestration layer:
+  - deterministic supervisor graph module
+  - explicit graph node representation for Planner / Researcher / Tool / Critic / Memory / Reflection
+  - explicit graph edge representation
+  - execution_order recording
+  - role_readiness validation
+  - supervisor memory output under memory["supervisor"]
+  - deterministic markdown supervisor graph artifact
+  - /multi-agent/supervisor-debug endpoint
+  - CI-safe unit and endpoint tests
+
+Day59 does not:
+  - call LLM
+  - use external tools
+  - use external storage
+  - connect Multi-Agent to Neo4j
+  - replace existing role-specific debug endpoints
+  - start Multi-Agent streaming
+  - make graph_fusion the default backend
+```
+
+New / modified files:
+
+```text
+src/app/multi_agent/supervisor_graph.py
+src/app/schemas/multi_agent.py
+src/app/routes/routes_multi_agent.py
+tests/multi_agent/test_multi_agent_supervisor_graph.py
+tests/multi_agent/test_multi_agent_supervisor_debug.py
+```
+
+New endpoint:
+
+```text
+POST /multi-agent/supervisor-debug
+```
+
+Supervisor graph pipeline:
+
+```text
+/multi-agent/supervisor-debug
+  ↓
+run_deterministic_supervisor_graph()
+  ↓
+run_deterministic_reflection_agent()
+  ↓
+consume or create supervisor orchestration task
+  ↓
+build deterministic graph nodes
+  ↓
+build deterministic graph edges
+  ↓
+record execution_order
+  ↓
+validate role_readiness
+  ↓
+mark supervisor task as completed
+  ↓
+memory["supervisor"]
+  ↓
+deterministic_supervisor_graph_report artifact
+```
+
+Supervisor graph output fields:
+
+```text
+supervisor_role
+planning_mode
+objective
+source_task_id
+graph_name
+graph_version
+nodes
+edges
+execution_order
+role_readiness
+orchestration_pass
+completed_role_count
+constraints_checked
+preserved_debug_endpoints
+next_role
+execution_boundary
+llm_used
+note
+```
+
+Graph nodes:
+
+```text
+planner
+researcher
+tool
+critic
+memory
+reflection
+```
+
+Graph edges:
+
+```text
+planner -> researcher
+researcher -> tool
+tool -> critic
+critic -> memory
+memory -> reflection
+```
+
+Preserved debug endpoints:
+
+```text
+/multi-agent/plan-debug
+/multi-agent/research-debug
+/multi-agent/tool-debug
+/multi-agent/critic-debug
+/multi-agent/memory-debug
+/multi-agent/reflection-debug
+```
+
+Manual validation confirmed:
+
+```text
+current_role = supervisor
+status = completed
+planning_mode = implementation
+supervisor.supervisor_role = supervisor
+supervisor.graph_name = deterministic_multi_agent_supervisor_graph
+supervisor.graph_version = day59_supervisor_graph_v1
+supervisor.execution_boundary = supervisor_orchestration_only
+supervisor.llm_used = false
+supervisor.orchestration_pass = true
+supervisor.completed_role_count = 6
+execution_order = planner / researcher / tool / critic / memory / reflection
+all supervisor nodes status = completed
+all role_readiness entries ready = true
+memory.supervisor exists
+supervisor task status = completed
+artifact_count = 7
+preserved role-specific debug endpoints are recorded
+graph_fusion remains non-default
+```
+
+Validation:
+
+```text
+pytest tests/multi_agent -q
+44 passed, 1 warning
+
+pytest -q
+204 passed, 1 warning
+```
+
+Default retrieval backend safety check:
+
+```text
+DEFAULT_RETRIEVAL_BACKEND = "hybrid"
+No evidence that graph_fusion was made the default backend.
+```
+
+Commit:
+
+```text
+bce1c89 add deterministic multi agent supervisor graph
+```
+
+Git push:
+
+```text
+success
+```
+
+GitHub Actions CI:
+
+```text
+green
+```
+
+### Day59 Checklist
+
+Completed:
+
+```text
+✅ Added deterministic Supervisor graph.
+✅ Added `src/app/multi_agent/supervisor_graph.py`.
+✅ Built Supervisor graph on top of Day58 Reflection Agent state flow.
+✅ Added `/multi-agent/supervisor-debug` endpoint.
+✅ Represented Planner / Researcher / Tool / Critic / Memory / Reflection as explicit graph nodes.
+✅ Recorded explicit graph edges.
+✅ Recorded execution_order.
+✅ Recorded role_readiness for all orchestrated roles.
+✅ Stored structured supervisor output in `memory["supervisor"]`.
+✅ Created deterministic markdown supervisor graph artifact.
+✅ Preserved existing role-specific debug endpoints.
+✅ Supervisor task status: completed.
+✅ Orchestration pass: true.
+✅ Completed role count: 6.
+✅ Kept Supervisor graph CI-safe and LLM-free.
+✅ Did not use external tools or external storage.
+✅ Did not connect Multi-Agent to Neo4j.
+✅ Kept `graph_fusion` non-default.
+✅ Local `pytest tests/multi_agent -q`: 44 passed, 1 warning.
+✅ Full local `pytest -q`: 204 passed, 1 warning.
+✅ Manual `/multi-agent/supervisor-debug` validation passed.
+✅ Git commit: `bce1c89 add deterministic multi agent supervisor graph`.
+✅ Git push: success.
+✅ GitHub Actions CI: green.
+```
+
+### Next Work
+
+Recommended next milestone:
+
+```text
+Day60: Multi-Agent streaming.
+```
+
+Day60 should add CI-safe Multi-Agent streaming on top of the deterministic Supervisor graph:
+
+```text
+1. Add Multi-Agent streaming module.
+2. Stream supervisor orchestration events in deterministic order.
+3. Preserve planner / researcher / tool / critic / memory / reflection / supervisor event visibility.
+4. Add /multi-agent/supervisor-stream or equivalent endpoint.
+5. Keep streaming CI-safe and LLM-free for the first implementation.
+6. Preserve existing role-specific debug endpoints and /multi-agent/supervisor-debug.
 7. Keep graph_fusion non-default.
 ```
 
@@ -10879,31 +11113,50 @@ Day58 completed:
 - [x] Built deterministic Reflection Agent on top of Day57 Memory Agent state flow
 - [x] Added `src/app/multi_agent/reflection_agent.py`
 - [x] Added `/multi-agent/reflection-debug` endpoint
-- [x] Reflection Agent consumes the pending planner-generated reflection task
-- [x] Reflection Agent reflects on Planner / Researcher / Tool / Critic / Memory outputs
 - [x] Reflection Agent stores structured output in `memory["reflection"]`
 - [x] Reflection Agent creates a deterministic markdown reflection artifact
-- [x] Reflection Agent records reviewed roles: planner / researcher / tool / critic / memory
-- [x] Reflection Agent records `accepted_reflection_count=5`
-- [x] Reflection Agent records `follow_up_reflection_count=1`
-- [x] Reflection Agent records readiness for Day59 Supervisor graph
-- [x] Reflection task status: completed
-- [x] Supervisor graph is not started
-- [x] Kept Reflection Agent CI-safe and LLM-free
-- [x] Did not use external tools
-- [x] Kept `graph_fusion` non-default
+- [x] Supervisor graph readiness recorded
+- [x] Supervisor graph was not started in Day58
 - [x] Local `pytest tests/multi_agent -q`: 38 passed, 1 warning
 - [x] Full local `pytest -q`: 198 passed, 1 warning
-- [x] Manual `/multi-agent/reflection-debug` validation passed
 - [x] Git commit: `833f03b add deterministic multi agent reflection agent`
+- [x] Git push: success
+- [x] GitHub Actions CI: green
+
+Day59 completed:
+
+- [x] Day59 Supervisor graph
+- [x] Built deterministic Supervisor graph on top of Day58 Reflection Agent state flow
+- [x] Added `src/app/multi_agent/supervisor_graph.py`
+- [x] Added `/multi-agent/supervisor-debug` endpoint
+- [x] Orchestrated Planner / Researcher / Tool / Critic / Memory / Reflection through an explicit graph
+- [x] Recorded explicit graph nodes
+- [x] Recorded explicit graph edges
+- [x] Recorded `execution_order`
+- [x] Recorded `role_readiness`
+- [x] Stored structured output in `memory["supervisor"]`
+- [x] Created deterministic markdown supervisor graph artifact
+- [x] Preserved existing role-specific debug endpoints
+- [x] Supervisor task status: completed
+- [x] Orchestration pass: true
+- [x] Completed role count: 6
+- [x] Kept Supervisor graph CI-safe and LLM-free
+- [x] Did not use external tools or external storage
+- [x] Did not connect Multi-Agent to Neo4j
+- [x] Kept `graph_fusion` non-default
+- [x] Local `pytest tests/multi_agent -q`: 44 passed, 1 warning
+- [x] Full local `pytest -q`: 204 passed, 1 warning
+- [x] Manual `/multi-agent/supervisor-debug` validation passed
+- [x] Git commit: `bce1c89 add deterministic multi agent supervisor graph`
 - [x] Git push: success
 - [x] GitHub Actions CI: green
 
 Next:
 
-- [ ] Day59 Supervisor graph
-- [ ] Build deterministic Supervisor graph on top of Day58 Reflection Agent state flow
-- [ ] Orchestrate Planner / Researcher / Tool / Critic / Memory / Reflection through an explicit graph
-- [ ] Keep Supervisor graph CI-safe and LLM-free for the first implementation
-- [ ] Preserve existing role-specific debug endpoints
+- [ ] Day60 Multi-Agent streaming
+- [ ] Build CI-safe streaming on top of Day59 Supervisor graph
+- [ ] Stream deterministic role events for Planner / Researcher / Tool / Critic / Memory / Reflection / Supervisor
+- [ ] Add a Multi-Agent streaming endpoint
+- [ ] Preserve existing role-specific debug endpoints and `/multi-agent/supervisor-debug`
+- [ ] Keep streaming LLM-free for the first implementation
 - [ ] Keep `graph_fusion` non-default
