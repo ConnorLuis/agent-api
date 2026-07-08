@@ -13,13 +13,13 @@ Project 2 has officially started and is now the main development line.
 Current `agent-api` status:
 
 ```text
-Day1-Day55 completed.
-Day55 completed: deterministic Tool Agent on top of Day54 Researcher state flow, with /multi-agent/tool-debug.
-Local pytest baseline after Day55: 183 passed, 1 warning.
-Git commit: 482c296 add deterministic multi agent tool agent.
+Day1-Day56 completed.
+Day56 completed: deterministic Critic Agent on top of Day55 Tool Agent state flow, with /multi-agent/critic-debug.
+Local pytest baseline after Day56: 188 passed, 1 warning.
+Git commit: ed990c9 add deterministic multi agent critic.
 Git push: success.
 GitHub Actions CI: green.
-Next: Day56 Critic Agent.
+Next: Day57 Memory Agent.
 ```
 
 ## Strategic Project Positioning and Locked Roadmap
@@ -149,7 +149,7 @@ Day55:
   Completed deterministic Tool Agent
 
 Day56:
-  Critic Agent
+  Completed deterministic Critic Agent
 
 Day57:
   Memory Agent
@@ -293,8 +293,9 @@ Future Day planning rules:
 14. Day53 completed deterministic Planner Agent.
 15. Day54 completed deterministic Research Agent.
 16. Day55 completed deterministic Tool Agent.
-17. Day56 should start Critic Agent.
-18. Keep agent-api focused on Agentic RAG / GraphRAG / Multi-Agent.
+17. Day56 completed deterministic Critic Agent.
+18. Day57 should start Memory Agent.
+19. Keep agent-api focused on Agentic RAG / GraphRAG / Multi-Agent.
 19. Keep chat-api focused on production LLM Gateway / Chat Backend engineering.
 20. Do not duplicate GraphRAG or Multi-Agent work in chat-api.
 ```
@@ -2858,6 +2859,7 @@ POST /multi-agent/state-debug
 POST /multi-agent/plan-debug
 POST /multi-agent/research-debug
 POST /multi-agent/tool-debug
+POST /multi-agent/critic-debug
 POST /multi-agent/plan-debug
 ```
 
@@ -3202,20 +3204,7 @@ Completed:
 Recommended next milestone:
 
 ```text
-Day55 has now been completed. Day56 should start Critic Agent.
-```
-
-Day55 should add the deterministic Tool Agent on top of the Day54 state flow:
-
-```text
-1. Add tool agent module.
-2. Consume the pending assigned_role="tool" task from MultiAgentState.
-3. Execute only CI-safe deterministic internal tools.
-4. Store tool results in memory and artifacts.
-5. Add /multi-agent/tool-debug.
-6. Keep CI-safe and LLM-free.
-7. Do not start Critic / Supervisor graph yet.
-8. Keep graph_fusion non-default.
+Day55 and Day56 have now been completed. Day57 should start Memory Agent.
 ```
 
 
@@ -3383,21 +3372,244 @@ Completed:
 Recommended next milestone:
 
 ```text
-Day56: Critic Agent.
+Day56 has now been completed. Day57 should start Memory Agent.
 ```
 
-Day56 should add the deterministic Critic Agent on top of the Day55 state flow:
+
+## Day56 - Critic Agent
+
+Day56 completes the deterministic Critic Agent on top of the Day55 Tool Agent state flow.
+
+Scope:
 
 ```text
-1. Add critic agent module.
-2. Consume the pending assigned_role="critic" task from MultiAgentState.
-3. Validate planner / researcher / tool status transitions.
-4. Validate memory and artifact outputs.
-5. Validate graph_fusion remains non-default.
-6. Store critic review in memory and artifacts.
-7. Add /multi-agent/critic-debug.
-8. Keep CI-safe and LLM-free.
-9. Do not start Supervisor graph yet.
+Day56 intentionally adds only the Critic Agent layer:
+  - deterministic critic module
+  - critic task selection from Day55 Tool Agent state flow
+  - validation of Planner / Researcher / Tool task transitions
+  - validation of Planner / Researcher / Tool memory outputs
+  - validation of Planner / Researcher / Tool artifacts
+  - validation of boundary flags
+  - critic memory output
+  - deterministic markdown critic artifact
+  - /multi-agent/critic-debug endpoint
+  - CI-safe unit and endpoint tests
+
+Day56 does not:
+  - implement Memory Agent
+  - implement Reflection Agent
+  - implement Supervisor graph
+  - call LLM
+  - execute real shell commands
+  - modify repository files
+  - connect Multi-Agent to Neo4j
+  - make graph_fusion the default backend
+```
+
+New / modified files:
+
+```text
+src/app/multi_agent/critic.py
+src/app/schemas/multi_agent.py
+src/app/routes/routes_multi_agent.py
+tests/multi_agent/test_multi_agent_critic.py
+tests/multi_agent/test_multi_agent_critic_debug.py
+```
+
+New endpoint:
+
+```text
+POST /multi-agent/critic-debug
+```
+
+Critic Agent pipeline:
+
+```text
+/multi-agent/critic-debug
+  ↓
+run_deterministic_critic_agent()
+  ↓
+run_deterministic_tool_agent()
+  ↓
+find pending assigned_role="critic" task
+  ↓
+mark critic task as running
+  ↓
+build deterministic critic checks
+  ↓
+validate planner / researcher / tool task transitions
+  ↓
+validate memory outputs and artifacts
+  ↓
+validate boundary flags
+  ↓
+mark critic task as completed
+  ↓
+memory["critic"]
+  ↓
+deterministic_critic_review artifact
+```
+
+Critic Agent output fields:
+
+```text
+critic_role
+planning_mode
+objective
+source_task_id
+checks
+passed_check_count
+warning_check_count
+failed_check_count
+validation_pass
+constraints_checked
+next_role
+execution_boundary
+llm_used
+note
+```
+
+Critic checks:
+
+```text
+planner_initial_task_completed
+researcher_task_completed
+tool_task_completed
+planner_memory_boundary
+researcher_memory_boundary
+tool_memory_boundary
+artifact_chain_exists
+future_agents_not_executed
+supervisor_graph_not_started
+graph_fusion_non_default_boundary
+non_blocking_pending_planner_task
+critic_task_available
+```
+
+Important implementation fix:
+
+```text
+The graph_fusion boundary check was updated to read both:
+  - planner memory field: constraints
+  - researcher / tool memory field: constraints_checked
+
+This keeps the Critic Agent compatible with the existing Planner memory schema
+while still validating that graph_fusion remains non-default.
+```
+
+Manual validation confirmed:
+
+```text
+current_role = critic
+status = pending
+planning_mode = implementation
+critic.execution_boundary = critic_validation_only
+critic.llm_used = false
+critic.validation_pass = true
+critic.passed_check_count = 11
+critic.warning_check_count = 1
+critic.failed_check_count = 0
+memory.planner exists
+memory.researcher exists
+memory.tool exists
+memory.critic exists
+researcher task status = completed
+tool task status = completed
+critic task status = completed
+reflection task status = pending
+artifact_count = 4
+event roles are limited to supervisor / planner / researcher / tool / critic
+Memory / Reflection agents are not executed
+Supervisor graph is not started
+graph_fusion boundary check passed for planner / researcher / tool
+```
+
+Validation:
+
+```text
+pytest tests/multi_agent -q
+28 passed, 1 warning
+
+pytest -q
+188 passed, 1 warning
+```
+
+Default retrieval backend safety check:
+
+```text
+DEFAULT_RETRIEVAL_BACKEND = "hybrid"
+No evidence that graph_fusion was made the default backend.
+```
+
+Commit:
+
+```text
+ed990c9 add deterministic multi agent critic
+```
+
+Git push:
+
+```text
+success
+```
+
+GitHub Actions CI:
+
+```text
+green
+```
+
+### Day56 Checklist
+
+Completed:
+
+```text
+✅ Added deterministic Critic Agent.
+✅ Added `src/app/multi_agent/critic.py`.
+✅ Built Critic Agent on top of Day55 Tool Agent state flow.
+✅ Added `/multi-agent/critic-debug` endpoint.
+✅ Added critic task selection from planner-generated tasks.
+✅ Critic Agent marks the critic task as completed when validation passes.
+✅ Critic Agent stores structured output in `memory["critic"]`.
+✅ Critic Agent creates a deterministic markdown critic artifact.
+✅ Critic Agent validates Planner / Researcher / Tool task transitions.
+✅ Critic Agent validates Planner / Researcher / Tool memory outputs.
+✅ Critic Agent validates Planner / Researcher / Tool artifact outputs.
+✅ Critic Agent validates boundary flags.
+✅ Critic Agent validates `graph_fusion` remains non-default.
+✅ Critic Agent handles Planner `constraints` and Researcher / Tool `constraints_checked` memory fields.
+✅ Memory / Reflection roles remain pending and unexecuted.
+✅ Supervisor graph is not started.
+✅ Kept Critic Agent CI-safe and LLM-free.
+✅ Kept `graph_fusion` non-default.
+✅ Local `pytest tests/multi_agent -q`: 28 passed, 1 warning.
+✅ Full local `pytest -q`: 188 passed, 1 warning.
+✅ Manual `/multi-agent/critic-debug` validation passed.
+✅ Git commit: `ed990c9 add deterministic multi agent critic`.
+✅ Git push: success.
+✅ GitHub Actions CI: green.
+```
+
+### Next Work
+
+Recommended next milestone:
+
+```text
+Day57: Memory Agent.
+```
+
+Day57 should add the deterministic Memory Agent on top of the Day56 state flow:
+
+```text
+1. Add memory agent module.
+2. Consume or create the pending assigned_role="memory" task from MultiAgentState.
+3. Summarize Planner / Researcher / Tool / Critic memory into compact workflow memory.
+4. Store durable workflow summary in memory["memory"].
+5. Create deterministic memory artifact.
+6. Add /multi-agent/memory-debug.
+7. Keep CI-safe and LLM-free.
+8. Do not start Supervisor graph yet.
+9. Keep graph_fusion non-default.
 ```
 
 
@@ -3571,6 +3783,8 @@ Current:
 - Multi-Agent research debug endpoint
 - Deterministic Tool Agent
 - Multi-Agent tool debug endpoint
+- Deterministic Critic Agent
+- Multi-Agent critic debug endpoint
 - pytest
 - GitHub Actions CI
 
@@ -3580,7 +3794,7 @@ Not yet implemented:
 - Replacing `/agent/chat` with the real LLM Agent as the default route
 - Making Smart Chat the default production entry point
 - Document upload and parsing pipeline
-- Critic / Memory / Reflection agents
+- Memory / Reflection agents
 - Multi-Agent Supervisor graph
 
 ---
@@ -3651,6 +3865,7 @@ agent-api/
 │   ├── DAY53.md
 │   ├── DAY54.md
 │   ├── DAY55.md
+│   ├── DAY56.md
 │   └── GRAPHRAG.md
 ├── knowledge/
 │   └── agent_basics.md
@@ -3711,6 +3926,7 @@ agent-api/
 │       │   ├── planner.py
 │       │   ├── researcher.py
 │       │   ├── tool_agent.py
+│       │   ├── critic.py
 │       │   └── state.py
 │       ├── llm/
 │       │   ├── base.py
@@ -10197,11 +10413,37 @@ Day55 completed:
 - [x] Git push: success
 - [x] GitHub Actions CI: green
 
+Day56 completed:
+
+- [x] Day56 Critic Agent
+- [x] Built deterministic Critic Agent on top of Day55 Tool Agent state flow
+- [x] Added `src/app/multi_agent/critic.py`
+- [x] Added `/multi-agent/critic-debug` endpoint
+- [x] Critic Agent consumes the pending planner-generated critic task
+- [x] Critic validates Planner / Researcher / Tool task transitions
+- [x] Critic validates Planner / Researcher / Tool memory outputs
+- [x] Critic validates Planner / Researcher / Tool artifacts
+- [x] Critic validates boundary flags and `graph_fusion` non-default safety
+- [x] Critic marks the critic task as completed when validation passes
+- [x] Critic stores structured output in `memory["critic"]`
+- [x] Critic creates a deterministic markdown review artifact
+- [x] Validation result: `validation_pass=true`, `passed_check_count=11`, `warning_check_count=1`, `failed_check_count=0`
+- [x] Kept Critic Agent CI-safe and LLM-free
+- [x] Did not start Supervisor graph
+- [x] Memory / Reflection roles remain pending and unexecuted
+- [x] Kept `graph_fusion` non-default
+- [x] Local `pytest tests/multi_agent -q`: 28 passed, 1 warning
+- [x] Full local `pytest -q`: 188 passed, 1 warning
+- [x] Manual `/multi-agent/critic-debug` validation passed
+- [x] Git commit: `ed990c9 add deterministic multi agent critic`
+- [x] Git push: success
+- [x] GitHub Actions CI: green
+
 Next:
 
-- [ ] Day56 Critic Agent
-- [ ] Build deterministic Critic Agent on top of Day55 Tool Agent state flow
-- [ ] Validate Planner / Researcher / Tool task transitions, memory, artifacts, and boundary flags
-- [ ] Keep Critic Agent CI-safe and LLM-free for the first implementation
-- [ ] Do not start Supervisor graph yet
+- [ ] Day57 Memory Agent
+- [ ] Build deterministic Memory Agent on top of Day56 Critic Agent state flow
+- [ ] Persist or summarize approved Multi-Agent memory in a CI-safe way
+- [ ] Keep Memory Agent LLM-free for the first implementation
+- [ ] Do not start Reflection Agent / Supervisor graph yet
 - [ ] Keep `graph_fusion` non-default
