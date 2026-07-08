@@ -3,6 +3,7 @@ from starlette.responses import StreamingResponse
 
 from src.app.core.request_context import get_trace_id
 from src.app.multi_agent.critic import run_deterministic_critic_agent
+from src.app.multi_agent.evaluation import run_deterministic_multi_agent_eval_trace
 from src.app.multi_agent.memory_agent import run_deterministic_memory_agent
 from src.app.multi_agent.planner import build_deterministic_plan
 from src.app.multi_agent.reflection_agent import run_deterministic_reflection_agent
@@ -21,7 +22,7 @@ from src.app.schemas.multi_agent import (
     MultiAgentToolDebugRequest, MultiAgentCriticDebugResponse, MultiAgentCriticDebugRequest,
     MultiAgentMemoryDebugResponse, MultiAgentMemoryDebugRequest, MultiAgentReflectionDebugResponse,
     MultiAgentReflectionDebugRequest, MultiAgentSupervisorDebugResponse, MultiAgentSupervisorDebugRequest,
-    MultiAgentStreamRequest,
+    MultiAgentStreamRequest, MultiAgentEvalDebugResponse, MultiAgentEvalDebugRequest,
 )
 
 
@@ -279,4 +280,40 @@ def stream_multi_agent(
             metadata=request.metadata,
         ),
         media_type="text/event-stream",
+    )
+
+
+@router.post("/eval-debug", response_model=MultiAgentEvalDebugResponse)
+def debug_multi_agent_eval_trace(
+    request: MultiAgentEvalDebugRequest,
+) -> MultiAgentEvalDebugResponse:
+    trace_id = get_trace_id()
+
+    result = run_deterministic_multi_agent_eval_trace(
+        task=request.task,
+        thread_id=request.thread_id,
+        trace_id=trace_id,
+        metadata=request.metadata,
+    )
+
+    state = result["state"]
+    supervisor = state["memory"]["supervisor"]
+    eval_report = result["eval_report"]
+
+    return MultiAgentEvalDebugResponse(
+        task=state["task"],
+        thread_id=state["thread_id"],
+        trace_id=state["trace_id"],
+        current_role=state["current_role"],
+        status=state["status"],
+        planning_mode=eval_report["planning_mode"],
+        eval_report=eval_report,
+        trace_report=result["trace_report"],
+        supervisor=supervisor,
+        stream_events=result["stream_events"],
+        tasks=state["tasks"],
+        events=state["events"],
+        artifacts=state["artifacts"],
+        memory=state["memory"],
+        summary=summarize_multi_agent_state(state),
     )

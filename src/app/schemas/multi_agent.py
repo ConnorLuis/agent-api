@@ -192,3 +192,27 @@ class MultiAgentStreamRequest(BaseModel):
     task: str = Field(..., min_length=1)
     thread_id: str = Field(default="multi-agent-stream-thread")
     metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class MultiAgentEvalDebugRequest(BaseModel):
+    task: str = Field(..., min_length=1)
+    thread_id: str = Field(default="multi-agent-eval-debug-thread")
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class MultiAgentEvalDebugResponse(BaseModel):
+    task: str
+    thread_id: str
+    trace_id: str
+    current_role: MultiAgentRole
+    status: MultiAgentTaskStatus
+    planning_mode: str
+    eval_report: dict[str, Any]
+    trace_report: dict[str, Any]
+    supervisor: dict[str, Any]
+    stream_events: list[dict[str, Any]]
+    tasks: list[dict[str, Any]]
+    events: list[dict[str, Any]]
+    artifacts: list[dict[str, Any]]
+    memory: dict[str, Any]
+    summary: dict[str, Any]
