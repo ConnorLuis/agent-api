@@ -7,10 +7,12 @@ from src.app.multi_agent.state import (
     initialize_multi_agent_state,
     summarize_multi_agent_state,
 )
+from src.app.multi_agent.tool_agent import run_deterministic_tool_agent
 from src.app.schemas.multi_agent import (
     MultiAgentStateDebugRequest,
     MultiAgentStateDebugResponse, MultiAgentPlanDebugResponse, MultiAgentPlanDebugRequest,
-    MultiAgentResearchDebugResponse, MultiAgentResearchDebugRequest,
+    MultiAgentResearchDebugResponse, MultiAgentResearchDebugRequest, MultiAgentToolDebugResponse,
+    MultiAgentToolDebugRequest,
 )
 
 
@@ -96,6 +98,36 @@ def debug_multi_agent_research(
         status=state["status"],
         planning_mode=research["planning_mode"],
         research=research,
+        tasks=state["tasks"],
+        events=state["events"],
+        artifacts=state["artifacts"],
+        memory=state["memory"],
+        summary=summarize_multi_agent_state(state),
+    )
+
+
+@router.post("/tool-debug", response_model=MultiAgentToolDebugResponse)
+def debug_multi_agent_tool(
+    request: MultiAgentToolDebugRequest,
+) -> MultiAgentToolDebugResponse:
+    trace_id = get_trace_id()
+
+    state = run_deterministic_tool_agent(
+        task=request.task,
+        thread_id=request.thread_id,
+        trace_id=trace_id,
+        metadata=request.metadata,
+    )
+    tool = state["memory"]["tool"]
+
+    return MultiAgentToolDebugResponse(
+        task=state["task"],
+        thread_id=state["thread_id"],
+        trace_id=state["trace_id"],
+        current_role=state["current_role"],
+        status=state["status"],
+        planning_mode=tool["planning_mode"],
+        tool=tool,
         tasks=state["tasks"],
         events=state["events"],
         artifacts=state["artifacts"],
