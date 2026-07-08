@@ -13,13 +13,13 @@ Project 2 has officially started and is now the main development line.
 Current `agent-api` status:
 
 ```text
-Day1-Day50 completed.
-Day50 completed: GraphRAG architecture documentation covering schema, extraction, ingestion, retrieval, fusion, evaluation, observability, and answer verification.
-Local pytest baseline before docs: 160 passed, 1 warning.
-Git commit: pending Day50 documentation commit.
+Day1-Day51 completed.
+Day51 completed: GraphRAG interview material, including Chinese talk track, Q&A, and Day51 summary documentation.
+Local pytest baseline before Day51 docs: 160 passed, 1 warning.
+Git commit: pending Day51 documentation commit.
 Git push: pending.
 GitHub Actions CI: pending.
-Next: Day51 GraphRAG interview material.
+Next: Day52 Multi-Agent state.
 ```
 
 ## Strategic Project Positioning and Locked Roadmap
@@ -131,7 +131,7 @@ Day50:
   Completed GraphRAG docs
 
 Day51:
-  GraphRAG interview material
+  Completed GraphRAG interview material
 
 Day52-Day63:
   Complex Multi-Agent Workflow
@@ -288,10 +288,11 @@ Future Day planning rules:
 9. Day48 completed GraphRAG evaluation without making graph_fusion the default backend.
 10. Day49 completed observability / answer verification hardening for GraphRAG.
 11. Day50 completed GraphRAG architecture documentation.
-12. Day51 should prepare GraphRAG interview material.
-13. Keep agent-api focused on Agentic RAG / GraphRAG / Multi-Agent.
-14. Keep chat-api focused on production LLM Gateway / Chat Backend engineering.
-15. Do not duplicate GraphRAG or Multi-Agent work in chat-api.
+12. Day51 completed GraphRAG interview material.
+13. Day52 should start Multi-Agent state.
+14. Keep agent-api focused on Agentic RAG / GraphRAG / Multi-Agent.
+15. Keep chat-api focused on production LLM Gateway / Chat Backend engineering.
+16. Do not duplicate GraphRAG or Multi-Agent work in chat-api.
 ```
 
 
@@ -2719,6 +2720,86 @@ Day49: Observability / answer verification for GraphRAG.
 ```
 
 Day49 should harden the GraphRAG path by improving trace payloads and answer verification support for `graph_fusion`.
+
+
+
+## Day51 - GraphRAG Interview Material
+
+Day51 completes the GraphRAG interview-material stage after the Day42-Day50 GraphRAG implementation and documentation work.
+
+Scope:
+
+```text
+Day51 intentionally adds only interview documentation:
+  - Chinese GraphRAG talk track
+  - Chinese GraphRAG Q&A
+  - Day51 summary document
+  - README / HANDOFF status updates
+
+Day51 does not:
+  - modify core GraphRAG logic
+  - change retrieval backend defaults
+  - make graph_fusion the default backend
+  - start Multi-Agent implementation
+```
+
+New documentation files:
+
+```text
+docs/DAY51.md
+docs/interview/graphrag_talk_track.md
+docs/interview/graphrag_qa.md
+```
+
+Interview material focus:
+
+```text
+1. Why GraphRAG is needed in addition to VectorRAG.
+2. GraphRAG schema: Document, Chunk, Entity.
+3. GraphRAG relationships: HAS_CHUNK, NEXT_CHUNK, MENTIONS, RELATED_TO.
+4. Deterministic entity / relation extraction.
+5. Neo4j ingestion boundary and dry-run safety.
+6. Graph retrieval through matched entities, mentioned chunks, and related entities.
+7. GraphRAG + VectorRAG fusion through chunk_id union and weighted fusion_score.
+8. Agentic RAG connection through retrieval_backend="graph_fusion".
+9. Evaluation support for graph_fusion.
+10. Observability trace payloads for GraphRAG.
+11. Answer verification for GraphRAG.
+12. Why graph_fusion remains non-default.
+13. Engineering trade-offs, limitations, and future improvements.
+```
+
+Current Refactor status before Day51:
+
+```text
+Refactor-R1 completed:
+  tests reorganized by domain.
+
+Refactor-R2 completed:
+  split RAG routes, schemas, evaluation, report, and retrieval backend dispatcher.
+
+Validation:
+  pytest -q: 160 passed, 1 warning
+  CI: green
+```
+
+Day51 checklist:
+
+```text
+✅ Added Chinese GraphRAG talk track.
+✅ Added Chinese GraphRAG interview Q&A.
+✅ Added Day51 Chinese summary document.
+✅ Updated README status to Day51.
+✅ Updated HANDOFF status to Day51.
+✅ Kept graph_fusion non-default.
+✅ Kept Multi-Agent unstarted.
+```
+
+Next milestone:
+
+```text
+Day52: Multi-Agent state.
+```
 
 
 ## Project Goal
