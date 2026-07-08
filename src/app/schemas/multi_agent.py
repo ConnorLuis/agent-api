@@ -186,3 +186,9 @@ class MultiAgentSupervisorDebugResponse(BaseModel):
     artifacts: list[dict[str, Any]]
     memory: dict[str, Any]
     summary: dict[str, Any]
+
+
+class MultiAgentStreamRequest(BaseModel):
+    task: str = Field(..., min_length=1)
+    thread_id: str = Field(default="multi-agent-stream-thread")
+    metadata: dict[str, Any] = Field(default_factory=dict)

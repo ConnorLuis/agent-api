@@ -1,4 +1,5 @@
 from fastapi import APIRouter
+from starlette.responses import StreamingResponse
 
 from src.app.core.request_context import get_trace_id
 from src.app.multi_agent.critic import run_deterministic_critic_agent
@@ -10,6 +11,7 @@ from src.app.multi_agent.state import (
     initialize_multi_agent_state,
     summarize_multi_agent_state,
 )
+from src.app.multi_agent.streaming import stream_deterministic_multi_agent_events
 from src.app.multi_agent.supervisor_graph import run_deterministic_supervisor_graph
 from src.app.multi_agent.tool_agent import run_deterministic_tool_agent
 from src.app.schemas.multi_agent import (
@@ -19,6 +21,7 @@ from src.app.schemas.multi_agent import (
     MultiAgentToolDebugRequest, MultiAgentCriticDebugResponse, MultiAgentCriticDebugRequest,
     MultiAgentMemoryDebugResponse, MultiAgentMemoryDebugRequest, MultiAgentReflectionDebugResponse,
     MultiAgentReflectionDebugRequest, MultiAgentSupervisorDebugResponse, MultiAgentSupervisorDebugRequest,
+    MultiAgentStreamRequest,
 )
 
 
@@ -259,4 +262,21 @@ def debug_multi_agent_supervisor(
         artifacts=state["artifacts"],
         memory=state["memory"],
         summary=summarize_multi_agent_state(state),
+    )
+
+
+@router.post("/stream")
+def stream_multi_agent(
+    request: MultiAgentStreamRequest,
+) -> StreamingResponse:
+    trace_id = get_trace_id()
+
+    return StreamingResponse(
+        stream_deterministic_multi_agent_events(
+            task=request.task,
+            thread_id=request.thread_id,
+            trace_id=trace_id,
+            metadata=request.metadata,
+        ),
+        media_type="text/event-stream",
     )
