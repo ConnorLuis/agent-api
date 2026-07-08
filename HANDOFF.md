@@ -13,13 +13,13 @@ Project 2 has officially started and is now the main development line.
 Current `agent-api` status:
 
 ```text
-Day1-Day59 completed.
-Day59 completed: deterministic Supervisor graph on top of Day58 Reflection Agent state flow, with /multi-agent/supervisor-debug.
-Local pytest baseline after Day59: 204 passed, 1 warning.
-Git commit: bce1c89 add deterministic multi agent supervisor graph.
+Day1-Day61 completed.
+Day61 completed: deterministic Multi-Agent eval / trace on top of Day60 Multi-Agent streaming, with /multi-agent/eval-debug.
+Local pytest baseline after Day61: 216 passed, 1 warning.
+Git commit: 6b00a1f add deterministic multi agent eval trace.
 Git push: success.
 GitHub Actions CI: green.
-Next: Day60 Multi-Agent streaming.
+Next: Day62 Multi-Agent docs.
 ```
 
 ## Strategic Project Positioning and Locked Roadmap
@@ -161,10 +161,10 @@ Day59:
   Completed Supervisor graph
 
 Day60:
-  Multi-Agent streaming
+  Completed Multi-Agent streaming
 
 Day61:
-  Multi-Agent eval / trace
+  Completed Multi-Agent eval / trace
 
 Day62:
   Multi-Agent docs
@@ -297,10 +297,12 @@ Future Day planning rules:
 18. Day57 completed deterministic Memory Agent.
 19. Day58 completed deterministic Reflection Agent.
 20. Day59 completed deterministic Supervisor graph.
-21. Keep agent-api focused on Agentic RAG / GraphRAG / Multi-Agent.
-21. Keep agent-api focused on Agentic RAG / GraphRAG / Multi-Agent.
-22. Keep chat-api focused on production LLM Gateway / Chat Backend engineering.
-23. Do not duplicate GraphRAG or Multi-Agent work in chat-api.
+21. Day60 completed deterministic Multi-Agent streaming.
+22. Day61 completed deterministic Multi-Agent eval / trace.
+23. Keep agent-api focused on Agentic RAG / GraphRAG / Multi-Agent.
+23. Keep agent-api focused on Agentic RAG / GraphRAG / Multi-Agent.
+24. Keep chat-api focused on production LLM Gateway / Chat Backend engineering.
+25. Do not duplicate GraphRAG or Multi-Agent work in chat-api.
 ```
 
 
@@ -3207,7 +3209,7 @@ Completed:
 Recommended next milestone:
 
 ```text
-Day55, Day56, and Day57 have now been completed. Day58 completed deterministic Reflection Agent. Day59 completed deterministic Supervisor graph. Day60 should start Multi-Agent streaming.
+Day55, Day56, and Day57 have now been completed. Day58 completed deterministic Reflection Agent. Day59 completed deterministic Supervisor graph. Day60 completed deterministic Multi-Agent streaming. Day61 completed deterministic Multi-Agent eval / trace.
 ```
 
 
@@ -3375,7 +3377,7 @@ Completed:
 Recommended next milestone:
 
 ```text
-Day56 and Day57 have now been completed. Day58 completed deterministic Reflection Agent. Day59 completed deterministic Supervisor graph. Day60 should start Multi-Agent streaming.
+Day56 and Day57 have now been completed. Day58 completed deterministic Reflection Agent. Day59 completed deterministic Supervisor graph. Day60 completed deterministic Multi-Agent streaming. Day61 completed deterministic Multi-Agent eval / trace.
 ```
 
 
@@ -3598,10 +3600,10 @@ Completed:
 Recommended next milestone:
 
 ```text
-Day58 has now been completed. Day59 completed deterministic Supervisor graph. Day60 should start Multi-Agent streaming.
+Day58 has now been completed. Day59 completed deterministic Supervisor graph. Day60 completed deterministic Multi-Agent streaming. Day61 completed deterministic Multi-Agent eval / trace.
 ```
 
-Day57 and Day58 have now been completed. Day59 completed deterministic Supervisor graph. Day60 should start Multi-Agent streaming.
+Day57 and Day58 have now been completed. Day59 completed deterministic Supervisor graph. Day60 completed deterministic Multi-Agent streaming. Day61 completed deterministic Multi-Agent eval / trace.
 
 
 
@@ -3792,10 +3794,10 @@ Day58 has now been completed.
 Recommended next milestone:
 
 ```text
-Day60: Multi-Agent streaming.
+Day61: Multi-Agent eval / trace.
 ```
 
-Day60 should add CI-safe Multi-Agent streaming on top of the Day59 Supervisor graph:
+Day61 should add CI-safe evaluation and trace support on top of the completed Day60 Multi-Agent streaming layer:
 
 ```text
 1. Add Multi-Agent streaming module.
@@ -3803,7 +3805,7 @@ Day60 should add CI-safe Multi-Agent streaming on top of the Day59 Supervisor gr
 3. Preserve planner / researcher / tool / critic / memory / reflection / supervisor visibility.
 4. Add a Multi-Agent streaming endpoint.
 5. Preserve existing role-specific debug endpoints and /multi-agent/supervisor-debug.
-6. Keep streaming CI-safe and LLM-free for the first implementation.
+6. Keep eval / trace CI-safe and LLM-free for the first implementation.
 7. Keep graph_fusion non-default.
 ```
 
@@ -3995,19 +3997,20 @@ Completed:
 Recommended next milestone:
 
 ```text
-Day60: Multi-Agent streaming.
+Day61: Multi-Agent eval / trace.
 ```
 
-Day60 should add Multi-Agent streaming on top of the completed Day59 Supervisor graph:
+Day61 should add Multi-Agent eval / trace on top of the completed Day60 streaming layer:
 
 ```text
-1. Add Multi-Agent streaming module.
-2. Stream deterministic role events for Planner / Researcher / Tool / Critic / Memory / Reflection / Supervisor.
-3. Add a Multi-Agent streaming endpoint.
-4. Keep existing debug endpoints stable.
-5. Preserve /multi-agent/supervisor-debug.
-6. Keep streaming LLM-free for the first implementation.
-7. Keep graph_fusion non-default.
+1. Add Multi-Agent eval / trace module.
+2. Evaluate Supervisor graph output and stream output consistency.
+3. Validate role readiness, event sequence, artifact coverage, and boundary flags.
+4. Add a trace-oriented debug endpoint or report.
+5. Preserve /multi-agent/stream.
+6. Preserve existing debug endpoints and /multi-agent/supervisor-debug.
+7. Keep eval / trace LLM-free for the first implementation.
+8. Keep graph_fusion non-default.
 ```
 
 
@@ -4230,19 +4233,20 @@ Completed:
 Recommended next milestone:
 
 ```text
-Day60: Multi-Agent streaming.
+Day61: Multi-Agent eval / trace.
 ```
 
-Day60 should add CI-safe Multi-Agent streaming on top of the deterministic Supervisor graph:
+Day61 should add CI-safe Multi-Agent eval / trace on top of the completed Day60 streaming layer:
 
 ```text
-1. Add Multi-Agent streaming module.
-2. Stream supervisor orchestration events in deterministic order.
-3. Preserve planner / researcher / tool / critic / memory / reflection / supervisor event visibility.
-4. Add /multi-agent/supervisor-stream or equivalent endpoint.
-5. Keep streaming CI-safe and LLM-free for the first implementation.
+1. Add Multi-Agent eval / trace module.
+2. Evaluate Supervisor graph output and stream output consistency.
+3. Validate role readiness, event sequence, artifact coverage, and boundary flags.
+4. Add a trace-oriented debug endpoint or report.
+5. Preserve /multi-agent/stream.
 6. Preserve existing role-specific debug endpoints and /multi-agent/supervisor-debug.
-7. Keep graph_fusion non-default.
+7. Keep eval / trace CI-safe and LLM-free for the first implementation.
+8. Keep graph_fusion non-default.
 ```
 
 
@@ -11151,12 +11155,75 @@ Day59 completed:
 - [x] Git push: success
 - [x] GitHub Actions CI: green
 
+Day60 completed:
+
+- [x] Day60 Multi-Agent streaming
+- [x] Built CI-safe streaming on top of Day59 Supervisor graph
+- [x] Added `src/app/multi_agent/streaming.py`
+- [x] Added `/multi-agent/stream` endpoint
+- [x] Added `MultiAgentStreamRequest` schema
+- [x] Streamed deterministic `metadata` event
+- [x] Streamed deterministic `graph` event
+- [x] Streamed deterministic `node` events for Planner / Researcher / Tool / Critic / Memory / Reflection
+- [x] Streamed deterministic `edge` events for Planner -> Researcher -> Tool -> Critic -> Memory -> Reflection
+- [x] Streamed deterministic `role` events for Planner / Researcher / Tool / Critic / Memory / Reflection / Supervisor
+- [x] Streamed deterministic `artifact` events
+- [x] Streamed deterministic `final` event
+- [x] Streamed deterministic `done` event
+- [x] Preserved existing role-specific debug endpoints
+- [x] Preserved `/multi-agent/supervisor-debug`
+- [x] Kept streaming CI-safe and LLM-free
+- [x] Kept `graph_fusion` non-default
+- [x] Local `pytest tests/multi_agent -q`: 50 passed, 1 warning
+- [x] Full local `pytest -q`: 210 passed, 1 warning
+- [x] Manual `/multi-agent/stream` validation passed
+- [x] Manual `/multi-agent/supervisor-debug` compatibility validation passed
+- [x] Manual `/multi-agent/reflection-debug` compatibility validation passed
+- [x] Git commit: `2beff30 add deterministic multi agent streaming`
+- [x] Git push: success
+- [x] GitHub Actions CI: green
+
+Day61 completed:
+
+- [x] Day61 Multi-Agent eval / trace
+- [x] Added deterministic Multi-Agent eval / trace support on top of Day60 Multi-Agent streaming
+- [x] Added `src/app/multi_agent/evaluation.py`
+- [x] Added `/multi-agent/eval-debug` endpoint
+- [x] Added `MultiAgentEvalDebugRequest` and `MultiAgentEvalDebugResponse` schemas
+- [x] Validated Supervisor graph output and stream output consistency
+- [x] Validated role readiness consistency
+- [x] Validated deterministic stream event sequence
+- [x] Validated node coverage
+- [x] Validated edge coverage
+- [x] Validated artifact coverage
+- [x] Validated terminal stream events
+- [x] Validated trace identity consistency
+- [x] Validated boundary flags
+- [x] Validated preserved endpoint contracts
+- [x] Generated eval report with `eval_pass=true`
+- [x] Generated trace report with stream event counts and role/artifact summaries
+- [x] Preserved `/multi-agent/stream`
+- [x] Preserved `/multi-agent/supervisor-debug`
+- [x] Preserved existing role-specific debug endpoints
+- [x] Kept eval / trace CI-safe and LLM-free
+- [x] Kept `graph_fusion` non-default
+- [x] Local `pytest tests/multi_agent/test_multi_agent_eval_debug.py -q`: 3 passed, 1 warning
+- [x] Local `pytest tests/multi_agent -q`: 56 passed, 1 warning
+- [x] Full local `pytest -q`: 216 passed, 1 warning
+- [x] Manual `/multi-agent/eval-debug` validation passed
+- [x] Manual `/multi-agent/stream` compatibility validation passed
+- [x] Manual `/multi-agent/supervisor-debug` compatibility validation passed
+- [x] Git commit: `6b00a1f add deterministic multi agent eval trace`
+- [x] Git push: success
+- [x] GitHub Actions CI: green
+
 Next:
 
-- [ ] Day60 Multi-Agent streaming
-- [ ] Build CI-safe streaming on top of Day59 Supervisor graph
-- [ ] Stream deterministic role events for Planner / Researcher / Tool / Critic / Memory / Reflection / Supervisor
-- [ ] Add a Multi-Agent streaming endpoint
-- [ ] Preserve existing role-specific debug endpoints and `/multi-agent/supervisor-debug`
-- [ ] Keep streaming LLM-free for the first implementation
-- [ ] Keep `graph_fusion` non-default
+- [ ] Day62 Multi-Agent docs
+- [ ] Document Multi-Agent architecture from state foundation through eval / trace
+- [ ] Document Planner / Researcher / Tool / Critic / Memory / Reflection / Supervisor responsibilities
+- [ ] Document `/multi-agent/stream` SSE event contract
+- [ ] Document `/multi-agent/eval-debug` eval / trace report contract
+- [ ] Document CI-safe and LLM-free boundaries
+- [ ] Document why `graph_fusion` remains non-default
+
