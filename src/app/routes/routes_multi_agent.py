@@ -1,0 +1,41 @@
+from fastapi import APIRouter
+
+from src.app.core.request_context import get_trace_id
+from src.app.multi_agent.state import (
+    initialize_multi_agent_state,
+    summarize_multi_agent_state,
+)
+from src.app.schemas.multi_agent import (
+    MultiAgentStateDebugRequest,
+    MultiAgentStateDebugResponse,
+)
+
+
+router = APIRouter(prefix="/multi-agent", tags=["multi-agent"])
+
+
+@router.post("/state-debug", response_model=MultiAgentStateDebugResponse)
+def debug_multi_agent_state(
+    request: MultiAgentStateDebugRequest,
+) -> MultiAgentStateDebugResponse:
+    trace_id = get_trace_id()
+
+    state = initialize_multi_agent_state(
+        task=request.task,
+        thread_id=request.thread_id,
+        trace_id=trace_id,
+        metadata=request.metadata,
+    )
+
+    return MultiAgentStateDebugResponse(
+        task=state["task"],
+        thread_id=state["thread_id"],
+        trace_id=state["trace_id"],
+        current_role=state["current_role"],
+        status=state["status"],
+        tasks=state["tasks"],
+        events=state["events"],
+        artifacts=state["artifacts"],
+        memory=state["memory"],
+        summary=summarize_multi_agent_state(state),
+    )
