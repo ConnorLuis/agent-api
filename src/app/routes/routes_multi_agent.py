@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from src.app.core.request_context import get_trace_id
+from src.app.multi_agent.critic import run_deterministic_critic_agent
 from src.app.multi_agent.planner import build_deterministic_plan
 from src.app.multi_agent.researcher import run_deterministic_research
 from src.app.multi_agent.state import (
@@ -12,7 +13,7 @@ from src.app.schemas.multi_agent import (
     MultiAgentStateDebugRequest,
     MultiAgentStateDebugResponse, MultiAgentPlanDebugResponse, MultiAgentPlanDebugRequest,
     MultiAgentResearchDebugResponse, MultiAgentResearchDebugRequest, MultiAgentToolDebugResponse,
-    MultiAgentToolDebugRequest,
+    MultiAgentToolDebugRequest, MultiAgentCriticDebugResponse, MultiAgentCriticDebugRequest,
 )
 
 
@@ -128,6 +129,36 @@ def debug_multi_agent_tool(
         status=state["status"],
         planning_mode=tool["planning_mode"],
         tool=tool,
+        tasks=state["tasks"],
+        events=state["events"],
+        artifacts=state["artifacts"],
+        memory=state["memory"],
+        summary=summarize_multi_agent_state(state),
+    )
+
+
+@router.post("/critic-debug", response_model=MultiAgentCriticDebugResponse)
+def debug_multi_agent_critic(
+    request: MultiAgentCriticDebugRequest,
+) -> MultiAgentCriticDebugResponse:
+    trace_id = get_trace_id()
+
+    state = run_deterministic_critic_agent(
+        task=request.task,
+        thread_id=request.thread_id,
+        trace_id=trace_id,
+        metadata=request.metadata,
+    )
+    critic = state["memory"]["critic"]
+
+    return MultiAgentCriticDebugResponse(
+        task=state["task"],
+        thread_id=state["thread_id"],
+        trace_id=state["trace_id"],
+        current_role=state["current_role"],
+        status=state["status"],
+        planning_mode=critic["planning_mode"],
+        critic=critic,
         tasks=state["tasks"],
         events=state["events"],
         artifacts=state["artifacts"],

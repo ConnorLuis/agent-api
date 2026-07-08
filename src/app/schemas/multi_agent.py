@@ -102,3 +102,24 @@ class MultiAgentToolDebugResponse(BaseModel):
     artifacts: list[dict[str, Any]]
     memory: dict[str, Any]
     summary: dict[str, Any]
+
+
+class MultiAgentCriticDebugRequest(BaseModel):
+    task: str = Field(..., min_length=1)
+    thread_id: str = Field(default="multi-agent-critic-debug-thread")
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class MultiAgentCriticDebugResponse(BaseModel):
+    task: str
+    thread_id: str
+    trace_id: str
+    current_role: MultiAgentRole
+    status: MultiAgentTaskStatus
+    planning_mode: str
+    critic: dict[str, Any]
+    tasks: list[dict[str, Any]]
+    events: list[dict[str, Any]]
+    artifacts: list[dict[str, Any]]
+    memory: dict[str, Any]
+    summary: dict[str, Any]
