@@ -1,13 +1,14 @@
 from fastapi import APIRouter
 
 from src.app.core.request_context import get_trace_id
+from src.app.multi_agent.planner import build_deterministic_plan
 from src.app.multi_agent.state import (
     initialize_multi_agent_state,
     summarize_multi_agent_state,
 )
 from src.app.schemas.multi_agent import (
     MultiAgentStateDebugRequest,
-    MultiAgentStateDebugResponse,
+    MultiAgentStateDebugResponse, MultiAgentPlanDebugResponse, MultiAgentPlanDebugRequest,
 )
 
 
@@ -33,6 +34,36 @@ def debug_multi_agent_state(
         trace_id=state["trace_id"],
         current_role=state["current_role"],
         status=state["status"],
+        tasks=state["tasks"],
+        events=state["events"],
+        artifacts=state["artifacts"],
+        memory=state["memory"],
+        summary=summarize_multi_agent_state(state),
+    )
+
+
+@router.post("/plan-debug", response_model=MultiAgentPlanDebugResponse)
+def debug_multi_agent_plan(
+    request: MultiAgentPlanDebugRequest,
+) -> MultiAgentPlanDebugResponse:
+    trace_id = get_trace_id()
+
+    state = build_deterministic_plan(
+        task=request.task,
+        thread_id=request.thread_id,
+        trace_id=trace_id,
+        metadata=request.metadata,
+    )
+    plan = state["memory"]["planner"]
+
+    return MultiAgentPlanDebugResponse(
+        task=state["task"],
+        thread_id=state["thread_id"],
+        trace_id=state["trace_id"],
+        current_role=state["current_role"],
+        status=state["status"],
+        planning_mode=plan["planning_mode"],
+        plan=plan,
         tasks=state["tasks"],
         events=state["events"],
         artifacts=state["artifacts"],
