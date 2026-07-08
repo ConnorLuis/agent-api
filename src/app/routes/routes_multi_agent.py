@@ -10,6 +10,7 @@ from src.app.multi_agent.state import (
     initialize_multi_agent_state,
     summarize_multi_agent_state,
 )
+from src.app.multi_agent.supervisor_graph import run_deterministic_supervisor_graph
 from src.app.multi_agent.tool_agent import run_deterministic_tool_agent
 from src.app.schemas.multi_agent import (
     MultiAgentStateDebugRequest,
@@ -17,7 +18,7 @@ from src.app.schemas.multi_agent import (
     MultiAgentResearchDebugResponse, MultiAgentResearchDebugRequest, MultiAgentToolDebugResponse,
     MultiAgentToolDebugRequest, MultiAgentCriticDebugResponse, MultiAgentCriticDebugRequest,
     MultiAgentMemoryDebugResponse, MultiAgentMemoryDebugRequest, MultiAgentReflectionDebugResponse,
-    MultiAgentReflectionDebugRequest,
+    MultiAgentReflectionDebugRequest, MultiAgentSupervisorDebugResponse, MultiAgentSupervisorDebugRequest,
 )
 
 
@@ -223,6 +224,36 @@ def debug_multi_agent_reflection(
         status=state["status"],
         planning_mode=reflection["planning_mode"],
         reflection=reflection,
+        tasks=state["tasks"],
+        events=state["events"],
+        artifacts=state["artifacts"],
+        memory=state["memory"],
+        summary=summarize_multi_agent_state(state),
+    )
+
+
+@router.post("/supervisor-debug", response_model=MultiAgentSupervisorDebugResponse)
+def debug_multi_agent_supervisor(
+    request: MultiAgentSupervisorDebugRequest,
+) -> MultiAgentSupervisorDebugResponse:
+    trace_id = get_trace_id()
+
+    state = run_deterministic_supervisor_graph(
+        task=request.task,
+        thread_id=request.thread_id,
+        trace_id=trace_id,
+        metadata=request.metadata,
+    )
+    supervisor = state["memory"]["supervisor"]
+
+    return MultiAgentSupervisorDebugResponse(
+        task=state["task"],
+        thread_id=state["thread_id"],
+        trace_id=state["trace_id"],
+        current_role=state["current_role"],
+        status=state["status"],
+        planning_mode=supervisor["planning_mode"],
+        supervisor=supervisor,
         tasks=state["tasks"],
         events=state["events"],
         artifacts=state["artifacts"],
