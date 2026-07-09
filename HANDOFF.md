@@ -13,14 +13,15 @@ Project 2 has officially started and is now the main development line.
 Current `agent-api` status:
 
 ```text
-Day1-Day66 completed.
-Day64-Day66 completed: final review, README / HANDOFF refactor, project positioning cleanup, resume / interview material cleanup, and final roadmap closure.
-Day63 interview material was prepared locally for personal interview use and intentionally not committed as project source.
-Local pytest baseline inherited from Day62: 220 passed, 1 warning.
-Git commit for last project code/docs milestone: ead5703 add multi agent architecture docs.
+Day1-Day67 completed.
+Day67 completed: MCP Foundation with official MCP Python SDK, standard FastMCP server, real stdio MCP client, MCP tool registry, permission foundation, local marketplace foundation, and three CI-safe core MCP tools.
+Day67 MCP tools: agentic_rag_query, graph_fusion_retrieve, multi_agent_eval_trace.
+Local pytest after Day67: 238 passed, 1 warning.
+Git commit for latest project milestone: b46d60b add mcp foundation.
 Git push: success.
 GitHub Actions CI: green.
-Next: agent-api final review complete; continue interview preparation or return to chat-api production LLM Gateway upgrade.
+Repository decision: Chinese MCP.md is personal interview-prep material and is intentionally not committed as project source.
+Next: Day68 MCP core tools and resources.
 ```
 
 ## Strategic Project Positioning and Locked Roadmap
@@ -33,7 +34,7 @@ The two backend projects must have different resume positions:
 
 ```text
 agent-api:
-  Agent / RAG / GraphRAG / Multi-Agent workflow project.
+  Agent / RAG / GraphRAG / Multi-Agent / MCP workflow project.
 
 chat-api:
   Production-grade LLM Chat Backend / LLM Gateway project.
@@ -43,7 +44,7 @@ They should not compete with each other. They should form a complete capability 
 
 ```text
 chat-api proves production LLM application backend engineering ability.
-agent-api proves complex Agentic RAG and Multi-Agent system ability.
+agent-api proves complex Agentic RAG, GraphRAG, Multi-Agent, and MCP integration ability.
 ```
 
 ### agent-api final positioning
@@ -53,12 +54,14 @@ agent-api proves complex Agentic RAG and Multi-Agent system ability.
 Resume positioning:
 
 ```text
-A FastAPI + LangGraph based Agentic RAG / GraphRAG / Multi-Agent backend system.
+A FastAPI + LangGraph based Agentic RAG / GraphRAG / Multi-Agent / MCP backend system.
 
 The project implements tool calling, Router Agent, Smart Chat, streaming,
 Hybrid Retrieval, real vector database integration, RAG evaluation,
-observability, answer verification, GraphRAG + Neo4j, and a Multi-Agent
-workflow with planner, critic, memory, and reflection components.
+observability, answer verification, GraphRAG + Neo4j, a Multi-Agent
+workflow with planner, critic, memory, and reflection components, and an
+MCP integration foundation with standard MCP server / client, registry,
+permission foundation, marketplace foundation, and CI-safe tool adapters.
 ```
 
 Current status correction:
@@ -175,6 +178,27 @@ Day63:
 
 Day64-Day66:
   Completed final review, README / HANDOFF refactor, resume / interview material cleanup, and roadmap closure
+
+Day67-Day72:
+  MCP Integration Layer
+
+Day67:
+  Completed MCP Foundation with standard FastMCP server, real stdio MCP client, registry, permissions, marketplace foundation, and three CI-safe tools.
+
+Day68:
+  Planned MCP core tools and resources.
+
+Day69:
+  Planned complete MCP client wrapper and external server marketplace.
+
+Day70:
+  Planned advanced MCP permission / security layer.
+
+Day71:
+  Planned broader MCP endpoint coverage.
+
+Day72:
+  Planned main Agent MCP integration with config-controlled fallback.
 ```
 
 If the schedule must be compressed back toward Day60, compress the Multi-Agent stage rather than extending VectorRAG again.
@@ -303,9 +327,11 @@ Future Day planning rules:
 23. Day62 completed Multi-Agent docs.
 24. Keep agent-api focused on Agentic RAG / GraphRAG / Multi-Agent.
 25. Day64-Day66 completed final review and README / HANDOFF cleanup.
-26. Keep agent-api focused on Agentic RAG / GraphRAG / Multi-Agent.
-27. Keep chat-api focused on production LLM Gateway / Chat Backend engineering.
-28. Do not duplicate GraphRAG or Multi-Agent work in chat-api.
+26. Day67 completed MCP Foundation with official MCP SDK, standard MCP server / client, registry, permissions, marketplace foundation, and three CI-safe tools.
+27. Day68-Day72 should complete the MCP Integration Layer before returning to chat-api.
+28. Keep agent-api focused on Agentic RAG / GraphRAG / Multi-Agent / MCP.
+29. Keep chat-api focused on production LLM Gateway / Chat Backend engineering.
+30. Do not duplicate GraphRAG, Multi-Agent, or MCP platform work in chat-api.
 ```
 
 
@@ -4700,6 +4726,222 @@ Final next work:
 1. Use agent-api for Agentic RAG / GraphRAG / Multi-Agent resume and interview preparation.
 2. Review the GraphRAG and Multi-Agent interview talk tracks.
 3. Return to chat-api upgrade as a Production-ready LLM Chat Gateway when ready.
+```
+
+
+## Day67 - MCP Foundation
+
+Day67 starts the MCP Integration Layer after the Day64-Day66 final review and roadmap closure.
+
+Scope:
+
+```text
+Day67 intentionally adds the first real MCP foundation:
+  - official MCP Python SDK dependency
+  - MCP module directory
+  - MCP tool registry
+  - MCP permission foundation
+  - local MCP marketplace foundation
+  - standard FastMCP server
+  - real stdio MCP client
+  - three CI-safe core MCP tools
+  - MCP unit and smoke tests
+```
+
+Day67 does not:
+
+```text
+- replace existing REST endpoints
+- change /rag, /graph, or /multi-agent endpoint behavior
+- enable external MCP servers by default
+- require network access in CI
+- require live Neo4j in CI
+- enable write tools in CI
+- connect MCP tools into the main Agent default path yet
+- make graph_fusion the default retrieval backend
+```
+
+New / modified files:
+
+```text
+requirements.txt
+src/app/mcp_integration/__init__.py
+src/app/mcp_integration/client.py
+src/app/mcp_integration/marketplace.py
+src/app/mcp_integration/permissions.py
+src/app/mcp_integration/registry.py
+src/app/mcp_integration/server.py
+src/app/mcp_integration/tools.py
+tests/mcp/test_mcp_client_smoke.py
+tests/mcp/test_mcp_marketplace.py
+tests/mcp/test_mcp_permissions.py
+tests/mcp/test_mcp_registry.py
+tests/mcp/test_mcp_server_contract.py
+```
+
+New dependency:
+
+```text
+mcp[cli]==1.28.1
+```
+
+Current MCP tools:
+
+```text
+agentic_rag_query:
+  wraps invoke_agentic_rag()
+
+graph_fusion_retrieve:
+  wraps run_graph_vector_fusion_debug()
+
+multi_agent_eval_trace:
+  wraps run_deterministic_multi_agent_eval_trace()
+```
+
+MCP server:
+
+```text
+src/app/mcp_integration/server.py
+FastMCP("agent-api-mcp")
+```
+
+MCP client:
+
+```text
+src/app/mcp_integration/client.py
+ClientSession + StdioServerParameters + stdio_client
+```
+
+Registry foundation:
+
+```text
+MCPToolSpec:
+  name
+  description
+  category
+  risk_level
+  read_only
+  requires_network
+  requires_neo4j
+  default_ci_safe
+  required_scopes
+```
+
+Permission foundation:
+
+```text
+MCPPrincipal
+MCPAuthorizationDecision
+CI_SAFE_MCP_PRINCIPAL
+authorize_mcp_tool()
+```
+
+Default CI-safe principal:
+
+```text
+scopes:
+  mcp:tools:list
+  mcp:rag:read
+  mcp:graph:read
+  mcp:multi_agent:read
+
+allow_external_servers = false
+allow_write_tools = false
+allow_live_neo4j = false
+allow_network = false
+```
+
+Local marketplace foundation:
+
+```text
+server_id = agent-api-local
+command = python
+args = -m src.app.mcp_integration.server
+trust_level = internal
+enabled_by_default = true
+ci_safe = true
+```
+
+Important graph safety behavior:
+
+```text
+graph_fusion_retrieve can receive graph_dry_run=false.
+For the CI-safe principal, live Neo4j access is not allowed.
+The MCP permission layer allows the call but enforces graph_dry_run=true.
+```
+
+Validation:
+
+```text
+pytest tests/mcp -q
+18 passed, 1 warning
+
+pytest tests/mcp tests/multi_agent -q
+78 passed, 1 warning
+
+pytest -q
+238 passed, 1 warning
+```
+
+Safety validation:
+
+```text
+DEFAULT_RETRIEVAL_BACKEND = "hybrid"
+graph_fusion remains non-default.
+No existing REST endpoint behavior was changed.
+External MCP servers are not enabled by default.
+```
+
+Commit:
+
+```text
+b46d60b add mcp foundation
+```
+
+Git push:
+
+```text
+success
+```
+
+GitHub Actions CI:
+
+```text
+green
+```
+
+Day67 checklist:
+
+```text
+✅ Installed and pinned official MCP SDK: mcp[cli]==1.28.1
+✅ Added src/app/mcp_integration module
+✅ Added MCP registry foundation
+✅ Added MCP permission foundation
+✅ Added local MCP marketplace foundation
+✅ Added standard FastMCP server
+✅ Added real stdio MCP client
+✅ Added agentic_rag_query MCP tool
+✅ Added graph_fusion_retrieve MCP tool
+✅ Added multi_agent_eval_trace MCP tool
+✅ Added MCP registry tests
+✅ Added MCP permission tests
+✅ Added MCP marketplace tests
+✅ Added MCP server contract tests
+✅ Added real MCP stdio client smoke tests
+✅ Verified graph_fusion live Neo4j request is forced into CI-safe dry-run
+✅ Verified tests/mcp: 18 passed, 1 warning
+✅ Verified tests/mcp + tests/multi_agent: 78 passed, 1 warning
+✅ Verified full local pytest: 238 passed, 1 warning
+✅ Git commit: b46d60b add mcp foundation
+✅ Git push: success
+✅ GitHub Actions CI: green
+✅ Kept graph_fusion non-default
+```
+
+Next milestone:
+
+```text
+Day68: MCP core tools and resources.
 ```
 
 
@@ -10859,25 +11101,37 @@ It has a typo: `langraph` should be `langgraph`. This does not affect code and d
 
 ## Next Milestones
 
-Final project handoff status:
+Current project handoff status:
 
 ```text
-agent-api final review is complete.
-Use agent-api for Agentic RAG / GraphRAG / Multi-Agent resume and interview preparation.
-Return to chat-api upgrade as a Production-ready LLM Chat Gateway when ready.
+Day67 MCP Foundation is complete.
+agent-api now includes Agentic RAG / GraphRAG / Multi-Agent / MCP foundation capabilities.
+Continue the MCP Integration Layer before returning to chat-api.
 ```
 
 Recommended next work:
 
 ```text
-1. Interview preparation:
-   Agentic RAG / GraphRAG / Multi-Agent project explanation.
+1. Day68 MCP core tools and resources:
+   Expand the current three-tool MCP layer into broader project-facing tools and resources.
 
-2. Resume cleanup:
-   Position agent-api as a complex Agentic RAG / GraphRAG / Multi-Agent backend system.
+2. Day69 MCP client and external marketplace:
+   Add a complete MCP client wrapper, external server catalog, allowlist, capability discovery, and CI-safe disabled-by-default external connections.
 
-3. chat-api upgrade:
-   Build a production-ready LLM Chat Gateway instead of duplicating GraphRAG or Multi-Agent work.
+3. Day70 MCP permission / security:
+   Add advanced tool-level permission, scope checks, risk flags, read/write boundaries, external access policy, and audit trace hardening.
+
+4. Day71 MCP endpoint coverage:
+   Wrap key RAG, GraphRAG, Multi-Agent, and observability endpoints behind MCP tools/resources.
+
+5. Day72 Main Agent MCP integration:
+   Connect MCP tools into the main Agent path with a config-controlled fallback, without breaking existing REST endpoints.
+```
+
+After MCP completion:
+
+```text
+Return to chat-api upgrade as a Production-ready LLM Chat Gateway.
 ```
 
 ## Current Completion Checklist
@@ -11747,9 +12001,36 @@ Day64-Day66 completed:
 - [x] Local pytest baseline inherited from Day62: 220 passed, 1 warning
 - [x] GitHub Actions CI: green
 
+Day67 completed:
+
+- [x] MCP Foundation completed
+- [x] Installed and pinned `mcp[cli]==1.28.1`
+- [x] Added `src/app/mcp_integration/`
+- [x] Added MCP registry foundation
+- [x] Added MCP permission foundation
+- [x] Added local MCP marketplace foundation
+- [x] Added standard FastMCP server
+- [x] Added real stdio MCP client
+- [x] Added `agentic_rag_query` MCP tool
+- [x] Added `graph_fusion_retrieve` MCP tool
+- [x] Added `multi_agent_eval_trace` MCP tool
+- [x] Added MCP registry / permission / marketplace / server contract / client smoke tests
+- [x] Verified `pytest tests/mcp -q`: 18 passed, 1 warning
+- [x] Verified `pytest tests/mcp tests/multi_agent -q`: 78 passed, 1 warning
+- [x] Verified full local `pytest -q`: 238 passed, 1 warning
+- [x] Git commit: `b46d60b add mcp foundation`
+- [x] Git push: success
+- [x] GitHub Actions CI: green
+- [x] Kept `DEFAULT_RETRIEVAL_BACKEND = "hybrid"`
+- [x] Kept `graph_fusion` non-default
+- [x] Kept Chinese MCP interview material local and intentionally not committed
+
 Next:
 
-- [ ] Use agent-api for Agentic RAG / GraphRAG / Multi-Agent resume and interview preparation
-- [ ] Review Agentic RAG / GraphRAG / Multi-Agent talk tracks
-- [ ] Return to chat-api upgrade as a Production-ready LLM Chat Gateway when ready
+- [ ] Day68 MCP core tools and resources
+- [ ] Day69 complete MCP client wrapper and external MCP server marketplace
+- [ ] Day70 advanced MCP permission / security layer
+- [ ] Day71 broader MCP endpoint coverage
+- [ ] Day72 main Agent MCP integration with config-controlled fallback
+- [ ] After MCP completion, return to chat-api production LLM Gateway upgrade
 - [ ] Keep `graph_fusion` non-default unless a later explicit backend-switch task is planned
