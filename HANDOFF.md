@@ -13,17 +13,18 @@ Project 2 has officially started and is now the main development line.
 Current `agent-api` status:
 
 ```text
-Day1-Day68 completed.
+Day1-Day69 completed.
 Day67 completed: MCP Foundation with official MCP Python SDK, standard FastMCP server, real stdio MCP client, MCP tool registry, permission foundation, local marketplace foundation, and three CI-safe core MCP tools.
 Day68 completed: MCP core tools and resources with six MCP tools, six MCP resources, expanded registry / permission scopes, and real stdio MCP client resource reading.
-Day68 MCP tools: agentic_rag_query, graph_fusion_retrieve, multi_agent_eval_trace, answer_verify, rag_backend_eval, mcp_registry_summary.
-Day68 MCP resources: agent-api://mcp/tool-registry, agent-api://mcp/marketplace, agent-api://graph/schema, agent-api://docs/graphrag, agent-api://docs/multi-agent, agent-api://docs/mcp-plan.
-Local pytest after Day68: 255 passed, 1 warning.
-Git commit for latest project milestone: expand mcp core tools and resources.
-Git push: success.
-GitHub Actions CI: green.
+Day69 completed: MCP client wrapper and marketplace discovery with seven MCP tools, seven MCP resources, external server catalog metadata, manual validation command metadata, and CI-safe discovery reporting.
+Day69 MCP tools: agentic_rag_query, graph_fusion_retrieve, multi_agent_eval_trace, answer_verify, rag_backend_eval, mcp_registry_summary, mcp_marketplace_discovery.
+Day69 MCP resources: agent-api://mcp/tool-registry, agent-api://mcp/marketplace, agent-api://mcp/marketplace-discovery, agent-api://graph/schema, agent-api://docs/graphrag, agent-api://docs/multi-agent, agent-api://docs/mcp-plan.
+Local pytest after Day69: tests/mcp/test_mcp_client_smoke.py = 3 passed, 1 warning; tests/mcp = 56 passed, 1 warning; full pytest = 276 passed, 1 warning.
+Git commit for latest project milestone: pending after Day69 documentation update.
+Git push: pending.
+GitHub Actions CI: pending after push.
 Repository decision: Chinese MCP.md is personal interview-prep material and is intentionally not committed as project source.
-Next: Day69 complete MCP client wrapper and external MCP server marketplace.
+Next: Day70 advanced MCP permission / security layer.
 ```
 
 ## Strategic Project Positioning and Locked Roadmap
@@ -64,7 +65,7 @@ observability, answer verification, GraphRAG + Neo4j, a Multi-Agent
 workflow with planner, critic, memory, and reflection components, and an
 MCP integration layer with standard MCP server / client, registry,
 permission foundation, marketplace foundation, CI-safe tool adapters,
-expanded core tools, MCP resources, and real resource-reading support.
+expanded core tools, MCP resources, real resource-reading support, MCP client wrapper, and CI-safe marketplace discovery support.
 ```
 
 Current status correction:
@@ -192,7 +193,7 @@ Day68:
   Completed MCP core tools and resources with six MCP tools, six MCP resources, expanded registry / permission scopes, and real stdio MCP client resource reading.
 
 Day69:
-  Planned complete MCP client wrapper and external server marketplace.
+  Completed MCP client wrapper, external server marketplace catalog, marketplace discovery tool / resource, and CI-safe validation.
 
 Day70:
   Planned advanced MCP permission / security layer.
@@ -332,7 +333,7 @@ Future Day planning rules:
 25. Day64-Day66 completed final review and README / HANDOFF cleanup.
 26. Day67 completed MCP Foundation with official MCP SDK, standard MCP server / client, registry, permissions, marketplace foundation, and three CI-safe tools.
 27. Day68 completed MCP core tools and resources with six MCP tools, six MCP resources, expanded registry / permission scopes, and real stdio MCP client resource reading.
-28. Day69-Day72 should complete the remaining MCP Integration Layer before returning to chat-api.
+28. Day69 completed MCP client wrapper and marketplace discovery; Day70-Day72 should complete the remaining MCP Integration Layer before returning to chat-api.
 29. Keep agent-api focused on Agentic RAG / GraphRAG / Multi-Agent / MCP.
 30. Keep chat-api focused on production LLM Gateway / Chat Backend engineering.
 31. Do not duplicate GraphRAG, Multi-Agent, or MCP platform work in chat-api.
@@ -351,7 +352,218 @@ Stage 2:
   Add extended backend failure analysis and conservative backend selection-policy evaluation to the backend evaluation report.
 ```
 
-### Day40 First Stage - Extended RAG Evaluation Dataset
+### Day69 - MCP Client Wrapper and Marketplace Discovery
+
+Day69 completes the MCP client wrapper and external MCP server marketplace discovery layer on top of the Day67-Day68 MCP foundation.
+
+Scope:
+
+```text
+Day69 intentionally adds:
+  - complete MCP client wrapper abstraction
+  - marketplace-based local stdio MCP client config
+  - tools/list support
+  - tools/call support
+  - resources/list support
+  - resources/read support
+  - external MCP server catalog entries
+  - external server allowlist / access-decision foundation
+  - CI-safe marketplace discovery report
+  - external server manual validation commands as metadata
+  - mcp_marketplace_discovery MCP tool
+  - agent-api://mcp/marketplace-discovery MCP resource
+  - CI-safe tests for client wrapper and marketplace discovery behavior
+```
+
+Day69 does not:
+
+```text
+- replace existing REST endpoints
+- change /rag, /graph, /multi-agent, or /observability endpoint behavior
+- launch external MCP servers in CI
+- require npx, network access, or external MCP packages in CI
+- enable external MCP servers by default
+- enable destructive or write tools
+- connect MCP tools into the main Agent default path yet
+- make graph_fusion the default retrieval backend
+- change DEFAULT_RETRIEVAL_BACKEND from hybrid
+```
+
+New / modified files:
+
+```text
+src/app/mcp_integration/client.py
+src/app/mcp_integration/discovery.py
+src/app/mcp_integration/marketplace.py
+src/app/mcp_integration/permissions.py
+src/app/mcp_integration/registry.py
+src/app/mcp_integration/resources.py
+src/app/mcp_integration/server.py
+src/app/mcp_integration/tools.py
+tests/mcp/test_mcp_client_smoke.py
+tests/mcp/test_mcp_client_wrapper.py
+tests/mcp/test_mcp_client_resources.py
+tests/mcp/test_mcp_marketplace.py
+tests/mcp/test_mcp_marketplace_discovery.py
+tests/mcp/test_mcp_registry.py
+```
+
+Current MCP tools after Day69:
+
+```text
+agentic_rag_query
+graph_fusion_retrieve
+multi_agent_eval_trace
+answer_verify
+rag_backend_eval
+mcp_registry_summary
+mcp_marketplace_discovery
+```
+
+Current MCP resources after Day69:
+
+```text
+agent-api://mcp/tool-registry
+agent-api://mcp/marketplace
+agent-api://mcp/marketplace-discovery
+agent-api://graph/schema
+agent-api://docs/graphrag
+agent-api://docs/multi-agent
+agent-api://docs/mcp-plan
+```
+
+Day69 MCP client wrapper capabilities:
+
+```text
+MCPClientWrapper
+build_mcp_client_config_from_marketplace()
+list_tools()
+call_tool()
+list_resources()
+read_resource()
+extract_json_content()
+extract_resource_text()
+extract_resource_json()
+```
+
+Marketplace discovery report:
+
+```text
+report_name = agent-api MCP marketplace discovery report
+report_version = day69_marketplace_discovery_v1
+server_count = 3
+enabled_by_default = agent-api-local
+ci_safe_servers = agent-api-local
+external_server_ids = external-filesystem-stdio, external-memory-stdio
+external_servers_enabled_by_default = []
+manual_validation_command_count = 2
+external_servers_executed_in_ci = false
+network_required_in_ci = false
+live_neo4j_required_in_ci = false
+write_tools_enabled_in_ci = false
+```
+
+External server policy:
+
+```text
+The internal agent-api-local server is the only CI-safe enabled-by-default server.
+External filesystem and memory stdio servers are cataloged for future marketplace integration.
+External validation commands are exposed as manual-only metadata.
+External servers are not launched by CI or pytest.
+```
+
+Validation:
+
+```text
+pytest tests/mcp/test_mcp_client_smoke.py -q
+3 passed, 1 warning
+
+pytest tests/mcp -q
+56 passed, 1 warning
+
+pytest -q
+276 passed, 1 warning
+```
+
+Safety validation:
+
+```text
+DEFAULT_RETRIEVAL_BACKEND = "hybrid"
+graph_fusion remains non-default.
+No existing REST endpoint behavior was changed.
+External MCP servers are not enabled by default.
+External MCP servers are not launched in CI.
+```
+
+Commit:
+
+```text
+pending after Day69 documentation update
+```
+
+Git push:
+
+```text
+pending
+```
+
+GitHub Actions CI:
+
+```text
+pending after push
+```
+
+Day69 checklist:
+
+```text
+✅ Completed MCP client wrapper abstraction.
+✅ Added marketplace-based client config path.
+✅ Verified real stdio MCP client tools/list behavior.
+✅ Verified real stdio MCP client tools/call behavior.
+✅ Verified real stdio MCP client resources/read behavior.
+✅ Added external MCP server marketplace catalog entries.
+✅ Added marketplace discovery report builder.
+✅ Added `mcp_marketplace_discovery` MCP tool.
+✅ Added `agent-api://mcp/marketplace-discovery` MCP resource.
+✅ Added `mcp:marketplace:read` CI-safe permission scope.
+✅ Exposed manual validation commands for external servers as metadata.
+✅ Kept external servers disabled by default.
+✅ Kept external servers unlaunched in CI.
+✅ Updated MCP smoke test expected tool list to 7 tools.
+✅ Added marketplace discovery tests.
+✅ Verified `pytest tests/mcp/test_mcp_client_smoke.py -q`: 3 passed, 1 warning.
+✅ Verified `pytest tests/mcp -q`: 56 passed, 1 warning.
+✅ Verified full local `pytest -q`: 276 passed, 1 warning.
+✅ Kept `DEFAULT_RETRIEVAL_BACKEND = "hybrid"`.
+✅ Kept `graph_fusion` non-default.
+```
+
+### Next Work
+
+Recommended next milestone:
+
+```text
+Day70: Advanced MCP permission / security layer.
+```
+
+Day70 should build on the Day67-Day69 MCP protocol layer:
+
+```text
+1. Add stricter tool-level permission decisions.
+2. Add scope-based permission test coverage for each MCP tool.
+3. Add explicit read_only / write / external_access risk flags.
+4. Enforce graph_dry_run for live Neo4j-sensitive tools under CI-safe principals.
+5. Block destructive tools by default.
+6. Add audit trace records for MCP authorization decisions.
+7. Add per-tool allowlist behavior.
+8. Keep external server allowlist explicit and disabled by default.
+9. Preserve existing REST endpoint behavior.
+10. Keep graph_fusion non-default.
+```
+
+
+
+## Day40 First Stage - Extended RAG Evaluation Dataset
 
 Day40 first stage expands the backend evaluation dataset without replacing the original default regression dataset.
 
@@ -12275,9 +12487,28 @@ Day68 completed:
 - [x] Kept `DEFAULT_RETRIEVAL_BACKEND = "hybrid"`
 - [x] Kept `graph_fusion` non-default
 
+Day69 completed:
+
+- [x] MCP client wrapper and marketplace discovery completed
+- [x] Expanded MCP registry from 6 tools to 7 tools
+- [x] Added `mcp_marketplace_discovery` MCP tool
+- [x] Added `agent-api://mcp/marketplace-discovery` MCP resource
+- [x] Added marketplace discovery report builder
+- [x] Added external server manual validation command metadata
+- [x] Added `mcp:marketplace:read` permission scope
+- [x] Kept external MCP servers disabled by default
+- [x] Kept external MCP servers unlaunched in CI
+- [x] Verified `pytest tests/mcp/test_mcp_client_smoke.py -q`: 3 passed, 1 warning
+- [x] Verified `pytest tests/mcp -q`: 56 passed, 1 warning
+- [x] Verified full local `pytest -q`: 276 passed, 1 warning
+- [x] Kept `DEFAULT_RETRIEVAL_BACKEND = "hybrid"`
+- [x] Kept `graph_fusion` non-default
+- [ ] Git commit: pending after Day69 documentation update
+- [ ] Git push: pending
+- [ ] GitHub Actions CI: pending after push
+
 Next:
 
-- [ ] Day69 complete MCP client wrapper and external MCP server marketplace
 - [ ] Day70 advanced MCP permission / security layer
 - [ ] Day71 broader MCP endpoint coverage
 - [ ] Day72 main Agent MCP integration with config-controlled fallback

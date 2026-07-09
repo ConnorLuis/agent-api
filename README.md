@@ -2,23 +2,24 @@
 
 `agent-api` is a FastAPI + LangGraph backend project for building an Agent service step by step.
 
-This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent, SQLite-based short-term memory, graph debug output, request tracing, LLM provider abstraction, a real Ollama-backed LLM Tool Calling Agent path, SSE streaming endpoints, a lightweight local RAG search tool, a RAG search-debug endpoint with explainability metadata, a deterministic Router Agent that delegates calculator and RAG routes to the existing Agent graph, a Router Agent SSE streaming endpoint, an initial LLM Router Agent endpoint with mock and Ollama router providers, a Smart Chat endpoint as a future unified Agent entry point preview, a Smart Chat SSE streaming endpoint, route validation metadata for Router and Smart Chat paths, and a RAG chunk pipeline debug endpoint for vector DB preparation, a deterministic RAG vector-search debug endpoint, a hybrid retrieval debug endpoint that combines keyword and vector signals, an Agentic RAG debug graph with query analysis, query rewriting, hybrid retrieval, relevance grading, citation-aware answers, an Agentic RAG SSE streaming endpoint, an Agentic RAG answer verification debug endpoint, a SQLite-backed vector store debug layer for real vector database preparation, an EmbeddingProvider abstraction layer with an embedding debug endpoint, a Chroma-backed persistent vector store debug endpoint, an Agentic RAG retrieval backend switch that supports both hybrid and Chroma backends, and a backend-aware RAG evaluation comparison layer for hybrid-vs-Chroma metrics, refined backend comparison metrics, backend-aware Agentic RAG SSE streaming alignment, a reranker-ready retrieval backend extension with `chroma_rerank`, pairwise backend metric deltas for multi-backend comparison, a multi-backend-aware comparison summary, local semantic embedding provider validation with a CI-safe fallback, and a backend evaluation report layer that converts raw backend metrics into engineering selection guidance, with observability trace payload alignment for that report, an extended RAG evaluation dataset for less tiny backend comparison signals, Day40 failure-analysis plus selection-policy evaluation for conservative backend decisions, and Day41 semantic embedding evaluation plus failure-case review for backend switch readiness, Day42 GraphRAG + Neo4j schema/health-debug foundation, Day43 deterministic Entity / Relation extraction with `/graph/extract-debug`, Day44 Neo4j graph ingestion with `/graph/ingest-debug`, Day45 Neo4j graph retrieval with `/graph/retrieval-debug`, Day46 GraphRAG + VectorRAG fusion with `/graph/fusion-debug`, Day47 Agentic RAG connection to GraphRAG through `retrieval_backend="graph_fusion"` on `/rag/agentic-debug`, Day48 GraphRAG evaluation support for `graph_fusion` across `/rag/eval-debug` and `/rag/backend-eval-debug`, Day49 GraphRAG-aware observability / answer verification hardening for `graph_fusion`, Day50 GraphRAG architecture documentation through `docs/GRAPHRAG.md`, Day51 GraphRAG interview material prepared locally through Chinese talk track and Q&A notes, Day52 Multi-Agent state foundation through `/multi-agent/state-debug`, Day53 deterministic Planner Agent through `/multi-agent/plan-debug`, Day54 deterministic Research Agent through `/multi-agent/research-debug`, Day55 deterministic Tool Agent through `/multi-agent/tool-debug`, Day56 deterministic Critic Agent through `/multi-agent/critic-debug`, Day57 deterministic Memory Agent through `/multi-agent/memory-debug`, Day58 deterministic Reflection Agent through `/multi-agent/reflection-debug`, Day59 deterministic Supervisor graph through `/multi-agent/supervisor-debug`, Day60 deterministic Multi-Agent streaming through `/multi-agent/stream`, Day61 deterministic Multi-Agent eval / trace through `/multi-agent/eval-debug`, Day62 Multi-Agent architecture documentation through `docs/MULTI_AGENT.md`, and Day63 Multi-Agent interview material prepared locally through Chinese talk track and Q&A notes, and Day64-Day66 final README / HANDOFF refactor, project positioning cleanup, resume positioning cleanup, and final roadmap closure, and Day67 MCP Foundation through the official MCP Python SDK with a standard FastMCP server, real stdio MCP client, MCP tool registry, permission foundation, local marketplace foundation, and three CI-safe core MCP tools, and Day68 MCP core tools and resources with six MCP tools, six MCP resources, expanded registry / permission scopes, and real stdio MCP client resource reading.
+This project is the second project in the AI internship preparation roadmap, following the completed `chat-api-v2` project. The current version implements a deterministic Tool Calling Agent, SQLite-based short-term memory, graph debug output, request tracing, LLM provider abstraction, a real Ollama-backed LLM Tool Calling Agent path, SSE streaming endpoints, a lightweight local RAG search tool, a RAG search-debug endpoint with explainability metadata, a deterministic Router Agent that delegates calculator and RAG routes to the existing Agent graph, a Router Agent SSE streaming endpoint, an initial LLM Router Agent endpoint with mock and Ollama router providers, a Smart Chat endpoint as a future unified Agent entry point preview, a Smart Chat SSE streaming endpoint, route validation metadata for Router and Smart Chat paths, and a RAG chunk pipeline debug endpoint for vector DB preparation, a deterministic RAG vector-search debug endpoint, a hybrid retrieval debug endpoint that combines keyword and vector signals, an Agentic RAG debug graph with query analysis, query rewriting, hybrid retrieval, relevance grading, citation-aware answers, an Agentic RAG SSE streaming endpoint, an Agentic RAG answer verification debug endpoint, a SQLite-backed vector store debug layer for real vector database preparation, an EmbeddingProvider abstraction layer with an embedding debug endpoint, a Chroma-backed persistent vector store debug endpoint, an Agentic RAG retrieval backend switch that supports both hybrid and Chroma backends, and a backend-aware RAG evaluation comparison layer for hybrid-vs-Chroma metrics, refined backend comparison metrics, backend-aware Agentic RAG SSE streaming alignment, a reranker-ready retrieval backend extension with `chroma_rerank`, pairwise backend metric deltas for multi-backend comparison, a multi-backend-aware comparison summary, local semantic embedding provider validation with a CI-safe fallback, and a backend evaluation report layer that converts raw backend metrics into engineering selection guidance, with observability trace payload alignment for that report, an extended RAG evaluation dataset for less tiny backend comparison signals, Day40 failure-analysis plus selection-policy evaluation for conservative backend decisions, and Day41 semantic embedding evaluation plus failure-case review for backend switch readiness, Day42 GraphRAG + Neo4j schema/health-debug foundation, Day43 deterministic Entity / Relation extraction with `/graph/extract-debug`, Day44 Neo4j graph ingestion with `/graph/ingest-debug`, Day45 Neo4j graph retrieval with `/graph/retrieval-debug`, Day46 GraphRAG + VectorRAG fusion with `/graph/fusion-debug`, Day47 Agentic RAG connection to GraphRAG through `retrieval_backend="graph_fusion"` on `/rag/agentic-debug`, Day48 GraphRAG evaluation support for `graph_fusion` across `/rag/eval-debug` and `/rag/backend-eval-debug`, Day49 GraphRAG-aware observability / answer verification hardening for `graph_fusion`, Day50 GraphRAG architecture documentation through `docs/GRAPHRAG.md`, Day51 GraphRAG interview material prepared locally through Chinese talk track and Q&A notes, Day52 Multi-Agent state foundation through `/multi-agent/state-debug`, Day53 deterministic Planner Agent through `/multi-agent/plan-debug`, Day54 deterministic Research Agent through `/multi-agent/research-debug`, Day55 deterministic Tool Agent through `/multi-agent/tool-debug`, Day56 deterministic Critic Agent through `/multi-agent/critic-debug`, Day57 deterministic Memory Agent through `/multi-agent/memory-debug`, Day58 deterministic Reflection Agent through `/multi-agent/reflection-debug`, Day59 deterministic Supervisor graph through `/multi-agent/supervisor-debug`, Day60 deterministic Multi-Agent streaming through `/multi-agent/stream`, Day61 deterministic Multi-Agent eval / trace through `/multi-agent/eval-debug`, Day62 Multi-Agent architecture documentation through `docs/MULTI_AGENT.md`, and Day63 Multi-Agent interview material prepared locally through Chinese talk track and Q&A notes, and Day64-Day66 final README / HANDOFF refactor, project positioning cleanup, resume positioning cleanup, and final roadmap closure, and Day67 MCP Foundation through the official MCP Python SDK with a standard FastMCP server, real stdio MCP client, MCP tool registry, permission foundation, local marketplace foundation, and three CI-safe core MCP tools, and Day68 MCP core tools and resources with six MCP tools, six MCP resources, expanded registry / permission scopes, and real stdio MCP client resource reading, and Day69 MCP client wrapper / marketplace discovery with seven MCP tools, seven MCP resources, external server catalog metadata, and CI-safe marketplace discovery.
 
 ## Current Status
 
 ```text
-Day1-Day68 completed.
+Day1-Day69 completed.
 Current stage: MCP Integration Layer in progress.
 Day67 completed: MCP Foundation with official MCP Python SDK, standard FastMCP server, real stdio MCP client, MCP tool registry, permission foundation, local marketplace foundation, and three CI-safe core MCP tools.
 Day68 completed: MCP core tools and resources with six MCP tools, six MCP resources, expanded registry / permission scopes, and real stdio MCP client resource reading.
-Day68 MCP tools: agentic_rag_query, graph_fusion_retrieve, multi_agent_eval_trace, answer_verify, rag_backend_eval, mcp_registry_summary.
-Day68 MCP resources: agent-api://mcp/tool-registry, agent-api://mcp/marketplace, agent-api://graph/schema, agent-api://docs/graphrag, agent-api://docs/multi-agent, agent-api://docs/mcp-plan.
-Local pytest after Day68: 255 passed, 1 warning.
-Git commit for latest project milestone: expand mcp core tools and resources.
-Git push: success.
-GitHub Actions CI: green.
+Day69 completed: MCP client wrapper and marketplace discovery with seven MCP tools, seven MCP resources, external server catalog metadata, manual validation command metadata, and CI-safe discovery reporting.
+Day69 MCP tools: agentic_rag_query, graph_fusion_retrieve, multi_agent_eval_trace, answer_verify, rag_backend_eval, mcp_registry_summary, mcp_marketplace_discovery.
+Day69 MCP resources: agent-api://mcp/tool-registry, agent-api://mcp/marketplace, agent-api://mcp/marketplace-discovery, agent-api://graph/schema, agent-api://docs/graphrag, agent-api://docs/multi-agent, agent-api://docs/mcp-plan.
+Local pytest after Day69: tests/mcp/test_mcp_client_smoke.py = 3 passed, 1 warning; tests/mcp = 56 passed, 1 warning; full pytest = 276 passed, 1 warning.
+Git commit for latest project milestone: pending after Day69 documentation update.
+Git push: pending.
+GitHub Actions CI: pending after push.
 Repository decision: Chinese MCP.md is personal interview-prep material and is intentionally not committed as project source.
-Next milestone: Day69 complete MCP client wrapper and external MCP server marketplace.
+Next milestone: Day70 advanced MCP permission / security layer.
 ```
 
 
@@ -1802,6 +1803,156 @@ Next milestone:
 Day69: Complete MCP client wrapper and external MCP server marketplace.
 ```
 
+## Day69 MCP Client Wrapper and Marketplace Discovery
+
+Day69 completes the MCP client wrapper and external MCP server marketplace discovery layer on top of the Day67-Day68 MCP foundation.
+
+Scope:
+
+```text
+Day69 intentionally adds:
+  - a complete MCP client wrapper abstraction around the official MCP stdio client path
+  - marketplace-based client config for the internal agent-api-local server
+  - tools/list, tools/call, resources/list, and resources/read support through the wrapper
+  - external MCP server catalog entries
+  - CI-safe external server governance metadata
+  - external server manual validation command exposure
+  - marketplace discovery report builder
+  - mcp_marketplace_discovery MCP tool
+  - agent-api://mcp/marketplace-discovery MCP resource
+  - tests for marketplace discovery, client wrapper behavior, tool listing, tool calling, and resource reading
+```
+
+Day69 does not:
+
+```text
+- replace existing REST endpoints
+- change /rag, /graph, /multi-agent, or /observability endpoint behavior
+- launch external MCP servers in CI
+- require npx, network access, or external MCP packages in CI
+- enable external MCP servers by default
+- enable destructive or write tools
+- connect MCP tools into the main Agent default path yet
+- make graph_fusion the default retrieval backend
+- change DEFAULT_RETRIEVAL_BACKEND from hybrid
+```
+
+New / modified MCP files:
+
+```text
+src/app/mcp_integration/client.py
+src/app/mcp_integration/discovery.py
+src/app/mcp_integration/marketplace.py
+src/app/mcp_integration/permissions.py
+src/app/mcp_integration/registry.py
+src/app/mcp_integration/resources.py
+src/app/mcp_integration/server.py
+src/app/mcp_integration/tools.py
+tests/mcp/test_mcp_client_smoke.py
+tests/mcp/test_mcp_client_wrapper.py
+tests/mcp/test_mcp_client_resources.py
+tests/mcp/test_mcp_marketplace.py
+tests/mcp/test_mcp_marketplace_discovery.py
+tests/mcp/test_mcp_registry.py
+```
+
+Current MCP tools after Day69:
+
+```text
+agentic_rag_query:
+  wraps invoke_agentic_rag()
+
+graph_fusion_retrieve:
+  wraps run_graph_vector_fusion_debug()
+
+multi_agent_eval_trace:
+  wraps run_deterministic_multi_agent_eval_trace()
+
+answer_verify:
+  wraps verify_agentic_rag_answer()
+
+rag_backend_eval:
+  wraps compare_rag_retrieval_backends()
+
+mcp_registry_summary:
+  returns registry, permission, and local marketplace summaries
+
+mcp_marketplace_discovery:
+  returns a CI-safe marketplace discovery report with internal/external server governance metadata
+```
+
+Current MCP resources after Day69:
+
+```text
+agent-api://mcp/tool-registry
+agent-api://mcp/marketplace
+agent-api://mcp/marketplace-discovery
+agent-api://graph/schema
+agent-api://docs/graphrag
+agent-api://docs/multi-agent
+agent-api://docs/mcp-plan
+```
+
+Marketplace discovery report:
+
+```text
+report_version = day69_marketplace_discovery_v1
+server_count = 3
+enabled_by_default = agent-api-local
+ci_safe_servers = agent-api-local
+external_server_ids = external-filesystem-stdio, external-memory-stdio
+external_servers_enabled_by_default = []
+manual_validation_command_count = 2
+external_servers_executed_in_ci = false
+network_required_in_ci = false
+```
+
+Important external server policy:
+
+```text
+External servers are cataloged but disabled by default.
+External validation commands are exposed as manual-only metadata.
+CI only exercises the internal agent-api-local MCP server.
+No external server is launched by pytest.
+```
+
+Validation:
+
+```text
+pytest tests/mcp/test_mcp_client_smoke.py -q
+3 passed, 1 warning
+
+pytest tests/mcp -q
+56 passed, 1 warning
+
+pytest -q
+276 passed, 1 warning
+
+Git commit: pending after Day69 documentation update
+Git push: pending
+GitHub Actions CI: pending after push
+```
+
+Important Day69 boundary:
+
+```text
+Day69 keeps MCP as an additive protocol integration layer.
+It completes the local MCP client wrapper and marketplace discovery boundary.
+It preserves existing project behavior.
+It keeps graph_fusion non-default.
+It keeps DEFAULT_RETRIEVAL_BACKEND = hybrid.
+Advanced MCP permission / security hardening remains planned for Day70.
+Broader MCP endpoint coverage remains planned for Day71.
+Main Agent MCP integration remains planned for Day72.
+```
+
+Next milestone:
+
+```text
+Day70: Advanced MCP permission / security layer.
+```
+
+
 ## Project Positioning
 
 This project is intentionally positioned differently from `chat-api`.
@@ -1925,7 +2076,7 @@ Day68:
   Completed MCP core tools and resources with six MCP tools, six MCP resources, expanded registry / permission scopes, and real stdio MCP client resource reading.
 
 Day69:
-  Planned complete MCP client wrapper and external server marketplace.
+  Completed MCP client wrapper, external server marketplace catalog, marketplace discovery tool / resource, and CI-safe validation.
 
 Day70:
   Planned advanced MCP permission / security layer.
@@ -1949,7 +2100,7 @@ Day47 completed Agentic RAG connection to GraphRAG through an explicit graph_fus
 Day48 completed GraphRAG evaluation for the explicit graph_fusion backend without making it the default.
 Day49 completed observability / answer verification hardening for GraphRAG.
 Day50 completed GraphRAG architecture documentation.
-Day51 completed GraphRAG interview material. Day52 completed Multi-Agent state foundation. Day53 completed deterministic Planner Agent. Day54 completed deterministic Research Agent. Day55 completed deterministic Tool Agent. Day56 completed deterministic Critic Agent. Day57 completed deterministic Memory Agent. Day58 completed deterministic Reflection Agent. Day59 completed deterministic Supervisor graph. Day60 completed deterministic Multi-Agent streaming. Day61 completed deterministic Multi-Agent eval / trace. Day62 completed Multi-Agent docs. Day63 completed Multi-Agent interview material prepared locally. Day64-Day66 completed final review and README / HANDOFF cleanup. Day67 completed MCP Foundation. Day68 completed MCP core tools and resources.
+Day51 completed GraphRAG interview material. Day52 completed Multi-Agent state foundation. Day53 completed deterministic Planner Agent. Day54 completed deterministic Research Agent. Day55 completed deterministic Tool Agent. Day56 completed deterministic Critic Agent. Day57 completed deterministic Memory Agent. Day58 completed deterministic Reflection Agent. Day59 completed deterministic Supervisor graph. Day60 completed deterministic Multi-Agent streaming. Day61 completed deterministic Multi-Agent eval / trace. Day62 completed Multi-Agent docs. Day63 completed Multi-Agent interview material prepared locally. Day64-Day66 completed final review and README / HANDOFF cleanup. Day67 completed MCP Foundation. Day68 completed MCP core tools and resources. Day69 completed MCP client wrapper and marketplace discovery.
 Do not continue VectorRAG production selection-policy polishing before GraphRAG.
 ```
 
@@ -1959,13 +2110,14 @@ Current features:
 
 * Standard MCP integration foundation through the official MCP Python SDK
 * `src/app/mcp_integration/server.py` FastMCP server named `agent-api-mcp`
-* `src/app/mcp_integration/client.py` real stdio MCP client using `ClientSession`, `StdioServerParameters`, `stdio_client`, tools/call, resources/list, and resources/read
+* `src/app/mcp_integration/client.py` real stdio MCP client using `ClientSession`, `StdioServerParameters`, `stdio_client`, tools/list, tools/call, resources/list, and resources/read
 * MCP tool registry with tool metadata, risk level, CI-safety, Neo4j boundary, and required scopes
 * MCP permission foundation with `MCPPrincipal`, `MCPAuthorizationDecision`, and CI-safe dry-run enforcement
-* Local MCP marketplace foundation with an internal `agent-api-local` server catalog entry
-* MCP tools: `agentic_rag_query`, `graph_fusion_retrieve`, `multi_agent_eval_trace`, `answer_verify`, `rag_backend_eval`, and `mcp_registry_summary`
-* MCP resources: `agent-api://mcp/tool-registry`, `agent-api://mcp/marketplace`, `agent-api://graph/schema`, `agent-api://docs/graphrag`, `agent-api://docs/multi-agent`, and `agent-api://docs/mcp-plan`
+* Local MCP marketplace foundation with an internal `agent-api-local` server catalog entry and external manual-only catalog entries
+* MCP tools: `agentic_rag_query`, `graph_fusion_retrieve`, `multi_agent_eval_trace`, `answer_verify`, `rag_backend_eval`, `mcp_registry_summary`, and `mcp_marketplace_discovery`
+* MCP resources: `agent-api://mcp/tool-registry`, `agent-api://mcp/marketplace`, `agent-api://mcp/marketplace-discovery`, `agent-api://graph/schema`, `agent-api://docs/graphrag`, `agent-api://docs/multi-agent`, and `agent-api://docs/mcp-plan`
 * MCP client resource helpers: `list_mcp_resources()`, `read_mcp_resource()`, `extract_resource_text()`, and `extract_resource_json()`
+* MCP marketplace discovery report with CI-safe governance metadata and manual external server validation command previews
 * MCP tests under `tests/mcp/`
 * FastAPI backend service
 * `/health` health check endpoint
@@ -7595,11 +7747,10 @@ pytest -q
 Current CI status:
 
 ```text
-Day64-Day66 made documentation-only README / HANDOFF cleanup changes.
-No runtime code changed after Day62.
-Local pytest baseline inherited from Day62: 220 passed, 1 warning.
-Last project code/docs milestone commit: ead5703 add multi agent architecture docs.
-GitHub Actions CI: green.
+Day69 MCP client wrapper and marketplace discovery code passed local validation.
+Local pytest after Day69: tests/mcp/test_mcp_client_smoke.py = 3 passed, 1 warning; tests/mcp = 56 passed, 1 warning; full pytest = 276 passed, 1 warning.
+Git commit for Day69: pending after README / HANDOFF / DAY69 documentation update.
+GitHub Actions CI: pending after push.
 ```
 
 ## Runtime Data
@@ -7666,35 +7817,45 @@ mv /tmp/agent_basics.md knowledge/agent_basics.md
 ## Current Milestone Summary
 
 ```text
-Day68 completed:
-- MCP core tools and resources completed
-- Expanded MCP registry from 3 tools to 6 tools
-- Added Day68 MCP tools: answer_verify, rag_backend_eval, mcp_registry_summary
-- Kept Day67 MCP tools: agentic_rag_query, graph_fusion_retrieve, multi_agent_eval_trace
-- Added MCP resources through FastMCP resource decorators
-- Added six MCP resources:
+Day69 completed:
+- MCP client wrapper and marketplace discovery completed
+- Expanded MCP registry from 6 tools to 7 tools
+- Preserved Day67-Day68 MCP tools:
+  - agentic_rag_query
+  - graph_fusion_retrieve
+  - multi_agent_eval_trace
+  - answer_verify
+  - rag_backend_eval
+  - mcp_registry_summary
+- Added Day69 MCP tool:
+  - mcp_marketplace_discovery
+- Expanded MCP resources from 6 resources to 7 resources
+- Preserved Day68 MCP resources:
   - agent-api://mcp/tool-registry
   - agent-api://mcp/marketplace
   - agent-api://graph/schema
   - agent-api://docs/graphrag
   - agent-api://docs/multi-agent
   - agent-api://docs/mcp-plan
-- Expanded MCP permission scopes:
-  - mcp:verification:read
-  - mcp:evaluation:read
-  - mcp:system:read
-  - mcp:resources:read
-- Added real stdio MCP client resource reading helpers
-- Added resource extraction helpers: extract_resource_text and extract_resource_json
-- Added resources.py for MCP resource payloads and documentation-backed resources
-- Added MCP core tools tests
-- Added MCP resource tests
-- Added MCP real client resource tests
-- Verified pytest tests/mcp -q: 35 passed, 1 warning
-- Verified full local pytest -q: 255 passed, 1 warning
-- Git commit: expand mcp core tools and resources
-- Git push: success
-- GitHub Actions CI: green
+- Added Day69 MCP resource:
+  - agent-api://mcp/marketplace-discovery
+- Added marketplace discovery report:
+  - report_version = day69_marketplace_discovery_v1
+  - server_count = 3
+  - enabled_by_default = agent-api-local
+  - external_server_ids = external-filesystem-stdio, external-memory-stdio
+  - external_servers_enabled_by_default = []
+  - manual_validation_command_count = 2
+- Added external server manual validation command previews without executing them in CI
+- Added mcp:marketplace:read permission scope
+- Added marketplace discovery tests
+- Updated MCP smoke test expected tool list to 7 tools
+- Verified pytest tests/mcp/test_mcp_client_smoke.py -q: 3 passed, 1 warning
+- Verified pytest tests/mcp -q: 56 passed, 1 warning
+- Verified full local pytest -q: 276 passed, 1 warning
+- Git commit: pending after Day69 documentation update
+- Git push: pending
+- GitHub Actions CI: pending after push
 - graph_fusion remains non-default
 - DEFAULT_RETRIEVAL_BACKEND remains hybrid
 ```
@@ -7702,9 +7863,8 @@ Day68 completed:
 Current repository decision:
 
 ```text
-MCP Foundation code, Day68 MCP core tools, MCP resources, and MCP tests are committed as project source.
+MCP Foundation code, Day68 MCP core tools/resources, Day69 MCP client wrapper, marketplace discovery code, MCP tests, and docs/DAY69.md are project source.
 Chinese MCP.md is personal interview-prep material and is intentionally not committed.
-docs/DAY68.md can be committed as the official project milestone summary.
 ```
 
 Current positioning:
@@ -7720,8 +7880,8 @@ chat-api:
 Next:
 
 ```text
-Continue Day69-Day72 MCP Integration Layer.
-Next milestone: Day69 complete MCP client wrapper and external MCP server marketplace.
+Continue Day70-Day72 MCP Integration Layer.
+Next milestone: Day70 advanced MCP permission / security layer.
 After MCP is complete, return to chat-api production LLM Gateway upgrade.
 ```
 
@@ -7729,7 +7889,6 @@ After MCP is complete, return to chat-api production LLM Gateway upgrade.
 
 Next milestones:
 
-* Day69: Complete MCP client wrapper and external MCP server marketplace
 * Day70: Advanced MCP permission / security layer
 * Day71: Broader MCP endpoint coverage
 * Day72: Main Agent MCP integration with config-controlled fallback
