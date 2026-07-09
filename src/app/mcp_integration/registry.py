@@ -126,6 +126,19 @@ CORE_MCP_TOOL_SPECS: tuple[MCPToolSpec, ...] = (
         default_ci_safe=True,
         required_scopes=("mcp:marketplace:read",),
     ),
+    MCPToolSpec(
+        name="mcp_security_report",
+        description=(
+            "Return a CI-safe MCP permission and security report with tool, server, dry-run, and audit metadata."
+        ),
+        category="system",
+        risk_level="low",
+        read_only=True,
+        requires_network=False,
+        requires_neo4j=False,
+        default_ci_safe=True,
+        required_scopes=("mcp:security:read",),
+    ),
 )
 
 

@@ -18,6 +18,7 @@ def test_real_mcp_stdio_client_can_list_agent_api_tools():
         "rag_backend_eval",
         "mcp_registry_summary",
         "mcp_marketplace_discovery",
+        "mcp_security_report",
     }
 
 

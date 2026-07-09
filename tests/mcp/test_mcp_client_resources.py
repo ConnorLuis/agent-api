@@ -18,6 +18,7 @@ EXPECTED_DAY68_RESOURCES = {
     "agent-api://docs/multi-agent",
     "agent-api://docs/mcp-plan",
     "agent-api://mcp/marketplace-discovery",
+    "agent-api://mcp/security-report",
 }
 
 
@@ -35,7 +36,7 @@ def test_real_mcp_stdio_client_can_read_tool_registry_resource():
     payload = extract_resource_json(result)
 
     assert payload["resource"] == "agent-api://mcp/tool-registry"
-    assert payload["registry"]["tool_count"] == 7
+    assert payload["registry"]["tool_count"] == 8
     assert "answer_verify" in payload["registry"]["tool_names"]
     assert "rag_backend_eval" in payload["registry"]["tool_names"]
     assert "mcp_registry_summary" in payload["registry"]["tool_names"]
@@ -81,5 +82,5 @@ def test_real_mcp_stdio_client_can_call_day68_registry_summary_tool():
 
     assert payload["tool_name"] == "mcp_registry_summary"
     assert payload["trace_id"] == "test-real-mcp-client-registry-summary"
-    assert payload["summary"]["tool_count"] == 7
+    assert payload["summary"]["tool_count"] == 8
     assert payload["summary"]["external_servers_enabled_by_default"] == []

@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 
 from src.app.mcp_integration.discovery import build_marketplace_discovery_report
+from src.app.mcp_integration.security import build_mcp_security_report
 
 from src.app.evaluation.rag_eval_modules.backend_comparison import compare_rag_retrieval_backends
 from src.app.graph.fusion import run_graph_vector_fusion_debug
@@ -641,6 +642,65 @@ def run_mcp_marketplace_discovery_tool(
             ),
             "external_servers_executed_in_ci": report["safety"][
                 "external_servers_executed_in_ci"
+            ],
+        },
+        "mcp_boundary": _build_mcp_boundary(
+            tool_name=tool_name,
+            ci_safe=True,
+            llm_used=False,
+            graph_fusion_default_changed=DEFAULT_RETRIEVAL_BACKEND != "hybrid",
+        ),
+    }
+
+
+def run_mcp_security_report_tool(
+    *,
+    trace_id: str = "mcp-security-report-trace",
+    principal: MCPPrincipal | None = None,
+) -> dict[str, Any]:
+    tool_name = "mcp_security_report"
+    tool_spec = get_mcp_tool_spec(tool_name)
+    principal = principal or get_ci_safe_mcp_principal()
+
+    decision = authorize_mcp_tool(
+        principal=principal,
+        tool_spec=tool_spec,
+        requested_live_neo4j=False,
+        requested_network=False,
+        requested_write=False,
+    )
+    authorization = serialize_authorization_decision(decision)
+
+    if not decision.allowed:
+        return _build_denied_response(
+            tool_name=tool_name,
+            trace_id=trace_id,
+            authorization=authorization,
+        )
+
+    report = build_mcp_security_report(
+        principal=principal,
+        trace_id=trace_id,
+    )
+
+    return {
+        "tool_name": tool_name,
+        "trace_id": trace_id,
+        "allowed": True,
+        "authorization": authorization,
+        "result": report,
+        "summary": {
+            "status": "completed",
+            "tool_count": report["summary"]["tool_count"],
+            "allowed_tool_count": report["summary"]["allowed_tool_count"],
+            "denied_tool_count": report["summary"]["denied_tool_count"],
+            "allowed_server_ids": report["summary"]["allowed_server_ids"],
+            "denied_server_ids": report["summary"]["denied_server_ids"],
+            "external_servers_executed_in_ci": report["summary"][
+                "external_servers_executed_in_ci"
+            ],
+            "write_tools_enabled_in_ci": report["summary"][
+                "write_tools_enabled_in_ci"
             ],
         },
         "mcp_boundary": _build_mcp_boundary(

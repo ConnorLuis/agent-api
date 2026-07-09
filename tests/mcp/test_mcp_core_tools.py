@@ -80,9 +80,9 @@ def test_mcp_registry_summary_tool_contract():
     assert payload["tool_name"] == "mcp_registry_summary"
     assert payload["trace_id"] == "test-day68-registry-summary-001"
     assert payload["allowed"] is True
-    assert payload["summary"]["tool_count"] == 7
+    assert payload["summary"]["tool_count"] == 8
     assert payload["summary"]["server_count"] == 3
     assert payload["summary"]["external_servers_enabled_by_default"] == []
-    assert payload["result"]["registry"]["tool_count"] == 7
+    assert payload["result"]["registry"]["tool_count"] == 8
     assert payload["result"]["permission_boundary"]["allow_external_servers"] is False
     assert payload["result"]["permission_boundary"]["allow_live_neo4j"] is False

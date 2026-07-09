@@ -10,6 +10,7 @@ from src.app.mcp_integration.resources import (
     get_graphrag_docs_resource,
     get_mcp_marketplace_resource,
     get_mcp_marketplace_discovery_resource,
+    get_mcp_security_report_resource,
     get_mcp_plan_resource,
     get_mcp_tool_registry_resource,
     get_multi_agent_docs_resource,
@@ -21,6 +22,7 @@ from src.app.mcp_integration.tools import (
     run_graph_fusion_retrieve_mcp_tool,
     run_mcp_registry_summary_tool,
     run_mcp_marketplace_discovery_tool,
+    run_mcp_security_report_tool,
     run_multi_agent_eval_trace_mcp_tool,
     run_rag_backend_eval_mcp_tool,
 )
@@ -206,6 +208,15 @@ def mcp_marketplace_discovery(
     return _to_json_text(payload)
 
 
+@mcp.tool()
+def mcp_security_report(
+    trace_id: str = "mcp-security-report-trace",
+) -> str:
+    """Return a CI-safe MCP permission and security report."""
+    payload = run_mcp_security_report_tool(trace_id=trace_id)
+    return _to_json_text(payload)
+
+
 @mcp.resource(
     "agent-api://mcp/tool-registry",
     name="agent_api_mcp_tool_registry",
@@ -234,6 +245,16 @@ def mcp_marketplace_resource() -> str:
 )
 def mcp_marketplace_discovery_resource() -> str:
     return get_mcp_marketplace_discovery_resource()
+
+
+@mcp.resource(
+    "agent-api://mcp/security-report",
+    name="agent_api_mcp_security_report",
+    description="CI-safe MCP permission and security report.",
+    mime_type="application/json",
+)
+def mcp_security_report_resource() -> str:
+    return get_mcp_security_report_resource()
 
 
 @mcp.resource(

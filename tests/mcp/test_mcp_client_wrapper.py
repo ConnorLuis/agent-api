@@ -25,6 +25,7 @@ EXPECTED_DAY69_TOOLS = {
     "rag_backend_eval",
     "mcp_registry_summary",
     "mcp_marketplace_discovery",
+    "mcp_security_report",
 }
 
 EXPECTED_DAY69_RESOURCES = {
@@ -35,6 +36,7 @@ EXPECTED_DAY69_RESOURCES = {
     "agent-api://docs/multi-agent",
     "agent-api://docs/mcp-plan",
     "agent-api://mcp/marketplace-discovery",
+    "agent-api://mcp/security-report",
 }
 
 
@@ -129,7 +131,7 @@ def test_mcp_client_wrapper_can_call_registry_summary_tool():
     payload = extract_json_content(result)
 
     assert payload["tool_name"] == "mcp_registry_summary"
-    assert payload["summary"]["tool_count"] == 7
+    assert payload["summary"]["tool_count"] == 8
     assert payload["summary"]["server_count"] == 3
     assert payload["summary"]["external_servers_enabled_by_default"] == []
 
@@ -164,8 +166,8 @@ def test_mcp_client_wrapper_discovers_capabilities():
     assert capability["server_id"] == "agent-api-local"
     assert capability["transport"] == "stdio"
     assert capability["trust_level"] == "internal"
-    assert capability["tool_count"] == 7
-    assert capability["resource_count"] == 7
+    assert capability["tool_count"] == 8
+    assert capability["resource_count"] == 8
     assert set(capability["tool_names"]) == EXPECTED_DAY69_TOOLS
     assert set(capability["resource_uris"]) == EXPECTED_DAY69_RESOURCES
 
