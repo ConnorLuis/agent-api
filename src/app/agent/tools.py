@@ -1,6 +1,7 @@
 from langchain_core.tools import tool
 
 from src.app.rag.retriever import search_knowledge
+from src.app.agent.mcp_tool_gateway import search_knowledge_base_gateway_text
 
 
 @tool
@@ -16,19 +17,13 @@ def multiply(a: int, b: int) -> int:
 
 @tool
 def search_knowledge_base(query: str, k: int = 3) -> str:
-    """Search the local knowledge base for Agent, LangGraph, and RAG related information."""
-    results = search_knowledge(query=query, k=k)
+    """Search the local knowledge base.
 
-    if not results:
-        return "No relevant documents found."
+    Day72 routes this tool through a config-controlled MCP gateway.
+    By default MCP is disabled and this falls back to the original internal
+    deterministic search path.
+    """
+    return search_knowledge_base_gateway_text(query=query, k=k)
 
-    lines = []
-
-    for index, item in enumerate(results, start=1):
-        lines.append(
-            f"[{index}] source={item.source}, score={item.score}\n{item.content}"
-        )
-
-    return "\n\n".join(lines)
 
 tools = [add, multiply, search_knowledge_base]
