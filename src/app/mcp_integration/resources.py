@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from src.app.graph.schema import get_graph_schema
+from src.app.mcp_integration.discovery import build_marketplace_discovery_report
 from src.app.mcp_integration.marketplace import summarize_marketplace
 from src.app.mcp_integration.registry import summarize_mcp_tool_registry
 
@@ -41,6 +42,16 @@ def get_mcp_marketplace_resource() -> str:
             "resource": "agent-api://mcp/marketplace",
             "description": "Current agent-api local MCP marketplace catalog summary.",
             "marketplace": summarize_marketplace(),
+        }
+    )
+
+
+def get_mcp_marketplace_discovery_resource() -> str:
+    return _json_text(
+        {
+            "resource": "agent-api://mcp/marketplace-discovery",
+            "description": "CI-safe MCP marketplace discovery report.",
+            "discovery_report": build_marketplace_discovery_report(),
         }
     )
 
@@ -98,7 +109,7 @@ Day68 expands MCP core tools and resources.
 ## Future milestones
 
 Day69:
-  Complete MCP client wrapper and external MCP server marketplace.
+  Complete MCP client wrapper, marketplace discovery report, and external server marketplace.
 
 Day70:
   Advanced MCP permission and security layer.

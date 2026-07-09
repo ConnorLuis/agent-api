@@ -13,6 +13,7 @@ EXPECTED_DAY68_TOOL_NAMES = [
     "answer_verify",
     "rag_backend_eval",
     "mcp_registry_summary",
+    "mcp_marketplace_discovery",
 ]
 
 
@@ -60,7 +61,7 @@ def test_mcp_registry_records_day68_verification_and_eval_tools():
 def test_mcp_registry_summary_is_stable():
     summary = summarize_mcp_tool_registry()
 
-    assert summary["tool_count"] == 6
+    assert summary["tool_count"] == 7
     assert summary["tool_names"] == EXPECTED_DAY68_TOOL_NAMES
     assert summary["categories"] == [
         "evaluation",

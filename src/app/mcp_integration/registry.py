@@ -113,6 +113,19 @@ CORE_MCP_TOOL_SPECS: tuple[MCPToolSpec, ...] = (
         default_ci_safe=True,
         required_scopes=("mcp:system:read",),
     ),
+    MCPToolSpec(
+        name="mcp_marketplace_discovery",
+        description=(
+            "Return a CI-safe marketplace discovery report with internal and external MCP server governance metadata."
+        ),
+        category="system",
+        risk_level="low",
+        read_only=True,
+        requires_network=False,
+        requires_neo4j=False,
+        default_ci_safe=True,
+        required_scopes=("mcp:marketplace:read",),
+    ),
 )
 
 

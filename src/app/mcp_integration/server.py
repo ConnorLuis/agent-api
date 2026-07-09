@@ -9,6 +9,7 @@ from src.app.mcp_integration.resources import (
     get_graph_schema_resource,
     get_graphrag_docs_resource,
     get_mcp_marketplace_resource,
+    get_mcp_marketplace_discovery_resource,
     get_mcp_plan_resource,
     get_mcp_tool_registry_resource,
     get_multi_agent_docs_resource,
@@ -19,6 +20,7 @@ from src.app.mcp_integration.tools import (
     run_answer_verify_mcp_tool,
     run_graph_fusion_retrieve_mcp_tool,
     run_mcp_registry_summary_tool,
+    run_mcp_marketplace_discovery_tool,
     run_multi_agent_eval_trace_mcp_tool,
     run_rag_backend_eval_mcp_tool,
 )
@@ -195,6 +197,15 @@ def mcp_registry_summary(
     return _to_json_text(payload)
 
 
+@mcp.tool()
+def mcp_marketplace_discovery(
+    trace_id: str = "mcp-marketplace-discovery-trace",
+) -> str:
+    """Return a CI-safe MCP marketplace discovery report."""
+    payload = run_mcp_marketplace_discovery_tool(trace_id=trace_id)
+    return _to_json_text(payload)
+
+
 @mcp.resource(
     "agent-api://mcp/tool-registry",
     name="agent_api_mcp_tool_registry",
@@ -213,6 +224,16 @@ def mcp_tool_registry_resource() -> str:
 )
 def mcp_marketplace_resource() -> str:
     return get_mcp_marketplace_resource()
+
+
+@mcp.resource(
+    "agent-api://mcp/marketplace-discovery",
+    name="agent_api_mcp_marketplace_discovery",
+    description="CI-safe MCP marketplace discovery report.",
+    mime_type="application/json",
+)
+def mcp_marketplace_discovery_resource() -> str:
+    return get_mcp_marketplace_discovery_resource()
 
 
 @mcp.resource(

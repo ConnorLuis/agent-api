@@ -3,6 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from src.app.mcp_integration.discovery import build_marketplace_discovery_report
+
 from src.app.evaluation.rag_eval_modules.backend_comparison import compare_rag_retrieval_backends
 from src.app.graph.fusion import run_graph_vector_fusion_debug
 from src.app.mcp_integration.marketplace import summarize_marketplace
@@ -590,3 +592,62 @@ def run_mcp_registry_summary_tool(
             graph_fusion_default_changed=DEFAULT_RETRIEVAL_BACKEND != "hybrid",
         ),
     }
+
+
+def run_mcp_marketplace_discovery_tool(
+    *,
+    trace_id: str = "mcp-marketplace-discovery-trace",
+    principal: MCPPrincipal | None = None,
+) -> dict[str, Any]:
+    tool_name = "mcp_marketplace_discovery"
+    tool_spec = get_mcp_tool_spec(tool_name)
+    principal = principal or get_ci_safe_mcp_principal()
+
+    decision = authorize_mcp_tool(
+        principal=principal,
+        tool_spec=tool_spec,
+        requested_live_neo4j=False,
+        requested_network=False,
+        requested_write=False,
+    )
+    authorization = serialize_authorization_decision(decision)
+
+    if not decision.allowed:
+        return _build_denied_response(
+            tool_name=tool_name,
+            trace_id=trace_id,
+            authorization=authorization,
+        )
+
+    report = build_marketplace_discovery_report(principal=principal)
+
+    return {
+        "tool_name": tool_name,
+        "trace_id": trace_id,
+        "allowed": True,
+        "authorization": authorization,
+        "result": report,
+        "summary": {
+            "status": "completed",
+            "server_count": report["summary"]["server_count"],
+            "enabled_by_default": report["summary"]["enabled_by_default"],
+            "ci_safe_servers": report["summary"]["ci_safe_servers"],
+            "external_server_ids": report["summary"]["external_server_ids"],
+            "external_servers_enabled_by_default": report["summary"][
+                "external_servers_enabled_by_default"
+            ],
+            "manual_validation_command_count": len(
+                report["manual_validation_commands"]
+            ),
+            "external_servers_executed_in_ci": report["safety"][
+                "external_servers_executed_in_ci"
+            ],
+        },
+        "mcp_boundary": _build_mcp_boundary(
+            tool_name=tool_name,
+            ci_safe=True,
+            llm_used=False,
+            graph_fusion_default_changed=DEFAULT_RETRIEVAL_BACKEND != "hybrid",
+        ),
+    }
+

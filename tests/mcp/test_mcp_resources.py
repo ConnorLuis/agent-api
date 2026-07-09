@@ -24,7 +24,9 @@ def test_mcp_marketplace_resource_is_json_text():
     payload = json.loads(get_mcp_marketplace_resource())
 
     assert payload["resource"] == "agent-api://mcp/marketplace"
-    assert payload["marketplace"]["server_ids"] == ["agent-api-local"]
+    assert "agent-api-local" in payload["marketplace"]["server_ids"]
+    assert "external-filesystem-stdio" in payload["marketplace"]["server_ids"]
+    assert "external-memory-stdio" in payload["marketplace"]["server_ids"]
     assert payload["marketplace"]["external_servers_enabled_by_default"] == []
 
 

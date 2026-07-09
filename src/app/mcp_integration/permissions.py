@@ -36,6 +36,7 @@ CI_SAFE_MCP_PRINCIPAL = MCPPrincipal(
         "mcp:verification:read",
         "mcp:evaluation:read",
         "mcp:system:read",
+        "mcp:marketplace:read",
         "mcp:resources:read",
     ),
     allow_external_servers=False,
