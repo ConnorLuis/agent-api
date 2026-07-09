@@ -240,6 +240,8 @@ def mcp_endpoint_probe(
     max_chars: int = 300,
     include_related_entities: bool = True,
     dry_run: bool = True,
+    target_trace_id: str | None = None,
+    trace_limit: int = 20,
 ) -> str:
     """Execute a CI-safe endpoint-equivalent probe for selected debug capabilities."""
     payload = run_mcp_endpoint_probe_tool(
@@ -252,6 +254,8 @@ def mcp_endpoint_probe(
         max_chars=max_chars,
         include_related_entities=include_related_entities,
         dry_run=dry_run,
+        target_trace_id=target_trace_id,
+        trace_limit=trace_limit,
     )
     return _to_json_text(payload)
 

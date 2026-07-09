@@ -15,6 +15,8 @@ SUPPORTED_ENDPOINT_PROBE_IDS = (
     "graph_retrieval_debug",
     "multi_agent_supervisor_debug",
     "multi_agent_stream",
+    "observability_traces",
+    "observability_trace_detail",
 )
 
 
@@ -122,6 +124,103 @@ def _summarize_stream_events(events: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def _call_observability_rest_endpoint(
+    *,
+    path: str,
+    trace_id: str,
+) -> dict[str, Any]:
+    from fastapi.testclient import TestClient
+
+    from src.app.main import app
+
+    with TestClient(app) as client:
+        response = client.get(
+            path,
+            headers={"x-trace-id": trace_id},
+        )
+
+    try:
+        body = response.json()
+    except ValueError:
+        body = {"text": response.text}
+
+    return {
+        "status_code": response.status_code,
+        "ok": 200 <= response.status_code < 300,
+        "body": body,
+    }
+
+
+def _extract_trace_items(body: Any) -> list[Any]:
+    if isinstance(body, list):
+        return body
+
+    if not isinstance(body, dict):
+        return []
+
+    for key in ("traces", "items", "events", "results", "data"):
+        value = body.get(key)
+        if isinstance(value, list):
+            return value
+
+    return []
+
+
+def _extract_trace_id_from_item(item: Any) -> str | None:
+    if not isinstance(item, dict):
+        return None
+
+    for key in ("trace_id", "id"):
+        value = item.get(key)
+        if isinstance(value, str) and value:
+            return value
+
+    payload = item.get("payload")
+    if isinstance(payload, dict):
+        value = payload.get("trace_id")
+        if isinstance(value, str) and value:
+            return value
+
+    return None
+
+
+def _summarize_observability_traces(payload: dict[str, Any]) -> dict[str, Any]:
+    body = payload.get("body")
+    trace_items = _extract_trace_items(body)
+
+    return {
+        "status_code": payload.get("status_code"),
+        "ok": payload.get("ok", False),
+        "trace_item_count": len(trace_items),
+        "read_only": True,
+        "live_neo4j_required": False,
+    }
+
+
+def _summarize_observability_trace_detail(payload: dict[str, Any]) -> dict[str, Any]:
+    body = payload.get("body")
+    trace_found = payload.get("ok", False)
+
+    event_count = 0
+    if isinstance(body, dict):
+        events = body.get("events")
+        if isinstance(events, list):
+            event_count = len(events)
+        elif isinstance(body.get("trace"), list):
+            event_count = len(body["trace"])
+    elif isinstance(body, list):
+        event_count = len(body)
+
+    return {
+        "status_code": payload.get("status_code"),
+        "ok": payload.get("ok", False),
+        "trace_found": trace_found,
+        "event_count": event_count,
+        "read_only": True,
+        "live_neo4j_required": False,
+    }
+
+
 def build_mcp_endpoint_probe_report(
     *,
     endpoint_id: str,
@@ -133,6 +232,8 @@ def build_mcp_endpoint_probe_report(
     max_chars: int = 300,
     include_related_entities: bool = True,
     dry_run: bool = True,
+    target_trace_id: str | None = None,
+    trace_limit: int = 20,
 ) -> dict[str, Any]:
     if endpoint_id not in SUPPORTED_ENDPOINT_PROBE_IDS:
         return {
@@ -197,6 +298,36 @@ def build_mcp_endpoint_probe_report(
         result_payload = _jsonable(events)
         summary = _summarize_stream_events(result_payload)
 
+    elif endpoint_id == "observability_traces":
+        result_payload = _call_observability_rest_endpoint(
+            path=f"/observability/traces?limit={trace_limit}",
+            trace_id=trace_id,
+        )
+        summary = _summarize_observability_traces(result_payload)
+
+    elif endpoint_id == "observability_trace_detail":
+        selected_trace_id = target_trace_id
+
+        if not selected_trace_id:
+            list_payload = _call_observability_rest_endpoint(
+                path=f"/observability/traces?limit={trace_limit}",
+                trace_id=trace_id,
+            )
+            trace_items = _extract_trace_items(list_payload.get("body"))
+            for item in trace_items:
+                selected_trace_id = _extract_trace_id_from_item(item)
+                if selected_trace_id:
+                    break
+
+        selected_trace_id = selected_trace_id or trace_id
+
+        result_payload = _call_observability_rest_endpoint(
+            path=f"/observability/traces/{selected_trace_id}",
+            trace_id=trace_id,
+        )
+        result_payload["target_trace_id"] = selected_trace_id
+        summary = _summarize_observability_trace_detail(result_payload)
+
     else:
         raise AssertionError(f"unhandled endpoint probe id: {endpoint_id}")
 
@@ -213,6 +344,8 @@ def build_mcp_endpoint_probe_report(
             "thread_id": thread_id,
             "source_filter": source_filter,
             "dry_run": dry_run,
+            "target_trace_id": target_trace_id,
+            "trace_limit": trace_limit,
         },
         "summary": summary,
         "result": result_payload,

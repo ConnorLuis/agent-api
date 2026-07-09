@@ -71,6 +71,13 @@ def test_endpoint_coverage_report_records_existing_and_planned_mcp_mappings():
         "multi_agent_eval_trace"
     ]
 
+    assert by_id["observability_traces"]["mapped_mcp_tools"] == [
+        "mcp_endpoint_probe"
+    ]
+    assert by_id["observability_trace_detail"]["mapped_mcp_tools"] == [
+        "mcp_endpoint_probe"
+    ]
+
     planned_ids = set(report["summary"]["planned_endpoint_ids"])
     assert {
         "rag_agentic_stream",
@@ -78,8 +85,6 @@ def test_endpoint_coverage_report_records_existing_and_planned_mcp_mappings():
         "graph_retrieval_debug",
         "multi_agent_supervisor_debug",
         "multi_agent_stream",
-        "observability_traces",
-        "observability_trace_detail",
     }.issubset(planned_ids)
 
 

@@ -853,6 +853,8 @@ def run_mcp_endpoint_probe_tool(
     max_chars: int = 300,
     include_related_entities: bool = True,
     dry_run: bool = True,
+    target_trace_id: str | None = None,
+    trace_limit: int = 20,
     principal: MCPPrincipal | None = None,
 ) -> dict[str, Any]:
     tool_name = "mcp_endpoint_probe"
@@ -885,6 +887,8 @@ def run_mcp_endpoint_probe_tool(
         max_chars=max_chars,
         include_related_entities=include_related_entities,
         dry_run=dry_run,
+        target_trace_id=target_trace_id,
+        trace_limit=trace_limit,
     )
 
     return {

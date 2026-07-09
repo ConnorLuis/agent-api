@@ -18,6 +18,8 @@ def test_endpoint_probe_supports_selected_day71_endpoint_ids():
         "graph_retrieval_debug",
         "multi_agent_supervisor_debug",
         "multi_agent_stream",
+        "observability_traces",
+        "observability_trace_detail",
     )
 
 
@@ -100,13 +102,14 @@ def test_multi_agent_stream_endpoint_probe_returns_stream_summary():
 
 def test_unsupported_endpoint_probe_is_denied_without_execution():
     report = build_mcp_endpoint_probe_report(
-        endpoint_id="observability_traces",
+        endpoint_id="unknown_endpoint",
         trace_id="test-day71-unsupported-probe",
     )
 
     assert report["allowed"] is False
     assert report["status"] == "unsupported_endpoint_probe"
     assert "graph_extract_debug" in report["supported_endpoint_ids"]
+    assert "observability_traces" in report["supported_endpoint_ids"]
     assert report["safety"]["ci_safe"] is True
     assert report["safety"]["write_executed"] is False
     assert report["safety"]["live_neo4j_required"] is False
