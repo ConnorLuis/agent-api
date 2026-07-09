@@ -27,6 +27,7 @@ EXPECTED_DAY69_TOOLS = {
     "mcp_marketplace_discovery",
     "mcp_security_report",
     "mcp_endpoint_coverage_report",
+    "mcp_endpoint_probe",
 }
 
 EXPECTED_DAY69_RESOURCES = {
@@ -133,7 +134,7 @@ def test_mcp_client_wrapper_can_call_registry_summary_tool():
     payload = extract_json_content(result)
 
     assert payload["tool_name"] == "mcp_registry_summary"
-    assert payload["summary"]["tool_count"] == 9
+    assert payload["summary"]["tool_count"] == 10
     assert payload["summary"]["server_count"] == 3
     assert payload["summary"]["external_servers_enabled_by_default"] == []
 
@@ -168,7 +169,7 @@ def test_mcp_client_wrapper_discovers_capabilities():
     assert capability["server_id"] == "agent-api-local"
     assert capability["transport"] == "stdio"
     assert capability["trust_level"] == "internal"
-    assert capability["tool_count"] == 9
+    assert capability["tool_count"] == 10
     assert capability["resource_count"] == 9
     assert set(capability["tool_names"]) == EXPECTED_DAY69_TOOLS
     assert set(capability["resource_uris"]) == EXPECTED_DAY69_RESOURCES

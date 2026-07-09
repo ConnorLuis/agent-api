@@ -22,8 +22,8 @@ def test_mcp_security_report_is_ci_safe_and_allows_registered_read_tools():
 
     assert report["report_version"] == "day70_mcp_security_report_v1"
     assert report["policy"]["policy_version"] == "day70_mcp_security_policy_v1"
-    assert report["summary"]["tool_count"] == 9
-    assert report["summary"]["allowed_tool_count"] == 9
+    assert report["summary"]["tool_count"] == 10
+    assert report["summary"]["allowed_tool_count"] == 10
     assert report["summary"]["denied_tool_count"] == 0
     assert report["summary"]["external_servers_executed_in_ci"] is False
     assert report["summary"]["write_tools_enabled_in_ci"] is False
@@ -112,8 +112,8 @@ def test_real_mcp_client_can_call_security_report_tool():
 
     assert payload["tool_name"] == "mcp_security_report"
     assert payload["trace_id"] == "test-day70-security-report-tool"
-    assert payload["summary"]["tool_count"] == 9
-    assert payload["summary"]["allowed_tool_count"] == 9
+    assert payload["summary"]["tool_count"] == 10
+    assert payload["summary"]["allowed_tool_count"] == 10
     assert payload["summary"]["denied_tool_count"] == 0
     assert payload["summary"]["external_servers_executed_in_ci"] is False
     assert payload["summary"]["write_tools_enabled_in_ci"] is False
@@ -135,7 +135,7 @@ def test_real_mcp_client_can_read_security_report_resource():
 
     assert payload["resource"] == "agent-api://mcp/security-report"
     report = payload["security_report"]
-    assert report["summary"]["tool_count"] == 9
-    assert report["summary"]["allowed_tool_count"] == 9
+    assert report["summary"]["tool_count"] == 10
+    assert report["summary"]["allowed_tool_count"] == 10
     assert report["summary"]["external_servers_executed_in_ci"] is False
     assert report["safety"]["audit_trace_enabled"] is True

@@ -25,6 +25,7 @@ from src.app.mcp_integration.tools import (
     run_mcp_marketplace_discovery_tool,
     run_mcp_security_report_tool,
     run_mcp_endpoint_coverage_report_tool,
+    run_mcp_endpoint_probe_tool,
     run_multi_agent_eval_trace_mcp_tool,
     run_rag_backend_eval_mcp_tool,
 )
@@ -225,6 +226,33 @@ def mcp_endpoint_coverage_report(
 ) -> str:
     """Return a CI-safe MCP endpoint coverage report."""
     payload = run_mcp_endpoint_coverage_report_tool(trace_id=trace_id)
+    return _to_json_text(payload)
+
+
+@mcp.tool()
+def mcp_endpoint_probe(
+    endpoint_id: str = "graph_extract_debug",
+    trace_id: str = "mcp-endpoint-probe-trace",
+    query: str = "RAG 和 LangGraph 有什么关系？",
+    task: str = "Implement a CI-safe Agentic RAG feature and validate it.",
+    thread_id: str = "mcp-endpoint-probe-thread",
+    source_filter: str = "agent_basics",
+    max_chars: int = 300,
+    include_related_entities: bool = True,
+    dry_run: bool = True,
+) -> str:
+    """Execute a CI-safe endpoint-equivalent probe for selected debug capabilities."""
+    payload = run_mcp_endpoint_probe_tool(
+        endpoint_id=endpoint_id,
+        trace_id=trace_id,
+        query=query,
+        task=task,
+        thread_id=thread_id,
+        source_filter=source_filter,
+        max_chars=max_chars,
+        include_related_entities=include_related_entities,
+        dry_run=dry_run,
+    )
     return _to_json_text(payload)
 
 

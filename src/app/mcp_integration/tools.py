@@ -10,6 +10,7 @@ from src.app.mcp_integration.security import (
     evaluate_mcp_tool_security,
 )
 from src.app.mcp_integration.endpoint_coverage import build_mcp_endpoint_coverage_report
+from src.app.mcp_integration.endpoint_probe import build_mcp_endpoint_probe_report
 
 from src.app.evaluation.rag_eval_modules.backend_comparison import compare_rag_retrieval_backends
 from src.app.graph.fusion import run_graph_vector_fusion_debug
@@ -827,6 +828,79 @@ def run_mcp_endpoint_coverage_report_tool(
             ],
             "domain_counts": report["summary"]["domain_counts"],
             "ci_safe": report["safety"]["ci_safe"],
+            "rest_endpoint_behavior_changed": report["safety"][
+                "rest_endpoint_behavior_changed"
+            ],
+        },
+        "mcp_boundary": _build_mcp_boundary(
+            tool_name=tool_name,
+            ci_safe=True,
+            llm_used=False,
+            graph_fusion_default_changed=DEFAULT_RETRIEVAL_BACKEND != "hybrid",
+        ),
+    }
+
+
+
+def run_mcp_endpoint_probe_tool(
+    *,
+    endpoint_id: str = "graph_extract_debug",
+    trace_id: str = "mcp-endpoint-probe-trace",
+    query: str = "RAG 和 LangGraph 有什么关系？",
+    task: str = "Implement a CI-safe Agentic RAG feature and validate it.",
+    thread_id: str = "mcp-endpoint-probe-thread",
+    source_filter: str = "agent_basics",
+    max_chars: int = 300,
+    include_related_entities: bool = True,
+    dry_run: bool = True,
+    principal: MCPPrincipal | None = None,
+) -> dict[str, Any]:
+    tool_name = "mcp_endpoint_probe"
+    tool_spec = get_mcp_tool_spec(tool_name)
+    principal = principal or get_ci_safe_mcp_principal()
+
+    decision = authorize_mcp_tool(
+        principal=principal,
+        tool_spec=tool_spec,
+        requested_live_neo4j=False,
+        requested_network=False,
+        requested_write=False,
+    )
+    authorization = serialize_authorization_decision(decision)
+
+    if not decision.allowed:
+        return _build_denied_response(
+            tool_name=tool_name,
+            trace_id=trace_id,
+            authorization=authorization,
+        )
+
+    report = build_mcp_endpoint_probe_report(
+        endpoint_id=endpoint_id,
+        trace_id=trace_id,
+        query=query,
+        task=task,
+        thread_id=thread_id,
+        source_filter=source_filter,
+        max_chars=max_chars,
+        include_related_entities=include_related_entities,
+        dry_run=dry_run,
+    )
+
+    return {
+        "tool_name": tool_name,
+        "trace_id": trace_id,
+        "allowed": report["allowed"],
+        "authorization": authorization,
+        "result": report,
+        "summary": {
+            "status": report["status"],
+            "endpoint_id": report["endpoint_id"],
+            "ci_safe": report["safety"]["ci_safe"],
+            "read_only": report["safety"]["read_only"],
+            "dry_run_enforced": report["safety"]["dry_run_enforced"],
+            "write_executed": report["safety"]["write_executed"],
+            "live_neo4j_required": report["safety"]["live_neo4j_required"],
             "rest_endpoint_behavior_changed": report["safety"][
                 "rest_endpoint_behavior_changed"
             ],

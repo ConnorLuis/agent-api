@@ -152,6 +152,19 @@ CORE_MCP_TOOL_SPECS: tuple[MCPToolSpec, ...] = (
         default_ci_safe=True,
         required_scopes=("mcp:endpoints:read",),
     ),
+    MCPToolSpec(
+        name="mcp_endpoint_probe",
+        description=(
+            "Execute a CI-safe MCP endpoint-equivalent probe for selected RAG, GraphRAG, and Multi-Agent debug capabilities."
+        ),
+        category="system",
+        risk_level="low",
+        read_only=True,
+        requires_network=False,
+        requires_neo4j=False,
+        default_ci_safe=True,
+        required_scopes=("mcp:endpoints:read",),
+    ),
 )
 
 
