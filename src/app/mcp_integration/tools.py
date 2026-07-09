@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+from functools import wraps
 from pathlib import Path
 from typing import Any
 
 from src.app.mcp_integration.discovery import build_marketplace_discovery_report
-from src.app.mcp_integration.security import build_mcp_security_report
+from src.app.mcp_integration.security import (
+    build_mcp_security_report,
+    evaluate_mcp_tool_security,
+)
 
 from src.app.evaluation.rag_eval_modules.backend_comparison import compare_rag_retrieval_backends
 from src.app.graph.fusion import run_graph_vector_fusion_debug
@@ -710,4 +714,71 @@ def run_mcp_security_report_tool(
             graph_fusion_default_changed=DEFAULT_RETRIEVAL_BACKEND != "hybrid",
         ),
     }
+
+
+def _attach_mcp_security_decision(
+    payload: dict[str, Any],
+    *,
+    principal: MCPPrincipal | None = None,
+) -> dict[str, Any]:
+    if not isinstance(payload, dict):
+        return payload
+
+    tool_name = payload.get("tool_name")
+    if not tool_name:
+        return payload
+
+    if "security_decision" in payload and "security_audit_trace" in payload:
+        return payload
+
+    principal = principal or get_ci_safe_mcp_principal()
+    trace_id = payload.get("trace_id", f"{tool_name}-security-trace")
+
+    decision = evaluate_mcp_tool_security(
+        tool_name=tool_name,
+        principal=principal,
+        trace_id=trace_id,
+    )
+
+    audit_trace = decision.get("audit_trace", {})
+    security_decision = {
+        key: value
+        for key, value in decision.items()
+        if key != "audit_trace"
+    }
+
+    payload["security_decision"] = security_decision
+    payload["security_audit_trace"] = audit_trace
+    return payload
+
+
+def _with_mcp_security_response(tool_func):
+    if getattr(tool_func, "_mcp_security_wrapped", False):
+        return tool_func
+
+    @wraps(tool_func)
+    def wrapper(*args, **kwargs):
+        payload = tool_func(*args, **kwargs)
+        principal = kwargs.get("principal")
+        return _attach_mcp_security_decision(
+            payload,
+            principal=principal,
+        )
+
+    wrapper._mcp_security_wrapped = True
+    return wrapper
+
+
+def _install_mcp_security_response_wrappers() -> None:
+    for name, value in list(globals().items()):
+        if not name.startswith("run_") or not name.endswith("_tool"):
+            continue
+        if not callable(value):
+            continue
+        if getattr(value, "__module__", None) != __name__:
+            continue
+        globals()[name] = _with_mcp_security_response(value)
+
+
+_install_mcp_security_response_wrappers()
 
