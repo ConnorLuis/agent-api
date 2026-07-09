@@ -14,3 +14,6 @@ httpx
 typing_extensions
 chromadb
 neo4j
+
+# MCP integration
+mcp[cli]==1.28.1
