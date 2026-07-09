@@ -5,11 +5,22 @@ from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 
+from src.app.mcp_integration.resources import (
+    get_graph_schema_resource,
+    get_graphrag_docs_resource,
+    get_mcp_marketplace_resource,
+    get_mcp_plan_resource,
+    get_mcp_tool_registry_resource,
+    get_multi_agent_docs_resource,
+)
 from src.app.mcp_integration.tools import (
     MCP_SERVER_NAME,
     run_agentic_rag_query_mcp_tool,
+    run_answer_verify_mcp_tool,
     run_graph_fusion_retrieve_mcp_tool,
+    run_mcp_registry_summary_tool,
     run_multi_agent_eval_trace_mcp_tool,
+    run_rag_backend_eval_mcp_tool,
 )
 
 
@@ -17,7 +28,15 @@ mcp = FastMCP(MCP_SERVER_NAME)
 
 
 def _to_json_text(payload: dict[str, Any]) -> str:
-    return json.dumps(payload, ensure_ascii=False, sort_keys=True)
+    return json.dumps(payload, ensure_ascii=False, sort_keys=True, default=str)
+
+
+def _parse_backends_csv(backends_csv: str) -> list[str]:
+    return [
+        backend.strip()
+        for backend in backends_csv.split(",")
+        if backend.strip()
+    ]
 
 
 @mcp.tool()
@@ -101,6 +120,139 @@ def multi_agent_eval_trace(
         trace_id=trace_id,
     )
     return _to_json_text(payload)
+
+
+@mcp.tool()
+def answer_verify(
+    query: str,
+    top_k: int = 3,
+    source_filter: str = "agent_basics",
+    max_chars: int = 300,
+    embedding_dim: int = 64,
+    keyword_weight: float = 0.6,
+    vector_weight: float = 0.4,
+    retrieval_backend: str = "hybrid",
+    embedding_provider: str = "deterministic",
+    rebuild_index: bool = True,
+    graph_dry_run: bool = True,
+    trace_id: str = "mcp-answer-verify-trace",
+) -> str:
+    """Run Agentic RAG answer verification through the agent-api MCP server."""
+    payload = run_answer_verify_mcp_tool(
+        query=query,
+        top_k=top_k,
+        source_filter=source_filter,
+        max_chars=max_chars,
+        embedding_dim=embedding_dim,
+        keyword_weight=keyword_weight,
+        vector_weight=vector_weight,
+        retrieval_backend=retrieval_backend,
+        embedding_provider=embedding_provider,
+        rebuild_index=rebuild_index,
+        graph_dry_run=graph_dry_run,
+        trace_id=trace_id,
+    )
+    return _to_json_text(payload)
+
+
+@mcp.tool()
+def rag_backend_eval(
+    eval_file: str = "eval_cases/rag_agentic_eval.jsonl",
+    backends_csv: str = "hybrid,graph_fusion",
+    source_filter: str = "agent_basics",
+    max_chars: int = 300,
+    embedding_dim: int = 64,
+    keyword_weight: float = 0.6,
+    vector_weight: float = 0.4,
+    embedding_provider: str = "deterministic",
+    rebuild_index: bool = True,
+    graph_dry_run: bool = True,
+    trace_id: str = "mcp-rag-backend-eval-trace",
+) -> str:
+    """Run RAG backend evaluation through the agent-api MCP server."""
+    payload = run_rag_backend_eval_mcp_tool(
+        eval_file=eval_file,
+        backends=_parse_backends_csv(backends_csv),
+        source_filter=source_filter,
+        max_chars=max_chars,
+        embedding_dim=embedding_dim,
+        keyword_weight=keyword_weight,
+        vector_weight=vector_weight,
+        embedding_provider=embedding_provider,
+        rebuild_index=rebuild_index,
+        graph_dry_run=graph_dry_run,
+        trace_id=trace_id,
+    )
+    return _to_json_text(payload)
+
+
+@mcp.tool()
+def mcp_registry_summary(
+    trace_id: str = "mcp-registry-summary-trace",
+) -> str:
+    """Return the current agent-api MCP registry, permission, and marketplace summary."""
+    payload = run_mcp_registry_summary_tool(trace_id=trace_id)
+    return _to_json_text(payload)
+
+
+@mcp.resource(
+    "agent-api://mcp/tool-registry",
+    name="agent_api_mcp_tool_registry",
+    description="Current agent-api MCP tool registry summary.",
+    mime_type="application/json",
+)
+def mcp_tool_registry_resource() -> str:
+    return get_mcp_tool_registry_resource()
+
+
+@mcp.resource(
+    "agent-api://mcp/marketplace",
+    name="agent_api_mcp_marketplace",
+    description="Current agent-api local MCP marketplace catalog summary.",
+    mime_type="application/json",
+)
+def mcp_marketplace_resource() -> str:
+    return get_mcp_marketplace_resource()
+
+
+@mcp.resource(
+    "agent-api://graph/schema",
+    name="agent_api_graph_schema",
+    description="Current GraphRAG schema exposed as an MCP resource.",
+    mime_type="application/json",
+)
+def graph_schema_resource() -> str:
+    return get_graph_schema_resource()
+
+
+@mcp.resource(
+    "agent-api://docs/graphrag",
+    name="agent_api_graphrag_docs",
+    description="GraphRAG architecture documentation exposed as an MCP resource.",
+    mime_type="text/markdown",
+)
+def graphrag_docs_resource() -> str:
+    return get_graphrag_docs_resource()
+
+
+@mcp.resource(
+    "agent-api://docs/multi-agent",
+    name="agent_api_multi_agent_docs",
+    description="Multi-Agent architecture documentation exposed as an MCP resource.",
+    mime_type="text/markdown",
+)
+def multi_agent_docs_resource() -> str:
+    return get_multi_agent_docs_resource()
+
+
+@mcp.resource(
+    "agent-api://docs/mcp-plan",
+    name="agent_api_mcp_plan",
+    description="MCP Day67-Day72 integration plan exposed as an MCP resource.",
+    mime_type="text/markdown",
+)
+def mcp_plan_resource() -> str:
+    return get_mcp_plan_resource()
 
 
 def main() -> None:

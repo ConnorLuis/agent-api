@@ -9,6 +9,8 @@ MCPToolCategory = Literal[
     "graphrag",
     "multi_agent",
     "observability",
+    "evaluation",
+    "verification",
     "system",
 ]
 
@@ -71,6 +73,45 @@ CORE_MCP_TOOL_SPECS: tuple[MCPToolSpec, ...] = (
         requires_neo4j=False,
         default_ci_safe=True,
         required_scopes=("mcp:multi_agent:read",),
+    ),
+    MCPToolSpec(
+        name="answer_verify",
+        description=(
+            "Run Agentic RAG answer verification through a standard MCP tool boundary."
+        ),
+        category="verification",
+        risk_level="low",
+        read_only=True,
+        requires_network=False,
+        requires_neo4j=True,
+        default_ci_safe=True,
+        required_scopes=("mcp:verification:read",),
+    ),
+    MCPToolSpec(
+        name="rag_backend_eval",
+        description=(
+            "Run RAG backend evaluation and comparison through a standard MCP tool boundary."
+        ),
+        category="evaluation",
+        risk_level="medium",
+        read_only=True,
+        requires_network=False,
+        requires_neo4j=True,
+        default_ci_safe=True,
+        required_scopes=("mcp:evaluation:read",),
+    ),
+    MCPToolSpec(
+        name="mcp_registry_summary",
+        description=(
+            "Return the current MCP tool registry, permission, and local marketplace summary."
+        ),
+        category="system",
+        risk_level="low",
+        read_only=True,
+        requires_network=False,
+        requires_neo4j=False,
+        default_ci_safe=True,
+        required_scopes=("mcp:system:read",),
     ),
 )
 

@@ -10,11 +10,14 @@ from src.app.mcp_integration.client import (
 def test_real_mcp_stdio_client_can_list_agent_api_tools():
     tool_names = asyncio.run(list_mcp_tools())
 
-    assert tool_names == [
+    assert set(tool_names) == {
         "agentic_rag_query",
         "graph_fusion_retrieve",
         "multi_agent_eval_trace",
-    ]
+        "answer_verify",
+        "rag_backend_eval",
+        "mcp_registry_summary",
+    }
 
 
 def test_real_mcp_stdio_client_can_call_multi_agent_eval_trace():

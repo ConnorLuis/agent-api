@@ -6,6 +6,7 @@ from typing import Any
 
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
+from pydantic import AnyUrl, TypeAdapter
 
 
 DEFAULT_MCP_SERVER_COMMAND = sys.executable
@@ -64,6 +65,45 @@ async def call_mcp_tool(
             return await session.call_tool(tool_name, arguments=arguments)
 
 
+async def list_mcp_resources(
+    *,
+    command: str | None = None,
+    args: list[str] | None = None,
+    env: dict[str, str] | None = None,
+) -> list[str]:
+    server_params = build_stdio_server_parameters(
+        command=command,
+        args=args,
+        env=env,
+    )
+
+    async with stdio_client(server_params) as (read_stream, write_stream):
+        async with ClientSession(read_stream, write_stream) as session:
+            await session.initialize()
+            response = await session.list_resources()
+            return [str(resource.uri) for resource in response.resources]
+
+
+async def read_mcp_resource(
+    *,
+    uri: str,
+    command: str | None = None,
+    args: list[str] | None = None,
+    env: dict[str, str] | None = None,
+) -> Any:
+    server_params = build_stdio_server_parameters(
+        command=command,
+        args=args,
+        env=env,
+    )
+    resource_uri = TypeAdapter(AnyUrl).validate_python(uri)
+
+    async with stdio_client(server_params) as (read_stream, write_stream):
+        async with ClientSession(read_stream, write_stream) as session:
+            await session.initialize()
+            return await session.read_resource(resource_uri)
+
+
 def extract_text_content(tool_result: Any) -> str:
     content = getattr(tool_result, "content", None)
     if not content:
@@ -80,3 +120,20 @@ def extract_text_content(tool_result: Any) -> str:
 def extract_json_content(tool_result: Any) -> dict[str, Any]:
     text = extract_text_content(tool_result)
     return json.loads(text)
+
+
+def extract_resource_text(resource_result: Any) -> str:
+    contents = getattr(resource_result, "contents", None)
+    if not contents:
+        raise ValueError("MCP resource result does not contain contents.")
+
+    first_content = contents[0]
+    text = getattr(first_content, "text", None)
+    if text is None:
+        raise ValueError("MCP resource result first content item does not contain text.")
+
+    return text
+
+
+def extract_resource_json(resource_result: Any) -> dict[str, Any]:
+    return json.loads(extract_resource_text(resource_result))
