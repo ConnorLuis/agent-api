@@ -23,7 +23,7 @@ def test_main_agent_mcp_gateway_uses_internal_search_when_disabled():
     assert result.fallback_used is False
     assert result.mcp_tool_name is None
     assert result.error is None
-    assert "知识库检索结果" in result.output
+    assert "source=knowledge/agent_basics.md" in result.output
     assert result.metadata["integration_mode"] == "internal"
 
 
@@ -101,7 +101,7 @@ def test_main_agent_mcp_gateway_falls_back_to_internal_search_when_mcp_fails(
     assert result.fallback_used is True
     assert result.mcp_tool_name == "agentic_rag_query"
     assert "RuntimeError: simulated MCP failure" == result.error
-    assert "知识库检索结果" in result.output
+    assert "source=knowledge/agent_basics.md" in result.output
     assert result.metadata["integration_mode"] == "mcp_fallback_to_internal"
 
 
