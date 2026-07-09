@@ -139,6 +139,19 @@ CORE_MCP_TOOL_SPECS: tuple[MCPToolSpec, ...] = (
         default_ci_safe=True,
         required_scopes=("mcp:security:read",),
     ),
+    MCPToolSpec(
+        name="mcp_endpoint_coverage_report",
+        description=(
+            "Return a CI-safe MCP endpoint coverage report for RAG, GraphRAG, Multi-Agent, and Observability endpoints."
+        ),
+        category="system",
+        risk_level="low",
+        read_only=True,
+        requires_network=False,
+        requires_neo4j=False,
+        default_ci_safe=True,
+        required_scopes=("mcp:endpoints:read",),
+    ),
 )
 
 

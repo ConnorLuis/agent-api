@@ -24,7 +24,7 @@ def _run_tool_function_names() -> list[str]:
 def test_all_mcp_tool_wrappers_are_security_wrapped():
     function_names = _run_tool_function_names()
 
-    assert len(function_names) == 8
+    assert len(function_names) == 9
 
     for function_name in function_names:
         tool_func = getattr(mcp_tools, function_name)
@@ -55,11 +55,11 @@ def test_mcp_security_report_tool_includes_nested_security_decision_without_recu
     )
 
     assert payload["tool_name"] == "mcp_security_report"
-    assert payload["summary"]["tool_count"] == 8
+    assert payload["summary"]["tool_count"] == 9
     assert payload["security_decision"]["tool_name"] == "mcp_security_report"
     assert payload["security_decision"]["allowed"] is True
     assert payload["security_audit_trace"]["target_id"] == "mcp_security_report"
-    assert payload["result"]["summary"]["tool_count"] == 8
+    assert payload["result"]["summary"]["tool_count"] == 9
     assert payload["result"]["safety"]["audit_trace_enabled"] is True
 
 

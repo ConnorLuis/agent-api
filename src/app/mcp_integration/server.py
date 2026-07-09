@@ -11,6 +11,7 @@ from src.app.mcp_integration.resources import (
     get_mcp_marketplace_resource,
     get_mcp_marketplace_discovery_resource,
     get_mcp_security_report_resource,
+    get_mcp_endpoint_coverage_resource,
     get_mcp_plan_resource,
     get_mcp_tool_registry_resource,
     get_multi_agent_docs_resource,
@@ -23,6 +24,7 @@ from src.app.mcp_integration.tools import (
     run_mcp_registry_summary_tool,
     run_mcp_marketplace_discovery_tool,
     run_mcp_security_report_tool,
+    run_mcp_endpoint_coverage_report_tool,
     run_multi_agent_eval_trace_mcp_tool,
     run_rag_backend_eval_mcp_tool,
 )
@@ -217,6 +219,15 @@ def mcp_security_report(
     return _to_json_text(payload)
 
 
+@mcp.tool()
+def mcp_endpoint_coverage_report(
+    trace_id: str = "mcp-endpoint-coverage-report-trace",
+) -> str:
+    """Return a CI-safe MCP endpoint coverage report."""
+    payload = run_mcp_endpoint_coverage_report_tool(trace_id=trace_id)
+    return _to_json_text(payload)
+
+
 @mcp.resource(
     "agent-api://mcp/tool-registry",
     name="agent_api_mcp_tool_registry",
@@ -255,6 +266,16 @@ def mcp_marketplace_discovery_resource() -> str:
 )
 def mcp_security_report_resource() -> str:
     return get_mcp_security_report_resource()
+
+
+@mcp.resource(
+    "agent-api://mcp/endpoint-coverage",
+    name="agent_api_mcp_endpoint_coverage",
+    description="CI-safe MCP endpoint coverage report.",
+    mime_type="application/json",
+)
+def mcp_endpoint_coverage_resource() -> str:
+    return get_mcp_endpoint_coverage_resource()
 
 
 @mcp.resource(

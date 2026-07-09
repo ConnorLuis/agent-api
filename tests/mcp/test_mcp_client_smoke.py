@@ -19,6 +19,7 @@ def test_real_mcp_stdio_client_can_list_agent_api_tools():
         "mcp_registry_summary",
         "mcp_marketplace_discovery",
         "mcp_security_report",
+        "mcp_endpoint_coverage_report",
     }
 
 

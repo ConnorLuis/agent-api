@@ -9,6 +9,7 @@ from src.app.mcp_integration.security import (
     build_mcp_security_report,
     evaluate_mcp_tool_security,
 )
+from src.app.mcp_integration.endpoint_coverage import build_mcp_endpoint_coverage_report
 
 from src.app.evaluation.rag_eval_modules.backend_comparison import compare_rag_retrieval_backends
 from src.app.graph.fusion import run_graph_vector_fusion_debug
@@ -780,5 +781,62 @@ def _install_mcp_security_response_wrappers() -> None:
         globals()[name] = _with_mcp_security_response(value)
 
 
-_install_mcp_security_response_wrappers()
 
+
+def run_mcp_endpoint_coverage_report_tool(
+    *,
+    trace_id: str = "mcp-endpoint-coverage-report-trace",
+    principal: MCPPrincipal | None = None,
+) -> dict[str, Any]:
+    tool_name = "mcp_endpoint_coverage_report"
+    tool_spec = get_mcp_tool_spec(tool_name)
+    principal = principal or get_ci_safe_mcp_principal()
+
+    decision = authorize_mcp_tool(
+        principal=principal,
+        tool_spec=tool_spec,
+        requested_live_neo4j=False,
+        requested_network=False,
+        requested_write=False,
+    )
+    authorization = serialize_authorization_decision(decision)
+
+    if not decision.allowed:
+        return _build_denied_response(
+            tool_name=tool_name,
+            trace_id=trace_id,
+            authorization=authorization,
+        )
+
+    report = build_mcp_endpoint_coverage_report()
+
+    return {
+        "tool_name": tool_name,
+        "trace_id": trace_id,
+        "allowed": True,
+        "authorization": authorization,
+        "result": report,
+        "summary": {
+            "status": "completed",
+            "endpoint_count": report["summary"]["endpoint_count"],
+            "already_covered_endpoint_count": report["summary"][
+                "already_covered_endpoint_count"
+            ],
+            "planned_wrapper_endpoint_count": report["summary"][
+                "planned_wrapper_endpoint_count"
+            ],
+            "domain_counts": report["summary"]["domain_counts"],
+            "ci_safe": report["safety"]["ci_safe"],
+            "rest_endpoint_behavior_changed": report["safety"][
+                "rest_endpoint_behavior_changed"
+            ],
+        },
+        "mcp_boundary": _build_mcp_boundary(
+            tool_name=tool_name,
+            ci_safe=True,
+            llm_used=False,
+            graph_fusion_default_changed=DEFAULT_RETRIEVAL_BACKEND != "hybrid",
+        ),
+    }
+
+_install_mcp_security_response_wrappers()
