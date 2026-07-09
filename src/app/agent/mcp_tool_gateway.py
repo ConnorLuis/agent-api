@@ -52,24 +52,28 @@ def _format_internal_search_results(
     results: list[Any],
 ) -> str:
     if not results:
-        return f"未在知识库中找到与 `{query}` 相关的内容。"
+        return "No relevant documents found."
 
-    lines = [f"知识库检索结果，共 {len(results)} 条："]
+    lines = []
 
     for index, item in enumerate(results, start=1):
         source = getattr(item, "source", None)
+        score = getattr(item, "score", None)
         content = getattr(item, "content", None)
 
         if isinstance(item, dict):
             source = item.get("source", source)
+            score = item.get("score", score)
             content = item.get("content", content)
 
         source = source or "unknown"
         content = content or str(item)
 
-        lines.append(f"{index}. [{source}] {content}")
+        lines.append(
+            f"[{index}] source={source}, score={score}\n{content}"
+        )
 
-    return "\n".join(lines)
+    return "\n\n".join(lines)
 
 
 def _run_internal_search_knowledge_base(
