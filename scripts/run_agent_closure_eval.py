@@ -11,6 +11,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from src.app.evaluation.closure_eval import (  # noqa: E402
     DEFAULT_GOLDEN_PATH,
+    DEFAULT_TRACE_DB_PATH,
     load_golden_cases,
     render_markdown_report,
     run_closure_eval,
@@ -24,6 +25,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--validate-only", action="store_true")
     parser.add_argument("--output", default="reports/agent_closure/latest.json")
     parser.add_argument("--markdown-output", default="reports/agent_closure/latest.md")
+    parser.add_argument("--trace-db", default=str(DEFAULT_TRACE_DB_PATH))
     return parser.parse_args()
 
 
@@ -38,7 +40,7 @@ def main() -> int:
         print(json.dumps(validation, ensure_ascii=False, indent=2))
         return 1
 
-    report = run_closure_eval(cases)
+    report = run_closure_eval(cases, trace_db_path=args.trace_db)
 
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -57,6 +59,7 @@ def main() -> int:
     print(json.dumps(report["summary"], ensure_ascii=False, indent=2))
     print(f"report={output_path}")
     print(f"markdown_report={markdown_path}")
+    print(f"trace_db={args.trace_db}")
     return 0
 
 

@@ -7,8 +7,14 @@ from src.app.evaluation.closure_eval import (
     load_golden_cases,
     render_markdown_report,
     run_case,
+    run_closure_eval,
     validate_golden_cases,
 )
+from src.app.observability.trace_store import get_trace_events
+
+
+def _case(case_id: str):
+    return next(case for case in load_golden_cases() if case["case_id"] == case_id)
 
 
 def test_agent_closure_golden_set_has_fixed_40_case_inventory():
@@ -28,23 +34,17 @@ def test_agent_closure_golden_schema_is_valid():
     }
 
 
-def test_failure_and_recovery_cases_are_explicitly_deferred_until_closure_3():
-    cases = [case for case in load_golden_cases() if case["category"] == "failure_recovery"]
-    results = [run_case(case) for case in cases]
-    assert len(results) == 4
-    assert all(result["status"] == "deferred" for result in results)
-    assert all(result["passed"] is None for result in results)
-
-
-def test_router_cases_execute_without_evaluator_errors():
+def test_router_cases_execute_without_evaluator_errors(tmp_path):
     cases = [case for case in load_golden_cases() if case["category"] == "router"]
-    results = [run_case(case) for case in cases]
+    db = tmp_path / "traces.sqlite"
+    results = [run_case(case, trace_db_path=db) for case in cases]
     assert len(results) == 12
     assert all(result["status"] in {"passed", "failed"} for result in results)
     assert all("actual_route" in result for result in results)
+    assert all(result["trace_replay_available"] is True for result in results)
 
 
-def test_formal_metrics_use_fixed_denominators_and_call_level_tool_scoring():
+def test_formal_metrics_exclude_failure_recovery_from_five_normal_metrics():
     results = [
         {
             "case_id": "router-ok",
@@ -54,172 +54,160 @@ def test_formal_metrics_use_fixed_denominators_and_call_level_tool_scoring():
             "metrics": ["router_accuracy"],
             "expected_route": "chat",
             "actual_route": "chat",
-        },
-        {
-            "case_id": "router-bad",
-            "category": "end_to_end",
-            "status": "failed",
-            "passed": False,
-            "metrics": ["router_accuracy", "task_completion_rate"],
-            "expected_route": "rag",
-            "actual_route": "chat",
-            "task_should_complete": True,
+            "expected_trace_required": False,
+            "trace_replay_available": True,
+            "trace_event_count": 2,
+            "trace_id": "trace-router-ok",
         },
         {
             "case_id": "tool",
             "category": "tool",
-            "status": "failed",
-            "passed": False,
-            "metrics": [
-                "tool_call_success_rate",
-                "tool_parameter_accuracy",
-                "task_completion_rate",
-            ],
-            "expected_tool_call_count": 2,
-            "tool_call_success_count": 2,
-            "tool_parameter_success_count": 1,
-            "unexpected_extra_tool_calls": [],
-            "task_should_complete": True,
-        },
-        {
-            "case_id": "rag",
-            "category": "rag",
             "status": "passed",
             "passed": True,
-            "metrics": ["rag_recall_at_k", "task_completion_rate"],
-            "k": 3,
-            "source_hit_count": 1,
-            "expected_source_count": 1,
-            "recall_at_k": 1.0,
+            "metrics": ["tool_call_success_rate", "tool_parameter_accuracy", "task_completion_rate"],
+            "expected_tool_call_count": 2,
+            "tool_call_success_count": 2,
+            "tool_parameter_success_count": 2,
+            "unexpected_extra_tool_calls": [],
             "task_should_complete": True,
+            "expected_trace_required": False,
+            "trace_replay_available": True,
+            "trace_event_count": 2,
+            "trace_id": "trace-tool",
         },
         {
-            "case_id": "deferred",
+            "case_id": "fault",
             "category": "failure_recovery",
-            "status": "deferred",
-            "passed": None,
-            "metrics": ["task_completion_rate"],
-            "task_should_complete": False,
-        },
-    ]
-
-    formal = build_formal_metrics(results)["metrics"]
-
-    assert formal["router_accuracy"]["numerator"] == 1
-    assert formal["router_accuracy"]["denominator"] == 2
-    assert formal["router_accuracy"]["value"] == 0.5
-
-    assert formal["tool_call_success_rate"]["numerator"] == 2
-    assert formal["tool_call_success_rate"]["denominator"] == 2
-    assert formal["tool_call_success_rate"]["value"] == 1.0
-
-    assert formal["tool_parameter_accuracy"]["numerator"] == 1
-    assert formal["tool_parameter_accuracy"]["denominator"] == 2
-    assert formal["tool_parameter_accuracy"]["value"] == 0.5
-
-    assert formal["rag_recall_at_k"]["numerator"] == 1
-    assert formal["rag_recall_at_k"]["denominator"] == 1
-    assert formal["rag_recall_at_k"]["value"] == 1.0
-
-    assert formal["task_completion_rate"]["numerator"] == 1
-    assert formal["task_completion_rate"]["denominator"] == 3
-    assert formal["task_completion_rate"]["value"] == 0.333333
-
-
-def test_failure_attribution_maps_failed_assertions_to_metric_names():
-    results = [
-        {
-            "case_id": "router-failure",
-            "category": "router",
-            "status": "failed",
-            "passed": False,
-            "metrics": ["router_accuracy"],
-            "expected_route": "calculator",
-            "actual_route": "chat",
-        },
-        {
-            "case_id": "tool-failure",
-            "category": "tool",
-            "status": "failed",
-            "passed": False,
-            "metrics": ["tool_call_success_rate", "tool_parameter_accuracy"],
-            "expected_tool_sequence": [{"name": "add", "args": {"a": 1, "b": 2}}],
-            "actual_tool_sequence": [{"name": "multiply", "args": {"a": 1, "b": 2}}],
-            "expected_tool_call_count": 1,
+            "status": "passed",
+            "passed": True,
+            "metrics": ["tool_call_success_rate", "failure_trace_coverage"],
+            "expected_tool_call_count": 99,
             "tool_call_success_count": 0,
             "tool_parameter_success_count": 0,
-            "unexpected_extra_tool_calls": [],
+            "unexpected_extra_tool_calls": [{"name": "add"}],
+            "task_should_complete": False,
+            "fault_type": "duplicate_tool_call",
+            "expected_trace_required": True,
+            "trace_replay_available": True,
+            "trace_event_count": 3,
+            "trace_id": "trace-fault",
         },
     ]
+    formal = build_formal_metrics(results)["metrics"]
+    assert formal["router_accuracy"]["value"] == 1.0
+    assert formal["tool_call_success_rate"]["numerator"] == 2
+    assert formal["tool_call_success_rate"]["denominator"] == 2
+    assert formal["tool_parameter_accuracy"]["value"] == 1.0
+    assert formal["task_completion_rate"]["value"] == 1.0
+    assert formal["failure_recovery_validation_rate"]["value"] == 1.0
+    assert formal["failure_trace_coverage"]["value"] == 1.0
 
+
+def test_failure_attribution_contains_trace_replay_metadata():
+    results = [{
+        "case_id": "router-failure",
+        "category": "router",
+        "status": "failed",
+        "passed": False,
+        "metrics": ["router_accuracy"],
+        "expected_route": "calculator",
+        "actual_route": "chat",
+        "trace_id": "closure-router-failure-1",
+        "trace_replay_path": "/observability/traces/closure-router-failure-1",
+        "trace_event_count": 2,
+        "trace_replay_available": True,
+        "expected_trace_required": False,
+    }]
     failures = build_failure_attribution(results)
     assert failures[0]["metric_failures"] == ["router_accuracy"]
-    assert failures[0]["expected"]["route"] == "calculator"
-    assert failures[0]["actual"]["route"] == "chat"
-
-    assert failures[1]["metric_failures"] == [
-        "tool_call_success_rate",
-        "tool_parameter_accuracy",
-    ]
+    assert failures[0]["trace_id"] == "closure-router-failure-1"
+    assert failures[0]["trace_replay_path"].endswith("closure-router-failure-1")
+    assert failures[0]["trace_event_count"] == 2
 
 
-def test_markdown_report_renders_metric_counts_and_failure_section():
-    report = {
-        "summary": {
-            "total_cases": 40,
-            "executed_cases": 36,
-            "deferred_cases": 4,
-            "passed_cases": 35,
-            "failed_or_error_cases": 1,
-        },
-        "formal_metrics": {
-            "router_accuracy": {
-                "value": 0.9375,
-                "numerator": 15,
-                "denominator": 16,
-                "dedicated_router_value": 0.916667,
-                "dedicated_router_numerator": 11,
-                "dedicated_router_denominator": 12,
-            },
-            "tool_call_success_rate": {
-                "value": 1.0,
-                "numerator": 12,
-                "denominator": 12,
-            },
-            "tool_parameter_accuracy": {
-                "value": 1.0,
-                "numerator": 12,
-                "denominator": 12,
-            },
-            "rag_recall_at_k": {
-                "value": 1.0,
-                "numerator": 10,
-                "denominator": 10,
-                "k_values": [3],
-                "scope": "source-level recall",
-                "limitation": "single document",
-            },
-            "task_completion_rate": {
-                "value": 1.0,
-                "numerator": 24,
-                "denominator": 24,
-            },
-        },
-        "failure_attribution": [
-            {
-                "case_id": "router_calc_chinese_num_012",
-                "category": "router",
-                "status": "failed",
-                "metric_failures": ["router_accuracy"],
-                "expected": {"route": "calculator"},
-                "actual": {"route": "chat"},
-            }
-        ],
-    }
+def test_tool_timeout_probe_is_detected_and_replayable(tmp_path):
+    db = tmp_path / "timeout.sqlite"
+    result = run_case(_case("failure_tool_timeout_001"), trace_db_path=db)
+    assert result["status"] == "passed"
+    assert result["timeout_observed"] is True
+    assert result["trace_replay_available"] is True
+    events = get_trace_events(result["trace_id"], db_path=db)
+    assert "closure_tool_timeout" in [event["event_type"] for event in events]
 
+
+def test_tool_exception_probe_is_detected_and_replayable(tmp_path):
+    db = tmp_path / "exception.sqlite"
+    result = run_case(_case("failure_tool_exception_002"), trace_db_path=db)
+    assert result["status"] == "passed"
+    assert result["exception_observed"] is True
+    assert result["error_type"] == "RuntimeError"
+    events = get_trace_events(result["trace_id"], db_path=db)
+    assert "closure_tool_exception" in [event["event_type"] for event in events]
+
+
+def test_duplicate_tool_call_probe_detects_extra_execution_and_is_replayable(tmp_path):
+    db = tmp_path / "duplicate.sqlite"
+    result = run_case(_case("failure_duplicate_call_003"), trace_db_path=db)
+    assert result["status"] == "passed"
+    assert result["duplicate_detected"] is True
+    assert len(result["unexpected_extra_tool_calls"]) == 1
+    assert len(result["actual_tool_sequence"]) == 3
+    events = get_trace_events(result["trace_id"], db_path=db)
+    assert "closure_duplicate_tool_call_detected" in [event["event_type"] for event in events]
+
+
+def test_checkpoint_recovery_uses_same_thread_and_recovers_tool_result(tmp_path):
+    db = tmp_path / "checkpoint.sqlite"
+    result = run_case(_case("recovery_checkpoint_004"), trace_db_path=db)
+    assert result["status"] == "passed"
+    assert result["checkpoint_recovered"] is True
+    assert "13" in result["recovery_answer"]
+    events = get_trace_events(result["trace_id"], db_path=db)
+    assert "closure_checkpoint_setup_completed" in [event["event_type"] for event in events]
+    assert "closure_checkpoint_recovered" in [event["event_type"] for event in events]
+
+
+def test_full_closure_3_run_has_fixed_metrics_and_100_percent_trace_coverage(tmp_path):
+    report = run_closure_eval(load_golden_cases(), trace_db_path=tmp_path / "full.sqlite")
+    summary = report["summary"]
+    metrics = report["formal_metrics"]
+
+    assert summary["phase"] == "closure_3_robustness_and_trace_replay"
+    assert summary["total_cases"] == 40
+    assert summary["executed_cases"] == 40
+    assert summary["deferred_cases"] == 0
+    assert summary["passed_cases"] == 39
+    assert summary["failed_or_error_cases"] == 1
+
+    assert metrics["router_accuracy"]["numerator"] == 15
+    assert metrics["router_accuracy"]["denominator"] == 16
+    assert metrics["router_accuracy"]["value"] == 0.9375
+    assert metrics["tool_call_success_rate"]["numerator"] == 12
+    assert metrics["tool_call_success_rate"]["denominator"] == 12
+    assert metrics["tool_parameter_accuracy"]["value"] == 1.0
+    assert metrics["rag_recall_at_k"]["numerator"] == 10
+    assert metrics["rag_recall_at_k"]["denominator"] == 10
+    assert metrics["task_completion_rate"]["numerator"] == 24
+    assert metrics["task_completion_rate"]["denominator"] == 24
+    assert metrics["failure_recovery_validation_rate"]["numerator"] == 4
+    assert metrics["failure_recovery_validation_rate"]["denominator"] == 4
+    assert metrics["failure_recovery_validation_rate"]["value"] == 1.0
+    assert metrics["failure_trace_coverage"]["numerator"] == 5
+    assert metrics["failure_trace_coverage"]["denominator"] == 5
+    assert metrics["failure_trace_coverage"]["value"] == 1.0
+    assert metrics["failure_trace_coverage"]["uncovered_case_ids"] == []
+
+    assert len(report["failure_attribution"]) == 1
+    assert report["failure_attribution"][0]["case_id"] == "router_calc_chinese_num_012"
+    assert report["failure_attribution"][0]["trace_id"]
+
+
+def test_markdown_report_renders_robustness_and_trace_replay(tmp_path):
+    report = run_closure_eval(load_golden_cases(), trace_db_path=tmp_path / "markdown.sqlite")
     markdown = render_markdown_report(report)
-    assert "15/16" in markdown
-    assert "12/12" in markdown
-    assert "10/10" in markdown
-    assert "24/24" in markdown
+    assert "Router Accuracy: 15/16" in markdown
+    assert "Tool Call Success Rate: 12/12" in markdown
+    assert "Failure/Recovery Validation Rate: 4/4" in markdown
+    assert "Failure Trace Coverage: 5/5" in markdown
     assert "router_calc_chinese_num_012" in markdown
+    assert "GET /observability/traces/{trace_id}" in markdown

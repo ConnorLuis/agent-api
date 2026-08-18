@@ -9,6 +9,12 @@ from uuid import uuid4
 from src.app.agent.graph import debug_agent
 from src.app.agent.router_graph import _classify_route
 from src.app.agent.smart_router import invoke_smart_agent
+from src.app.evaluation.failure_harness import run_failure_recovery_case
+from src.app.observability.trace_store import (
+    DEFAULT_TRACE_DB_PATH,
+    get_trace_events,
+    record_trace_event,
+)
 from src.app.rag.retriever import search_knowledge
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
@@ -239,15 +245,47 @@ def _run_e2e_case(case: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def run_case(case: dict[str, Any]) -> dict[str, Any]:
+def _record_eval_trace(
+    trace_id: str,
+    event_type: str,
+    payload: dict[str, Any],
+    trace_db_path: Path | str,
+) -> None:
+    record_trace_event(
+        trace_id=trace_id,
+        event_type=event_type,
+        payload=payload,
+        db_path=trace_db_path,
+    )
+
+
+def run_case(
+    case: dict[str, Any],
+    trace_db_path: Path | str = DEFAULT_TRACE_DB_PATH,
+) -> dict[str, Any]:
     category = case["category"]
+    trace_id = f"closure-{case['case_id']}-{uuid4().hex[:12]}"
     base = {
         "case_id": case["case_id"],
         "category": category,
         "query": case["query"],
         "metrics": case["metrics"],
         "task_should_complete": case.get("task_should_complete"),
+        "expected_trace_required": bool(case.get("expected_trace_required", False)),
+        "trace_id": trace_id,
+        "trace_replay_path": f"/observability/traces/{trace_id}",
     }
+    _record_eval_trace(
+        trace_id,
+        "closure_case_started",
+        {
+            "case_id": case["case_id"],
+            "category": category,
+            "query": case["query"],
+            "metrics": case["metrics"],
+        },
+        trace_db_path,
+    )
     try:
         if category == "router":
             detail = _run_router_case(case)
@@ -258,13 +296,11 @@ def run_case(case: dict[str, Any]) -> dict[str, Any]:
         elif category == "end_to_end":
             detail = _run_e2e_case(case)
         elif category == "failure_recovery":
-            detail = {
-                "status": "deferred",
-                "passed": None,
-                "execution_mode": case.get("execution_mode"),
-                "fault_type": case.get("fault_type"),
-                "reason": "reserved_for_closure_3_failure_and_recovery_validation",
-            }
+            detail = run_failure_recovery_case(
+                case=case,
+                trace_id=trace_id,
+                trace_db_path=trace_db_path,
+            )
         else:
             raise ValueError(f"unsupported category: {category}")
     except Exception as exc:
@@ -274,7 +310,30 @@ def run_case(case: dict[str, Any]) -> dict[str, Any]:
             "error_type": type(exc).__name__,
             "error": str(exc),
         }
-    return {**base, **detail}
+
+    final_result = {**base, **detail}
+    terminal_event = (
+        "closure_case_failed"
+        if final_result.get("status") in {"failed", "error"}
+        else "closure_case_completed"
+    )
+    _record_eval_trace(
+        trace_id,
+        terminal_event,
+        {
+            "case_id": case["case_id"],
+            "status": final_result.get("status"),
+            "passed": final_result.get("passed"),
+            "fault_type": final_result.get("fault_type"),
+            "expected_route": final_result.get("expected_route"),
+            "actual_route": final_result.get("actual_route"),
+        },
+        trace_db_path,
+    )
+    events = get_trace_events(trace_id=trace_id, db_path=trace_db_path)
+    final_result["trace_event_count"] = len(events)
+    final_result["trace_replay_available"] = len(events) > 0
+    return final_result
 
 
 def _ratio(numerator: int, denominator: int) -> float | None:
@@ -291,6 +350,7 @@ def _metric_cases(
         item
         for item in results
         if item.get("status") != "deferred"
+        and item.get("category") != "failure_recovery"
         and metric_name in item.get("metrics", [])
     ]
 
@@ -507,8 +567,59 @@ def build_failure_attribution(results: list[dict[str, Any]]) -> list[dict[str, A
             "expected": expected,
             "actual": actual,
             "thread_id": item.get("thread_id"),
+            "trace_id": item.get("trace_id"),
+            "trace_replay_path": item.get("trace_replay_path"),
+            "trace_event_count": item.get("trace_event_count"),
         })
     return failures
+
+
+def _build_failure_recovery_metric(results: list[dict[str, Any]]) -> dict[str, Any]:
+    cases = [item for item in results if item.get("category") == "failure_recovery"]
+    numerator = sum(1 for item in cases if item.get("passed") is True)
+    by_fault_type = {
+        str(item.get("fault_type")): item.get("status")
+        for item in cases
+    }
+    return {
+        "name": "failure_recovery_validation_rate",
+        "value": _ratio(numerator, len(cases)),
+        "numerator": numerator,
+        "denominator": len(cases),
+        "by_fault_type": by_fault_type,
+        "scope": "deterministic timeout/exception/duplicate-call/checkpoint-recovery probes",
+    }
+
+
+def _trace_required(item: dict[str, Any]) -> bool:
+    return (
+        bool(item.get("expected_trace_required"))
+        or item.get("status") in {"failed", "error"}
+    )
+
+
+def _build_failure_trace_metric(results: list[dict[str, Any]]) -> dict[str, Any]:
+    required = [item for item in results if _trace_required(item)]
+    covered = [
+        item
+        for item in required
+        if item.get("trace_replay_available") is True
+        and int(item.get("trace_event_count", 0)) > 0
+        and item.get("trace_id")
+    ]
+    uncovered = [item.get("case_id") for item in required if item not in covered]
+    return {
+        "name": "failure_trace_coverage",
+        "value": _ratio(len(covered), len(required)),
+        "numerator": len(covered),
+        "denominator": len(required),
+        "required_case_ids": [item.get("case_id") for item in required],
+        "uncovered_case_ids": uncovered,
+        "definition": (
+            "actual failed/error cases plus golden cases marked expected_trace_required; "
+            "coverage requires a non-empty persisted trace replay"
+        ),
+    }
 
 
 def build_formal_metrics(results: list[dict[str, Any]]) -> dict[str, Any]:
@@ -518,9 +629,11 @@ def build_formal_metrics(results: list[dict[str, Any]]) -> dict[str, Any]:
         "tool_parameter_accuracy": _build_tool_parameter_metric(results),
         "rag_recall_at_k": _build_rag_metric(results),
         "task_completion_rate": _build_task_completion_metric(results),
+        "failure_recovery_validation_rate": _build_failure_recovery_metric(results),
+        "failure_trace_coverage": _build_failure_trace_metric(results),
     }
     return {
-        "phase": "closure_2_formal_metrics",
+        "phase": "closure_3_robustness_and_trace_replay",
         "metrics": metrics,
         "failure_attribution": build_failure_attribution(results),
     }
@@ -529,38 +642,44 @@ def build_formal_metrics(results: list[dict[str, Any]]) -> dict[str, Any]:
 def build_summary(results: list[dict[str, Any]]) -> dict[str, Any]:
     executed = [item for item in results if item["status"] != "deferred"]
     formal = build_formal_metrics(results)
+    metrics = formal["metrics"]
     return {
-        "phase": "closure_2_formal_metrics",
+        "phase": "closure_3_robustness_and_trace_replay",
         "total_cases": len(results),
         "executed_cases": len(executed),
         "deferred_cases": len(results) - len(executed),
         "passed_cases": sum(1 for item in executed if item.get("passed") is True),
         "failed_or_error_cases": sum(1 for item in executed if item.get("passed") is False),
-        "router_accuracy": formal["metrics"]["router_accuracy"]["value"],
-        "tool_call_success_rate": formal["metrics"]["tool_call_success_rate"]["value"],
-        "tool_parameter_accuracy": formal["metrics"]["tool_parameter_accuracy"]["value"],
-        "rag_recall_at_k": formal["metrics"]["rag_recall_at_k"]["value"],
-        "task_completion_rate": formal["metrics"]["task_completion_rate"]["value"],
+        "router_accuracy": metrics["router_accuracy"]["value"],
+        "tool_call_success_rate": metrics["tool_call_success_rate"]["value"],
+        "tool_parameter_accuracy": metrics["tool_parameter_accuracy"]["value"],
+        "rag_recall_at_k": metrics["rag_recall_at_k"]["value"],
+        "task_completion_rate": metrics["task_completion_rate"]["value"],
+        "failure_recovery_validation_rate": metrics["failure_recovery_validation_rate"]["value"],
+        "failure_trace_coverage": metrics["failure_trace_coverage"]["value"],
         "failure_count": len(formal["failure_attribution"]),
-        "failure_trace_coverage": None,
         "note": (
-            "Failure/recovery cases remain deferred until Closure-3; "
-            "failure trace coverage is intentionally not claimed yet."
+            "The five normal quality metrics exclude deterministic failure/recovery probes. "
+            "Failure Trace Coverage includes actual failed/error cases and all trace-required robustness probes."
         ),
     }
 
 
-def run_closure_eval(cases: list[dict[str, Any]]) -> dict[str, Any]:
+def run_closure_eval(
+    cases: list[dict[str, Any]],
+    trace_db_path: Path | str = DEFAULT_TRACE_DB_PATH,
+) -> dict[str, Any]:
     validation = validate_golden_cases(cases)
     if not validation["valid"]:
         raise ValueError("golden set validation failed: " + "; ".join(validation["errors"]))
-    results = [run_case(case) for case in cases]
+    results = [run_case(case, trace_db_path=trace_db_path) for case in cases]
     formal = build_formal_metrics(results)
     return {
         "validation": validation,
         "summary": build_summary(results),
         "formal_metrics": formal["metrics"],
         "failure_attribution": formal["failure_attribution"],
+        "trace_db_path": str(trace_db_path),
         "results": results,
     }
 
@@ -569,6 +688,11 @@ def render_markdown_report(report: dict[str, Any]) -> str:
     summary = report["summary"]
     metrics = report["formal_metrics"]
     failures = report["failure_attribution"]
+    robustness = [
+        item
+        for item in report["results"]
+        if item.get("category") == "failure_recovery"
+    ]
 
     def pct(value: float | None) -> str:
         if value is None:
@@ -586,7 +710,7 @@ def render_markdown_report(report: dict[str, Any]) -> str:
         f"- Passed: {summary['passed_cases']}",
         f"- Failed/error: {summary['failed_or_error_cases']}",
         "",
-        "## Formal Metrics",
+        "## Five Normal Quality Metrics",
         "",
         (
             "- Router Accuracy: "
@@ -626,6 +750,37 @@ def render_markdown_report(report: dict[str, Any]) -> str:
             f"({pct(metrics['task_completion_rate']['value'])})"
         ),
         "",
+        "## Robustness / Recovery",
+        "",
+        (
+            "- Failure/Recovery Validation Rate: "
+            f"{metrics['failure_recovery_validation_rate']['numerator']}/"
+            f"{metrics['failure_recovery_validation_rate']['denominator']} "
+            f"({pct(metrics['failure_recovery_validation_rate']['value'])})"
+        ),
+        (
+            "- Failure Trace Coverage: "
+            f"{metrics['failure_trace_coverage']['numerator']}/"
+            f"{metrics['failure_trace_coverage']['denominator']} "
+            f"({pct(metrics['failure_trace_coverage']['value'])})"
+        ),
+        f"- Trace coverage definition: {metrics['failure_trace_coverage']['definition']}",
+        "",
+    ]
+
+    for item in robustness:
+        lines.extend([
+            f"### {item['case_id']}",
+            "",
+            f"- Fault type: {item.get('fault_type')}",
+            f"- Status: {item.get('status')}",
+            f"- Trace ID: `{item.get('trace_id')}`",
+            f"- Replay: `{item.get('trace_replay_path')}`",
+            f"- Trace events: {item.get('trace_event_count')}",
+            "",
+        ])
+
+    lines.extend([
         "## RAG Scope",
         "",
         f"- {metrics['rag_recall_at_k']['scope']}",
@@ -633,7 +788,7 @@ def render_markdown_report(report: dict[str, Any]) -> str:
         "",
         "## Failure Attribution",
         "",
-    ]
+    ])
 
     if not failures:
         lines.append("- None")
@@ -647,14 +802,18 @@ def render_markdown_report(report: dict[str, Any]) -> str:
                 f"- Metric failures: {', '.join(failure['metric_failures']) or 'unclassified'}",
                 f"- Expected: `{json.dumps(failure['expected'], ensure_ascii=False, sort_keys=True)}`",
                 f"- Actual: `{json.dumps(failure['actual'], ensure_ascii=False, sort_keys=True)}`",
+                f"- Trace ID: `{failure.get('trace_id')}`",
+                f"- Replay: `{failure.get('trace_replay_path')}`",
+                f"- Trace events: {failure.get('trace_event_count')}",
                 "",
             ])
 
     lines.extend([
-        "## Closure-3 Boundary",
+        "## Trace Replay",
         "",
-        "- tool timeout / exception / duplicate-call / checkpoint-recovery cases are still deferred.",
-        "- Failure Trace Coverage is not reported until those four deterministic fault/recovery cases execute.",
+        f"- Trace DB: `{report.get('trace_db_path')}`",
+        "- API replay: `GET /observability/traces/{trace_id}`",
+        "- The report stores a trace_id and replay path for every actual failure and each trace-required robustness probe.",
         "",
     ])
     return "\n".join(lines)
