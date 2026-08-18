@@ -12,6 +12,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from src.app.evaluation.closure_eval import (  # noqa: E402
     DEFAULT_GOLDEN_PATH,
     load_golden_cases,
+    render_markdown_report,
     run_closure_eval,
     validate_golden_cases,
 )
@@ -22,6 +23,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--cases", default=str(DEFAULT_GOLDEN_PATH))
     parser.add_argument("--validate-only", action="store_true")
     parser.add_argument("--output", default="reports/agent_closure/latest.json")
+    parser.add_argument("--markdown-output", default="reports/agent_closure/latest.md")
     return parser.parse_args()
 
 
@@ -37,14 +39,24 @@ def main() -> int:
         return 1
 
     report = run_closure_eval(cases)
+
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(
         json.dumps(report, ensure_ascii=False, indent=2, default=str) + "\n",
         encoding="utf-8",
     )
+
+    markdown_path = Path(args.markdown_output)
+    markdown_path.parent.mkdir(parents=True, exist_ok=True)
+    markdown_path.write_text(
+        render_markdown_report(report) + "\n",
+        encoding="utf-8",
+    )
+
     print(json.dumps(report["summary"], ensure_ascii=False, indent=2))
     print(f"report={output_path}")
+    print(f"markdown_report={markdown_path}")
     return 0
 
 
