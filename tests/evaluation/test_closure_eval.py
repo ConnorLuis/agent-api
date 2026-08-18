@@ -1,5 +1,6 @@
 from collections import Counter
 
+from src.app.agent.router_graph import _classify_route
 from src.app.evaluation.closure_eval import (
     EXPECTED_CATEGORY_COUNTS,
     build_failure_attribution,
@@ -16,6 +17,13 @@ from src.app.observability.trace_store import get_trace_events
 def _case(case_id: str):
     return next(case for case in load_golden_cases() if case["case_id"] == case_id)
 
+
+
+def test_router_classifies_chinese_number_calculation():
+    assert (
+        _classify_route("二十三加十九等于多少？")
+        == "calculator"
+    )
 
 def test_agent_closure_golden_set_has_fixed_40_case_inventory():
     cases = load_golden_cases()
@@ -176,12 +184,12 @@ def test_full_closure_3_run_has_fixed_metrics_and_100_percent_trace_coverage(tmp
     assert summary["total_cases"] == 40
     assert summary["executed_cases"] == 40
     assert summary["deferred_cases"] == 0
-    assert summary["passed_cases"] == 39
-    assert summary["failed_or_error_cases"] == 1
+    assert summary["passed_cases"] == 40
+    assert summary["failed_or_error_cases"] == 0
 
-    assert metrics["router_accuracy"]["numerator"] == 15
+    assert metrics["router_accuracy"]["numerator"] == 16
     assert metrics["router_accuracy"]["denominator"] == 16
-    assert metrics["router_accuracy"]["value"] == 0.9375
+    assert metrics["router_accuracy"]["value"] == 1.0
     assert metrics["tool_call_success_rate"]["numerator"] == 12
     assert metrics["tool_call_success_rate"]["denominator"] == 12
     assert metrics["tool_parameter_accuracy"]["value"] == 1.0
@@ -192,22 +200,20 @@ def test_full_closure_3_run_has_fixed_metrics_and_100_percent_trace_coverage(tmp
     assert metrics["failure_recovery_validation_rate"]["numerator"] == 4
     assert metrics["failure_recovery_validation_rate"]["denominator"] == 4
     assert metrics["failure_recovery_validation_rate"]["value"] == 1.0
-    assert metrics["failure_trace_coverage"]["numerator"] == 5
-    assert metrics["failure_trace_coverage"]["denominator"] == 5
+    assert metrics["failure_trace_coverage"]["numerator"] == 4
+    assert metrics["failure_trace_coverage"]["denominator"] == 4
     assert metrics["failure_trace_coverage"]["value"] == 1.0
     assert metrics["failure_trace_coverage"]["uncovered_case_ids"] == []
 
-    assert len(report["failure_attribution"]) == 1
-    assert report["failure_attribution"][0]["case_id"] == "router_calc_chinese_num_012"
-    assert report["failure_attribution"][0]["trace_id"]
+    assert report["failure_attribution"] == []
 
 
 def test_markdown_report_renders_robustness_and_trace_replay(tmp_path):
     report = run_closure_eval(load_golden_cases(), trace_db_path=tmp_path / "markdown.sqlite")
     markdown = render_markdown_report(report)
-    assert "Router Accuracy: 15/16" in markdown
+    assert "Router Accuracy: 16/16" in markdown
     assert "Tool Call Success Rate: 12/12" in markdown
     assert "Failure/Recovery Validation Rate: 4/4" in markdown
-    assert "Failure Trace Coverage: 5/5" in markdown
-    assert "router_calc_chinese_num_012" in markdown
+    assert "Failure Trace Coverage: 4/4" in markdown
+    assert "- None" in markdown
     assert "GET /observability/traces/{trace_id}" in markdown
