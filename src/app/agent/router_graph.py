@@ -6,6 +6,7 @@ from langgraph.graph import END, START, MessagesState, StateGraph
 from typing_extensions import NotRequired
 
 from src.app.agent.graph import invoke_agent
+from src.app.agent.nodes import _normalize_chinese_numbers
 from src.app.rag.retriever import search_knowledge
 
 class RouterState(MessagesState):
@@ -14,9 +15,12 @@ class RouterState(MessagesState):
 
 
 def _extract_two_ints(text: str) -> tuple[int, int] | None:
-    numbers = re.findall(r"-?\d+", text)
+    normalized = _normalize_chinese_numbers(text)
+    numbers = re.findall(r"-?\d+", normalized)
+
     if len(numbers) < 2:
         return None
+
     return int(numbers[0]), int(numbers[1])
 
 
