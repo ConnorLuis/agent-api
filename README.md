@@ -55,6 +55,8 @@ Failure/Recovery Validation      4 / 4  = 100%
 Failure Trace Coverage           4 / 4  = 100%
 Full pytest                     328 passed
 Dependency check                clean
+Skipped tests                   0
+Warnings                        0
 ```
 
 Closure 中验证的稳定性场景包括：
@@ -66,6 +68,13 @@ Closure 中验证的稳定性场景包括：
 - trace-required case 的 trace 持久化与回放。
 
 最终 `failure_attribution = []`。
+
+仓库与 CI 收口也已完成：
+
+- `.env.example` 与实际配置口径一致；
+- `requirements.txt` 仅保留运行依赖，测试依赖放入 `requirements-dev.txt`；
+- `constraints.txt` 固定已验证的 Python 3.10 依赖边界；
+- CI 执行 `pip check`、warnings-as-errors 编译和完整 pytest。
 
 当前维护策略为 **freeze + interview review**。除明确的 correctness / security bug、依赖升级或 CI 维护外，不继续扩展 Agent 类型、Router 路由、Multi-Agent 工作流、RAG backend 或 MCP 功能。
 
@@ -374,7 +383,9 @@ MCP-aware Gateway
 agent-api/
 ├── README.md
 ├── HANDOFF.md
+├── constraints.txt
 ├── requirements.txt
+├── requirements-dev.txt
 ├── pytest.ini
 ├── .env.example
 ├── src/app/
@@ -410,11 +421,19 @@ conda activate agentapi
 
 ### 6.2 安装依赖
 
+仅运行服务：
+
 ```bash
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 ```
 
-> `requirements.txt` 是人工维护的最小依赖集合。不要直接在 Conda 环境中使用 `pip freeze > requirements.txt` 覆盖，否则可能写入本地构建路径并破坏 CI。
+本地开发、测试与验收：
+
+```bash
+python -m pip install -r requirements-dev.txt
+```
+
+`requirements.txt` 与 `requirements-dev.txt` 共同使用 `constraints.txt` 的已验证版本。不要直接用 `pip freeze > requirements.txt` 覆盖，否则会混入间接依赖或本地构建路径。
 
 ### 6.3 启动服务
 
@@ -437,6 +456,14 @@ curl http://localhost:8000/health
 ---
 
 ## 7. 关键配置
+
+复制环境变量模板：
+
+```bash
+cp .env.example .env
+```
+
+`.env` 不进入 Git；`.env.example` 只保留无密钥的默认值和可选配置说明。
 
 ### 7.1 Ollama
 
@@ -652,25 +679,21 @@ event: done
 ### 10.1 完整回归
 
 ```bash
+python -m pip install -r requirements-dev.txt
 python -m pip check
-pytest -q
+python -W error -m compileall -q src scripts tests
+python -m pytest -q
 ```
 
 最终 release acceptance：
 
 ```text
 No broken requirements found.
-328 passed, 1 warning
+warnings-as-errors compile passed
+328 passed, 0 skipped, 0 warnings
 ```
 
-当前唯一 warning 来自第三方 Starlette TestClient / httpx 兼容层：
-
-```text
-StarletteDeprecationWarning:
-Using httpx with starlette.testclient is deprecated
-```
-
-该 warning 不影响当前功能正确性，也不是 release blocker。
+Starlette TestClient 使用 `httpx2` 测试依赖；MCP 与 `pydantic-settings` 的无 warning 兼容边界已固定。真实 `sentence-transformers` 本地模型验证保留在 `scripts/validate_semantic_embedding_provider.py`，CI 使用可复现的 Provider 适配器契约测试，不下载模型或 PyTorch。
 
 ### 10.2 Golden Evaluation
 
@@ -750,7 +773,10 @@ get_trace_events(trace_id)
 GitHub Actions 使用 Python 3.10，并在 `master` push 和目标为 `master` 的 pull request 上执行：
 
 ```bash
-pytest -q
+python -m pip install -r requirements-dev.txt
+python -m pip check
+python -W error -m compileall -q src scripts tests
+python -m pytest -q
 ```
 
 ## 11. 运行时数据

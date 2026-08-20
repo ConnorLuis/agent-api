@@ -1,28 +1,45 @@
-import importlib.util
-from pathlib import Path
+import sys
+from types import ModuleType
 
-import pytest
-
-from src.app.rag.embedding_provider import get_embedding_provider
-
-
-LOCAL_SEMANTIC_MODEL_PATH = Path("/mnt/f/LLM/maidalun/bce-embedding-base_v1")
+from src.app.rag.embedding_provider import (
+    get_embedding_provider,
+)
 
 
-def test_sentence_transformers_provider_with_local_model_or_skipped():
-    if importlib.util.find_spec("sentence_transformers") is None:
-        pytest.skip("sentence-transformers is optional and not installed in CI")
+class FakeSentenceTransformer:
+    def __init__(self, model_name: str) -> None:
+        self.model_name = model_name
 
-    if not LOCAL_SEMANTIC_MODEL_PATH.exists():
-        pytest.skip("local semantic embedding model is not available in CI")
+    def encode(
+        self,
+        text: str,
+        *,
+        normalize_embeddings: bool,
+    ) -> list[float]:
+        assert text == "LangGraph 是什么？"
+        assert normalize_embeddings is True
+        return [0.25] * 768
+
+
+def test_sentence_transformers_provider_contract(monkeypatch):
+    fake_module = ModuleType("sentence_transformers")
+    fake_module.SentenceTransformer = FakeSentenceTransformer
+    monkeypatch.setitem(
+        sys.modules,
+        "sentence_transformers",
+        fake_module,
+    )
+
+    model_name = "test-semantic-model"
 
     provider = get_embedding_provider(
         provider="sentence_transformers",
-        embedding_model=str(LOCAL_SEMANTIC_MODEL_PATH),
+        embedding_model=model_name,
     )
 
     embedding = provider.embed_text("LangGraph 是什么？")
 
     assert provider.provider == "sentence_transformers"
+    assert provider.model == model_name
     assert len(embedding) == 768
     assert any(value != 0 for value in embedding)

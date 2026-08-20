@@ -1,26 +1,29 @@
+# Python bytecode and test/tool caches
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
 
-.env
+# Virtual environments and local configuration
 .venv/
+.venv-*/
+venv/
+.env
 .env.*
+!.env.example
 
+# IDE and operating-system state
 .DS_Store
 .idea/
 .vscode/
 
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-
-*.sqlite
-*.db
-logs/
-
-# Runtime data
+# Runtime state
 data/
+logs/
+*.db
 *.sqlite
 *.sqlite-shm
 *.sqlite-wal

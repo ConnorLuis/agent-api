@@ -1,3 +1,6 @@
+-c constraints.txt
+
+# Runtime dependencies
 fastapi
 uvicorn[standard]
 pydantic
@@ -9,11 +12,9 @@ langchain-ollama
 langgraph
 langgraph-checkpoint-sqlite
 
-pytest
-httpx
 typing_extensions
 chromadb
 neo4j
 
 # MCP integration
-mcp[cli]==1.28.1
+mcp[cli]

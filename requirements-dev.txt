@@ -1,0 +1,7 @@
+-c constraints.txt
+-r requirements.txt
+
+# Tests and local verification
+pytest
+httpx
+httpx2

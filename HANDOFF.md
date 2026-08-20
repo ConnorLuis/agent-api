@@ -39,6 +39,8 @@ FastAPI
 40 / 40 golden cases passed
 328 pytest passed
 dependency check clean
+0 skipped
+0 warnings
 failure attribution empty
 ```
 
@@ -49,6 +51,8 @@ FROZEN
 ```
 
 后续除 correctness / security bug、依赖升级或 CI 维护外，不再新增功能。
+
+最终仓库收口已补齐 `.env.example`、依赖分层、版本约束和严格 CI，不包含新 Agent 或新部署功能。
 
 ## 2. 与 chat-api 的项目边界
 
@@ -540,25 +544,21 @@ GET /observability/traces/{trace_id}
 ### 完整测试
 
 ```bash
+python -m pip install -r requirements-dev.txt
 python -m pip check
-pytest -q
+python -W error -m compileall -q src scripts tests
+python -m pytest -q
 ```
 
 最终结果：
 
 ```text
 No broken requirements found.
-328 passed, 1 warning
+warnings-as-errors compile passed
+328 passed, 0 skipped, 0 warnings
 ```
 
-唯一已知 warning：
-
-```text
-StarletteDeprecationWarning:
-Using httpx with starlette.testclient is deprecated
-```
-
-它来自第三方 TestClient 兼容层，不影响当前 release correctness。
+Starlette TestClient 通过 `httpx2` 运行，MCP 所需 `pydantic-settings` 固定在已验证的无 warning 版本。真实本地语义模型由 `scripts/validate_semantic_embedding_provider.py` 手动验证；CI 中的 Provider 契约测试不依赖本机模型路径。
 
 ### Golden Set
 
@@ -648,11 +648,17 @@ RAG source Recall@3 = 10 / 10
 ```bash
 conda create -n agentapi python=3.10 -y
 conda activate agentapi
-pip install -r requirements.txt
+python -m pip install -r requirements-dev.txt
 python -m uvicorn src.app.main:app --reload --port 8000
 ```
 
-### 9.2 requirements.txt
+### 9.2 依赖分层
+
+```text
+requirements.txt       运行依赖
+requirements-dev.txt   测试与本地验收依赖
+constraints.txt        已验证的精确版本边界
+```
 
 不要直接使用：
 
@@ -834,9 +840,11 @@ FROZEN
 
 ```text
 [ ] Python 3.10 环境可用
-[ ] pip install -r requirements.txt 成功
+[ ] python -m pip install -r requirements-dev.txt 成功
+[ ] python -m pip check 通过
+[ ] warnings-as-errors compile 通过
 [ ] GET /health 返回 status=ok
-[ ] pytest -q 通过
+[ ] pytest -q 为 328 passed、0 skipped、0 warnings
 [ ] DEFAULT_RETRIEVAL_BACKEND 仍为 hybrid
 [ ] AGENT_API_MAIN_AGENT_MCP_ENABLED 仍为 false
 [ ] AGENT_API_MAIN_AGENT_MCP_FALLBACK_ENABLED 仍为 true
