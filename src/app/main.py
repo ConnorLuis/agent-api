@@ -13,9 +13,12 @@ from src.app.routes import routes_graph
 setup_logging()
 
 app = FastAPI(
-    title="agent-api",
-    description="Agent orchestration and enterprise workflow diagnosis platform",
-    version="0.2.0",
+    title="Agent-API — 智能体编排与企业流程诊断平台",
+    description=(
+        "Reusable FastAPI + LangGraph agent orchestration backend with an "
+        "ERP permission/workflow diagnosis reference application."
+    ),
+    version="0.3.0",
 )
 
 app.add_middleware(TraceLoggingMiddleware)

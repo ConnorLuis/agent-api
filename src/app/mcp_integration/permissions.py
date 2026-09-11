@@ -72,14 +72,41 @@ ERP_DIAGNOSIS_MCP_PRINCIPAL = MCPPrincipal(
 )
 
 
+ERP_DIAGNOSIS_LOOPBACK_HTTP_PRINCIPAL = MCPPrincipal(
+    principal_id="erp-diagnosis-loopback-http-principal",
+    scopes=(
+        "mcp:tools:list",
+        "mcp:resources:read",
+        *ERP_DIAGNOSIS_READ_SCOPES,
+    ),
+    allow_external_servers=False,
+    allow_write_tools=False,
+    allow_live_neo4j=False,
+    # The paired SyntheticERPHttpReadService validates that its base URL is
+    # loopback-only before any request is made.
+    allow_network=True,
+)
+
+
 def get_ci_safe_mcp_principal() -> MCPPrincipal:
     return CI_SAFE_MCP_PRINCIPAL
 
 
 def get_erp_diagnosis_mcp_principal() -> MCPPrincipal:
-    """Return the least-privilege principal used by the ERP reference workflow."""
+    """Return the no-network least-privilege principal used by default."""
 
     return ERP_DIAGNOSIS_MCP_PRINCIPAL
+
+
+def get_erp_diagnosis_loopback_http_mcp_principal() -> MCPPrincipal:
+    """
+    Return the read-only principal used only by the trusted loopback HTTP adapter.
+
+    Network permission alone is not the host allowlist: the HTTP adapter itself
+    enforces localhost / 127.0.0.1 / ::1 and refuses arbitrary remote hosts.
+    """
+
+    return ERP_DIAGNOSIS_LOOPBACK_HTTP_PRINCIPAL
 
 
 def authorize_mcp_tool(

@@ -13,6 +13,7 @@ from src.app.business.erp_diagnosis.service import (
 from src.app.mcp_integration.permissions import (
     MCPPrincipal,
     authorize_mcp_tool,
+    get_erp_diagnosis_loopback_http_mcp_principal,
     get_erp_diagnosis_mcp_principal,
     serialize_authorization_decision,
 )
@@ -33,14 +34,41 @@ def _json_ready(value: Any) -> Any:
     return value
 
 
-def _business_boundary(tool_name: str) -> dict[str, Any]:
+def _service_requires_network(service: ERPReadService) -> bool:
+    return bool(getattr(service, "network_required", False))
+
+
+def _default_principal_for_service(service: ERPReadService) -> MCPPrincipal:
+    if _service_requires_network(service):
+        # Only trusted internal adapters should advertise network_required=True.
+        # The committed Synthetic HTTP adapter also enforces a loopback-only URL.
+        return get_erp_diagnosis_loopback_http_mcp_principal()
+    return get_erp_diagnosis_mcp_principal()
+
+
+def _business_boundary(
+    tool_name: str,
+    *,
+    service: ERPReadService | None = None,
+) -> dict[str, Any]:
+    network_required = (
+        _service_requires_network(service)
+        if service is not None
+        else False
+    )
     return {
         "server": ERP_MCP_SERVER_NAME,
         "tool_name": tool_name,
         "protocol_boundary": "mcp_erp_business_adapter",
         "read_only": True,
         "synthetic_reference_application": True,
-        "network_required": False,
+        "network_required": network_required,
+        "service_adapter_kind": getattr(
+            service,
+            "adapter_kind",
+            "synthetic_in_process",
+        ),
+        "loopback_only": bool(getattr(service, "loopback_only", True)),
         "write_capability_exposed": False,
     }
 
@@ -50,13 +78,14 @@ def _security_payload(
     tool_name: str,
     trace_id: str,
     principal: MCPPrincipal,
+    requested_network: bool = False,
 ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
     tool_spec = get_mcp_tool_spec(tool_name)
     authorization_decision = authorize_mcp_tool(
         principal=principal,
         tool_spec=tool_spec,
         requested_live_neo4j=False,
-        requested_network=False,
+        requested_network=requested_network,
         requested_write=False,
     )
     authorization = serialize_authorization_decision(authorization_decision)
@@ -65,7 +94,7 @@ def _security_payload(
         tool_name=tool_name,
         principal=principal,
         requested_write=False,
-        requested_network=False,
+        requested_network=requested_network,
         requested_live_neo4j=False,
         requested_graph_mutation=False,
         requested_dry_run=True,
@@ -89,11 +118,15 @@ def _run_read_tool(
     principal: MCPPrincipal | None = None,
     service: ERPReadService | None = None,
 ) -> dict[str, Any]:
-    principal = principal or get_erp_diagnosis_mcp_principal()
+    erp_service = service or get_default_erp_read_service()
+    requested_network = _service_requires_network(erp_service)
+    principal = principal or _default_principal_for_service(erp_service)
+
     authorization, security_decision, security_audit_trace = _security_payload(
         tool_name=tool_name,
         trace_id=trace_id,
         principal=principal,
+        requested_network=requested_network,
     )
 
     if not authorization["allowed"] or not security_decision["allowed"]:
@@ -125,11 +158,13 @@ def _run_read_tool(
                 "parameter_fingerprint": audit_event["payload"]["parameter_fingerprint"],
                 "raw_argument_values_recorded": False,
             },
-            "mcp_boundary": _business_boundary(tool_name),
+            "mcp_boundary": _business_boundary(
+                tool_name,
+                service=erp_service,
+            ),
         }
 
     try:
-        erp_service = service or get_default_erp_read_service()
         result = lookup(erp_service)
     except Exception as exc:
         audit_event = record_erp_tool_audit(
@@ -161,7 +196,10 @@ def _run_read_tool(
                 "parameter_fingerprint": audit_event["payload"]["parameter_fingerprint"],
                 "raw_argument_values_recorded": False,
             },
-            "mcp_boundary": _business_boundary(tool_name),
+            "mcp_boundary": _business_boundary(
+                tool_name,
+                service=erp_service,
+            ),
         }
 
     found = result is not None
@@ -209,7 +247,10 @@ def _run_read_tool(
             "parameter_fingerprint": audit_event["payload"]["parameter_fingerprint"],
             "raw_argument_values_recorded": False,
         },
-        "mcp_boundary": _business_boundary(tool_name),
+        "mcp_boundary": _business_boundary(
+            tool_name,
+            service=erp_service,
+        ),
     }
 
 
@@ -231,6 +272,7 @@ def _invalid_operation_response(
         tool_name=tool_name,
         trace_id=trace_id,
         principal=principal,
+        requested_network=False,
     )
     audit_event = record_erp_tool_audit(
         trace_id=trace_id,

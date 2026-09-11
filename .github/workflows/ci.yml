@@ -39,7 +39,7 @@ jobs:
 
       - name: Compile source without warnings
         run: |
-          python -W error -m compileall -q src scripts tests
+          python -W error -m compileall -q src examples scripts tests
 
       - name: Run tests
         env:
@@ -48,3 +48,19 @@ jobs:
           AGENT_API_MAIN_AGENT_MCP_ENABLED: "false"
         run: |
           python -m pytest -q
+
+      - name: Run ERP business golden acceptance
+        env:
+          LLM_PROVIDER: mock
+          NEO4J_ENABLED: "false"
+          AGENT_API_MAIN_AGENT_MCP_ENABLED: "false"
+        run: |
+          python scripts/run_erp_diagnosis_eval.py
+
+      - name: Run Synthetic ERP HTTP end-to-end validation
+        env:
+          LLM_PROVIDER: mock
+          NEO4J_ENABLED: "false"
+          AGENT_API_MAIN_AGENT_MCP_ENABLED: "false"
+        run: |
+          python scripts/run_erp_http_e2e.py
