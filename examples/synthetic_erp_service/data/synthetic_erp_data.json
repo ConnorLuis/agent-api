@@ -1,0 +1,811 @@
+{
+  "dataset_name": "synthetic-erp-reference-v1",
+  "disclaimer": "All records are fictional and generated for local testing. No former-employer source code, production API, customer data, or production configuration is included.",
+  "users": [
+    {
+      "user_id": "SYN-U001",
+      "display_name": "Synthetic User 001",
+      "active": true,
+      "roles": [
+        "PURCHASE_OPERATOR"
+      ],
+      "org_scope": [
+        "ORG-A"
+      ],
+      "data_permissions": [
+        {
+          "document_type": "PurchaseOrder",
+          "actions": [
+            "CREATE",
+            "SUBMIT",
+            "VIEW"
+          ]
+        },
+        {
+          "document_type": "PurchaseRequisition",
+          "actions": [
+            "VIEW",
+            "TRANSFER"
+          ]
+        }
+      ]
+    },
+    {
+      "user_id": "SYN-U002",
+      "display_name": "Synthetic User 002",
+      "active": true,
+      "roles": [],
+      "org_scope": [
+        "ORG-A"
+      ],
+      "data_permissions": [
+        {
+          "document_type": "PurchaseOrder",
+          "actions": [
+            "SUBMIT",
+            "VIEW"
+          ]
+        }
+      ]
+    },
+    {
+      "user_id": "SYN-U003",
+      "display_name": "Synthetic User 003",
+      "active": true,
+      "roles": [
+        "PURCHASE_OPERATOR"
+      ],
+      "org_scope": [
+        "ORG-B"
+      ],
+      "data_permissions": [
+        {
+          "document_type": "PurchaseOrder",
+          "actions": [
+            "CREATE",
+            "SUBMIT",
+            "VIEW"
+          ]
+        },
+        {
+          "document_type": "PurchaseRequisition",
+          "actions": [
+            "VIEW",
+            "TRANSFER"
+          ]
+        }
+      ]
+    },
+    {
+      "user_id": "SYN-U004",
+      "display_name": "Synthetic User 004",
+      "active": true,
+      "roles": [
+        "EXPENSE_OPERATOR"
+      ],
+      "org_scope": [
+        "ORG-A"
+      ],
+      "data_permissions": [
+        {
+          "document_type": "ExpenseClaim",
+          "actions": [
+            "CREATE",
+            "SUBMIT",
+            "VIEW"
+          ]
+        }
+      ]
+    },
+    {
+      "user_id": "SYN-U005",
+      "display_name": "Synthetic User 005",
+      "active": true,
+      "roles": [
+        "EXPENSE_OPERATOR"
+      ],
+      "org_scope": [
+        "ORG-C"
+      ],
+      "data_permissions": [
+        {
+          "document_type": "ExpenseClaim",
+          "actions": [
+            "CREATE",
+            "SUBMIT",
+            "VIEW"
+          ]
+        }
+      ]
+    },
+    {
+      "user_id": "SYN-U006",
+      "display_name": "Synthetic User 006",
+      "active": true,
+      "roles": [
+        "SALES_OPERATOR"
+      ],
+      "org_scope": [
+        "ORG-A",
+        "ORG-B"
+      ],
+      "data_permissions": [
+        {
+          "document_type": "SalesOrder",
+          "actions": [
+            "CREATE",
+            "SUBMIT",
+            "VIEW",
+            "TRANSFER"
+          ]
+        }
+      ]
+    },
+    {
+      "user_id": "SYN-U007",
+      "display_name": "Synthetic User 007",
+      "active": true,
+      "roles": [
+        "PURCHASE_APPROVER"
+      ],
+      "org_scope": [
+        "ORG-A",
+        "ORG-B"
+      ],
+      "data_permissions": [
+        {
+          "document_type": "PurchaseOrder",
+          "actions": [
+            "APPROVE",
+            "VIEW"
+          ]
+        },
+        {
+          "document_type": "PurchaseRequisition",
+          "actions": [
+            "APPROVE",
+            "VIEW"
+          ]
+        }
+      ]
+    },
+    {
+      "user_id": "SYN-U008",
+      "display_name": "Synthetic User 008",
+      "active": true,
+      "roles": [
+        "FINANCE_APPROVER"
+      ],
+      "org_scope": [
+        "ORG-A",
+        "ORG-C"
+      ],
+      "data_permissions": [
+        {
+          "document_type": "ExpenseClaim",
+          "actions": [
+            "APPROVE",
+            "VIEW"
+          ]
+        },
+        {
+          "document_type": "ProjectExpense",
+          "actions": [
+            "APPROVE",
+            "VIEW"
+          ]
+        }
+      ]
+    },
+    {
+      "user_id": "SYN-U009",
+      "display_name": "Synthetic User 009",
+      "active": false,
+      "roles": [
+        "PURCHASE_OPERATOR"
+      ],
+      "org_scope": [
+        "ORG-A"
+      ],
+      "data_permissions": [
+        {
+          "document_type": "PurchaseOrder",
+          "actions": [
+            "CREATE",
+            "SUBMIT",
+            "VIEW"
+          ]
+        }
+      ]
+    },
+    {
+      "user_id": "SYN-U010",
+      "display_name": "Synthetic User 010",
+      "active": true,
+      "roles": [
+        "ERP_AUDITOR"
+      ],
+      "org_scope": [
+        "ORG-A",
+        "ORG-B",
+        "ORG-C"
+      ],
+      "data_permissions": [
+        {
+          "document_type": "PurchaseOrder",
+          "actions": [
+            "VIEW"
+          ]
+        },
+        {
+          "document_type": "ExpenseClaim",
+          "actions": [
+            "VIEW"
+          ]
+        },
+        {
+          "document_type": "SalesOrder",
+          "actions": [
+            "VIEW"
+          ]
+        },
+        {
+          "document_type": "StockTransfer",
+          "actions": [
+            "VIEW"
+          ]
+        }
+      ]
+    },
+    {
+      "user_id": "SYN-U011",
+      "display_name": "Synthetic User 011",
+      "active": true,
+      "roles": [
+        "WAREHOUSE_OPERATOR"
+      ],
+      "org_scope": [
+        "ORG-A"
+      ],
+      "data_permissions": [
+        {
+          "document_type": "StockTransfer",
+          "actions": [
+            "CREATE",
+            "SUBMIT",
+            "VIEW",
+            "TRANSFER"
+          ]
+        }
+      ]
+    },
+    {
+      "user_id": "SYN-U012",
+      "display_name": "Synthetic User 012",
+      "active": true,
+      "roles": [
+        "PROJECT_OPERATOR"
+      ],
+      "org_scope": [
+        "ORG-A"
+      ],
+      "data_permissions": [
+        {
+          "document_type": "ProjectExpense",
+          "actions": [
+            "CREATE",
+            "SUBMIT",
+            "VIEW"
+          ]
+        }
+      ]
+    },
+    {
+      "user_id": "SYN-U013",
+      "display_name": "Synthetic User 013",
+      "active": true,
+      "roles": [
+        "PURCHASE_OPERATOR"
+      ],
+      "org_scope": [
+        "ORG-A"
+      ],
+      "data_permissions": [
+        {
+          "document_type": "PurchaseOrder",
+          "actions": [
+            "VIEW"
+          ]
+        }
+      ]
+    }
+  ],
+  "documents": [
+    {
+      "document_id": "SYN-PO-001",
+      "document_type": "PurchaseOrder",
+      "org_id": "ORG-A",
+      "state": "DRAFT",
+      "creator_user_id": "SYN-U001",
+      "amount": 12000,
+      "attributes": {
+        "synthetic": true
+      }
+    },
+    {
+      "document_id": "SYN-PO-002",
+      "document_type": "PurchaseOrder",
+      "org_id": "ORG-C",
+      "state": "DRAFT",
+      "creator_user_id": "SYN-U001",
+      "amount": 23000,
+      "attributes": {
+        "synthetic": true
+      }
+    },
+    {
+      "document_id": "SYN-PO-003",
+      "document_type": "PurchaseOrder",
+      "org_id": "ORG-A",
+      "state": "APPROVED",
+      "creator_user_id": "SYN-U001",
+      "amount": 5000,
+      "attributes": {
+        "synthetic": true
+      }
+    },
+    {
+      "document_id": "SYN-PO-004",
+      "document_type": "PurchaseOrder",
+      "org_id": "ORG-B",
+      "state": "SUBMITTED",
+      "creator_user_id": "SYN-U003",
+      "amount": 8800,
+      "attributes": {
+        "synthetic": true
+      }
+    },
+    {
+      "document_id": "SYN-PR-001",
+      "document_type": "PurchaseRequisition",
+      "org_id": "ORG-A",
+      "state": "APPROVED",
+      "creator_user_id": "SYN-U001",
+      "amount": 3400,
+      "attributes": {
+        "synthetic": true
+      }
+    },
+    {
+      "document_id": "SYN-PR-002",
+      "document_type": "PurchaseRequisition",
+      "org_id": "ORG-C",
+      "state": "APPROVED",
+      "creator_user_id": "SYN-U001",
+      "amount": 9100,
+      "attributes": {
+        "synthetic": true
+      }
+    },
+    {
+      "document_id": "SYN-EX-001",
+      "document_type": "ExpenseClaim",
+      "org_id": "ORG-A",
+      "state": "DRAFT",
+      "creator_user_id": "SYN-U004",
+      "amount": 560,
+      "attributes": {
+        "synthetic": true
+      }
+    },
+    {
+      "document_id": "SYN-EX-002",
+      "document_type": "ExpenseClaim",
+      "org_id": "ORG-C",
+      "state": "DRAFT",
+      "creator_user_id": "SYN-U005",
+      "amount": 720,
+      "attributes": {
+        "synthetic": true
+      }
+    },
+    {
+      "document_id": "SYN-EX-003",
+      "document_type": "ExpenseClaim",
+      "org_id": "ORG-A",
+      "state": "SUBMITTED",
+      "creator_user_id": "SYN-U004",
+      "amount": 1200,
+      "attributes": {
+        "synthetic": true
+      }
+    },
+    {
+      "document_id": "SYN-SO-001",
+      "document_type": "SalesOrder",
+      "org_id": "ORG-A",
+      "state": "DRAFT",
+      "creator_user_id": "SYN-U006",
+      "amount": 18600,
+      "attributes": {
+        "synthetic": true
+      }
+    },
+    {
+      "document_id": "SYN-SO-002",
+      "document_type": "SalesOrder",
+      "org_id": "ORG-B",
+      "state": "SUBMITTED",
+      "creator_user_id": "SYN-U006",
+      "amount": 22600,
+      "attributes": {
+        "synthetic": true
+      }
+    },
+    {
+      "document_id": "SYN-ST-001",
+      "document_type": "StockTransfer",
+      "org_id": "ORG-A",
+      "state": "DRAFT",
+      "creator_user_id": "SYN-U011",
+      "amount": null,
+      "attributes": {
+        "synthetic": true
+      }
+    },
+    {
+      "document_id": "SYN-ST-002",
+      "document_type": "StockTransfer",
+      "org_id": "ORG-A",
+      "state": "APPROVED",
+      "creator_user_id": "SYN-U011",
+      "amount": null,
+      "attributes": {
+        "synthetic": true
+      }
+    },
+    {
+      "document_id": "SYN-PE-001",
+      "document_type": "ProjectExpense",
+      "org_id": "ORG-A",
+      "state": "DRAFT",
+      "creator_user_id": "SYN-U012",
+      "amount": 4300,
+      "attributes": {
+        "synthetic": true
+      }
+    },
+    {
+      "document_id": "SYN-PE-002",
+      "document_type": "ProjectExpense",
+      "org_id": "ORG-A",
+      "state": "SUBMITTED",
+      "creator_user_id": "SYN-U012",
+      "amount": 6700,
+      "attributes": {
+        "synthetic": true
+      }
+    },
+    {
+      "document_id": "SYN-PO-005",
+      "document_type": "PurchaseOrder",
+      "org_id": "ORG-A",
+      "state": "REJECTED",
+      "creator_user_id": "SYN-U001",
+      "amount": 1500,
+      "attributes": {
+        "synthetic": true
+      }
+    },
+    {
+      "document_id": "SYN-PO-006",
+      "document_type": "PurchaseOrder",
+      "org_id": "ORG-A",
+      "state": "CLOSED",
+      "creator_user_id": "SYN-U001",
+      "amount": 3100,
+      "attributes": {
+        "synthetic": true
+      }
+    },
+    {
+      "document_id": "SYN-EX-004",
+      "document_type": "ExpenseClaim",
+      "org_id": "ORG-C",
+      "state": "APPROVED",
+      "creator_user_id": "SYN-U005",
+      "amount": 980,
+      "attributes": {
+        "synthetic": true
+      }
+    },
+    {
+      "document_id": "SYN-SO-003",
+      "document_type": "SalesOrder",
+      "org_id": "ORG-A",
+      "state": "APPROVED",
+      "creator_user_id": "SYN-U006",
+      "amount": 12800,
+      "attributes": {
+        "synthetic": true
+      }
+    },
+    {
+      "document_id": "SYN-PR-003",
+      "document_type": "PurchaseRequisition",
+      "org_id": "ORG-A",
+      "state": "DRAFT",
+      "creator_user_id": "SYN-U001",
+      "amount": 2500,
+      "attributes": {
+        "synthetic": true
+      }
+    }
+  ],
+  "operation_policies": [
+    {
+      "document_type": "PurchaseOrder",
+      "operation": "CREATE",
+      "required_roles": [
+        "PURCHASE_OPERATOR"
+      ],
+      "allowed_states": [
+        "DRAFT"
+      ]
+    },
+    {
+      "document_type": "PurchaseOrder",
+      "operation": "SUBMIT",
+      "required_roles": [
+        "PURCHASE_OPERATOR"
+      ],
+      "allowed_states": [
+        "DRAFT",
+        "REJECTED"
+      ]
+    },
+    {
+      "document_type": "PurchaseOrder",
+      "operation": "APPROVE",
+      "required_roles": [
+        "PURCHASE_APPROVER"
+      ],
+      "allowed_states": [
+        "SUBMITTED"
+      ]
+    },
+    {
+      "document_type": "PurchaseRequisition",
+      "operation": "SUBMIT",
+      "required_roles": [
+        "PURCHASE_OPERATOR"
+      ],
+      "allowed_states": [
+        "DRAFT",
+        "REJECTED"
+      ]
+    },
+    {
+      "document_type": "PurchaseRequisition",
+      "operation": "TRANSFER",
+      "required_roles": [
+        "PURCHASE_OPERATOR"
+      ],
+      "allowed_states": [
+        "APPROVED"
+      ]
+    },
+    {
+      "document_type": "ExpenseClaim",
+      "operation": "CREATE",
+      "required_roles": [
+        "EXPENSE_OPERATOR"
+      ],
+      "allowed_states": [
+        "DRAFT"
+      ]
+    },
+    {
+      "document_type": "ExpenseClaim",
+      "operation": "SUBMIT",
+      "required_roles": [
+        "EXPENSE_OPERATOR"
+      ],
+      "allowed_states": [
+        "DRAFT",
+        "REJECTED"
+      ]
+    },
+    {
+      "document_type": "ExpenseClaim",
+      "operation": "APPROVE",
+      "required_roles": [
+        "FINANCE_APPROVER"
+      ],
+      "allowed_states": [
+        "SUBMITTED"
+      ]
+    },
+    {
+      "document_type": "SalesOrder",
+      "operation": "SUBMIT",
+      "required_roles": [
+        "SALES_OPERATOR"
+      ],
+      "allowed_states": [
+        "DRAFT",
+        "REJECTED"
+      ]
+    },
+    {
+      "document_type": "SalesOrder",
+      "operation": "TRANSFER",
+      "required_roles": [
+        "SALES_OPERATOR"
+      ],
+      "allowed_states": [
+        "APPROVED"
+      ]
+    },
+    {
+      "document_type": "StockTransfer",
+      "operation": "SUBMIT",
+      "required_roles": [
+        "WAREHOUSE_OPERATOR"
+      ],
+      "allowed_states": [
+        "DRAFT",
+        "REJECTED"
+      ]
+    },
+    {
+      "document_type": "StockTransfer",
+      "operation": "TRANSFER",
+      "required_roles": [
+        "WAREHOUSE_OPERATOR"
+      ],
+      "allowed_states": [
+        "APPROVED"
+      ]
+    },
+    {
+      "document_type": "ProjectExpense",
+      "operation": "SUBMIT",
+      "required_roles": [
+        "PROJECT_OPERATOR"
+      ],
+      "allowed_states": [
+        "DRAFT",
+        "REJECTED"
+      ]
+    },
+    {
+      "document_type": "ProjectExpense",
+      "operation": "APPROVE",
+      "required_roles": [
+        "FINANCE_APPROVER"
+      ],
+      "allowed_states": [
+        "SUBMITTED"
+      ]
+    }
+  ],
+  "approval_flows": [
+    {
+      "flow_id": "SYN-FLOW-PO-A",
+      "document_type": "PurchaseOrder",
+      "org_id": "ORG-A",
+      "enabled": true,
+      "approver_user_ids": [
+        "SYN-U007"
+      ]
+    },
+    {
+      "flow_id": "SYN-FLOW-PO-B",
+      "document_type": "PurchaseOrder",
+      "org_id": "ORG-B",
+      "enabled": true,
+      "approver_user_ids": [
+        "SYN-U099"
+      ]
+    },
+    {
+      "flow_id": "SYN-FLOW-EX-A",
+      "document_type": "ExpenseClaim",
+      "org_id": "ORG-A",
+      "enabled": true,
+      "approver_user_ids": [
+        "SYN-U008"
+      ]
+    },
+    {
+      "flow_id": "SYN-FLOW-SO-A",
+      "document_type": "SalesOrder",
+      "org_id": "ORG-A",
+      "enabled": true,
+      "approver_user_ids": [
+        "SYN-U008"
+      ]
+    },
+    {
+      "flow_id": "SYN-FLOW-SO-B",
+      "document_type": "SalesOrder",
+      "org_id": "ORG-B",
+      "enabled": false,
+      "approver_user_ids": [
+        "SYN-U008"
+      ]
+    },
+    {
+      "flow_id": "SYN-FLOW-ST-A",
+      "document_type": "StockTransfer",
+      "org_id": "ORG-A",
+      "enabled": true,
+      "approver_user_ids": [
+        "SYN-U011"
+      ]
+    },
+    {
+      "flow_id": "SYN-FLOW-PE-A",
+      "document_type": "ProjectExpense",
+      "org_id": "ORG-A",
+      "enabled": true,
+      "approver_user_ids": [
+        "SYN-U008"
+      ]
+    },
+    {
+      "flow_id": "SYN-FLOW-PR-A",
+      "document_type": "PurchaseRequisition",
+      "org_id": "ORG-A",
+      "enabled": true,
+      "approver_user_ids": [
+        "SYN-U007"
+      ]
+    }
+  ],
+  "transfer_rules": [
+    {
+      "rule_id": "SYN-TR-PR-PO-A",
+      "source_document_type": "PurchaseRequisition",
+      "target_document_type": "PurchaseOrder",
+      "org_id": "ORG-A",
+      "enabled": true
+    },
+    {
+      "rule_id": "SYN-TR-PR-PO-B",
+      "source_document_type": "PurchaseRequisition",
+      "target_document_type": "PurchaseOrder",
+      "org_id": "ORG-B",
+      "enabled": false
+    },
+    {
+      "rule_id": "SYN-TR-SO-DO-A",
+      "source_document_type": "SalesOrder",
+      "target_document_type": "DeliveryOrder",
+      "org_id": "ORG-A",
+      "enabled": true
+    },
+    {
+      "rule_id": "SYN-TR-ST-WR-A",
+      "source_document_type": "StockTransfer",
+      "target_document_type": "WarehouseReceipt",
+      "org_id": "ORG-A",
+      "enabled": true
+    },
+    {
+      "rule_id": "SYN-TR-EX-PR-A",
+      "source_document_type": "ExpenseClaim",
+      "target_document_type": "PaymentRequest",
+      "org_id": "ORG-A",
+      "enabled": true
+    },
+    {
+      "rule_id": "SYN-TR-PE-PR-A",
+      "source_document_type": "ProjectExpense",
+      "target_document_type": "PaymentRequest",
+      "org_id": "ORG-A",
+      "enabled": true
+    }
+  ]
+}

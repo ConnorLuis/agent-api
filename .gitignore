@@ -22,6 +22,8 @@ venv/
 
 # Runtime state
 data/
+!examples/synthetic_erp_service/data/
+!examples/synthetic_erp_service/data/synthetic_erp_data.json
 logs/
 *.db
 *.sqlite

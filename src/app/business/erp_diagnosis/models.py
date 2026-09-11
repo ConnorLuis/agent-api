@@ -145,3 +145,23 @@ class DiagnosisResult(BaseModel):
     recommendations: list[str] = Field(default_factory=list)
     requires_human: bool = False
     trace_id: str
+
+
+class ERPDiagnosisRequest(BaseModel):
+    query: str = Field(min_length=1)
+    user_id: str | None = None
+    document_id: str | None = None
+    operation: ERPOperation | None = None
+    target_document_type: str | None = None
+    thread_id: str | None = None
+
+
+class ERPDiagnosisResponse(DiagnosisResult):
+    thread_id: str
+    user_id: str | None = None
+    document_id: str | None = None
+    operation: ERPOperation | None = None
+    target_document_type: str | None = None
+    steps: list[str] = Field(default_factory=list)
+    verification_pass: bool
+    verification_flags: list[str] = Field(default_factory=list)

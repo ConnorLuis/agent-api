@@ -193,3 +193,56 @@ controlled Root Cause Codes
 ```
 
 GraphRAG, Neo4j, and Multi-Agent will remain outside the ERP main path unless a future business requirement actually needs them.
+
+## 8. Day-3 diagnosis workflow
+
+The ERP reference application now has a dedicated LangGraph workflow:
+
+```text
+START
+  -> analyze_request
+      -> missing context -> compose_diagnosis -> verify_diagnosis -> END
+      -> context ready
+           -> collect_business_evidence
+           -> diagnose_root_cause
+                -> dependency / insufficient / no-issue -> compose_diagnosis
+                -> diagnosed issue -> retrieve_policy
+           -> compose_diagnosis
+           -> verify_diagnosis
+           -> END
+```
+
+The workflow deliberately separates evidence types:
+
+- read-only ERP MCP tools provide real-time business facts;
+- controlled rules map those facts to Root Cause Codes;
+- Agentic RAG retrieves static policy evidence only after a business root cause has been established;
+- dependency failure never falls back to policy RAG as a substitute for live facts.
+
+The public endpoint is:
+
+```text
+POST /erp/diagnose
+```
+
+The request supports a natural-language `query` plus trusted application context (`user_id`, `document_id`, optional operation/target type). The deterministic analyzer can also extract synthetic IDs and infer common operations from the query for demo and CI use.
+
+A dedicated SQLite checkpointer stores the ERP workflow state in `data/erp_diagnosis_checkpoints.sqlite`. The same `thread_id` can therefore reuse prior ERP business context across follow-up questions without sharing checkpoints with the generic Agent graph.
+
+Workflow Trace events record node/status/count metadata only. Raw prompts and ERP identifiers are not copied into `erp_diagnosis_step` trace payloads; the MCP business audit continues to store only parameter names/fingerprint and minimal result summaries.
+
+## 9. ERP policy knowledge base
+
+Static reference rules live under:
+
+```text
+knowledge/erp/permission_rules.md
+knowledge/erp/approval_rules.md
+knowledge/erp/transfer_rules.md
+```
+
+The workflow reuses the existing Agentic-RAG graph with the deterministic `hybrid` backend and an ERP-only source filter. GraphRAG/Neo4j remain out of the ERP main path.
+
+## 10. Source-control note for the synthetic dataset
+
+The root `.gitignore` historically ignored any directory named `data/`. That also matched `examples/synthetic_erp_service/data/`, so local tests could pass while a fresh clone did not contain the synthetic JSON fixture. Day 3 explicitly unignores the Synthetic ERP dataset path so the fictional reference data is reproducible from Git alone.
