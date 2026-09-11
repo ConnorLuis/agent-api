@@ -37,10 +37,11 @@ def test_real_mcp_stdio_client_can_read_tool_registry_resource():
     payload = extract_resource_json(result)
 
     assert payload["resource"] == "agent-api://mcp/tool-registry"
-    assert payload["registry"]["tool_count"] == 10
+    assert payload["registry"]["tool_count"] == 15
     assert "answer_verify" in payload["registry"]["tool_names"]
     assert "rag_backend_eval" in payload["registry"]["tool_names"]
     assert "mcp_registry_summary" in payload["registry"]["tool_names"]
+    assert "erp_check_operation_permission" in payload["registry"]["tool_names"]
 
 
 def test_real_mcp_stdio_client_can_read_graph_schema_resource():
@@ -83,5 +84,5 @@ def test_real_mcp_stdio_client_can_call_day68_registry_summary_tool():
 
     assert payload["tool_name"] == "mcp_registry_summary"
     assert payload["trace_id"] == "test-real-mcp-client-registry-summary"
-    assert payload["summary"]["tool_count"] == 10
+    assert payload["summary"]["tool_count"] == 15
     assert payload["summary"]["external_servers_enabled_by_default"] == []

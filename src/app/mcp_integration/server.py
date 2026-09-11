@@ -5,6 +5,13 @@ from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 
+from src.app.business.erp_diagnosis.mcp_tools import (
+    run_erp_check_operation_permission_mcp_tool,
+    run_erp_get_approval_context_mcp_tool,
+    run_erp_get_document_context_mcp_tool,
+    run_erp_get_transfer_context_mcp_tool,
+    run_erp_get_user_access_profile_mcp_tool,
+)
 from src.app.mcp_integration.resources import (
     get_graph_schema_resource,
     get_graphrag_docs_resource,
@@ -188,6 +195,80 @@ def rag_backend_eval(
         embedding_provider=embedding_provider,
         rebuild_index=rebuild_index,
         graph_dry_run=graph_dry_run,
+        trace_id=trace_id,
+    )
+    return _to_json_text(payload)
+
+
+# ERP diagnosis reference-application tools. These are deliberately read-only.
+@mcp.tool()
+def erp_get_user_access_profile(
+    user_id: str,
+    trace_id: str = "mcp-erp-user-access-trace",
+) -> str:
+    """Read a synthetic ERP user's access profile through the MCP business boundary."""
+    payload = run_erp_get_user_access_profile_mcp_tool(
+        user_id=user_id,
+        trace_id=trace_id,
+    )
+    return _to_json_text(payload)
+
+
+@mcp.tool()
+def erp_get_document_context(
+    document_id: str,
+    operation: str,
+    trace_id: str = "mcp-erp-document-context-trace",
+) -> str:
+    """Read synthetic ERP document and operation-policy context."""
+    payload = run_erp_get_document_context_mcp_tool(
+        document_id=document_id,
+        operation=operation,
+        trace_id=trace_id,
+    )
+    return _to_json_text(payload)
+
+
+@mcp.tool()
+def erp_check_operation_permission(
+    user_id: str,
+    document_id: str,
+    operation: str,
+    trace_id: str = "mcp-erp-permission-check-trace",
+) -> str:
+    """Evaluate synthetic ERP role, org-scope, data-permission, and state checks."""
+    payload = run_erp_check_operation_permission_mcp_tool(
+        user_id=user_id,
+        document_id=document_id,
+        operation=operation,
+        trace_id=trace_id,
+    )
+    return _to_json_text(payload)
+
+
+@mcp.tool()
+def erp_get_approval_context(
+    document_id: str,
+    trace_id: str = "mcp-erp-approval-context-trace",
+) -> str:
+    """Read synthetic ERP approval-flow binding and active-approver context."""
+    payload = run_erp_get_approval_context_mcp_tool(
+        document_id=document_id,
+        trace_id=trace_id,
+    )
+    return _to_json_text(payload)
+
+
+@mcp.tool()
+def erp_get_transfer_context(
+    document_id: str,
+    target_document_type: str,
+    trace_id: str = "mcp-erp-transfer-context-trace",
+) -> str:
+    """Read synthetic ERP transfer-rule context."""
+    payload = run_erp_get_transfer_context_mcp_tool(
+        document_id=document_id,
+        target_document_type=target_document_type,
         trace_id=trace_id,
     )
     return _to_json_text(payload)

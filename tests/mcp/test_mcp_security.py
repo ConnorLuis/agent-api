@@ -22,8 +22,8 @@ def test_mcp_security_report_is_ci_safe_and_allows_registered_read_tools():
 
     assert report["report_version"] == "day70_mcp_security_report_v1"
     assert report["policy"]["policy_version"] == "day70_mcp_security_policy_v1"
-    assert report["summary"]["tool_count"] == 10
-    assert report["summary"]["allowed_tool_count"] == 10
+    assert report["summary"]["tool_count"] == 15
+    assert report["summary"]["allowed_tool_count"] == 15
     assert report["summary"]["denied_tool_count"] == 0
     assert report["summary"]["external_servers_executed_in_ci"] is False
     assert report["summary"]["write_tools_enabled_in_ci"] is False
@@ -32,6 +32,14 @@ def test_mcp_security_report_is_ci_safe_and_allows_registered_read_tools():
     assert report["safety"]["ci_safe"] is True
     assert report["safety"]["graph_mutation_requires_dry_run"] is True
     assert report["safety"]["audit_trace_enabled"] is True
+
+    erp_profiles = [
+        item for item in report["tool_profiles"]
+        if item["category"] == "erp"
+    ]
+    assert len(erp_profiles) == 5
+    assert all(item["read_only"] for item in erp_profiles)
+    assert all(not item["requires_network"] for item in erp_profiles)
 
 
 def test_mcp_security_blocks_missing_scope_write_and_graph_mutation_without_dry_run():
@@ -45,19 +53,19 @@ def test_mcp_security_blocks_missing_scope_write_and_graph_mutation_without_dry_
     )
 
     missing_scope = evaluate_mcp_tool_security(
-        tool_name="agentic_rag_query",
+        tool_name="erp_check_operation_permission",
         principal=restricted_principal,
-        trace_id="test-day70-missing-scope",
+        trace_id="test-erp-missing-scope",
     )
     assert missing_scope["allowed"] is False
     assert "missing_required_scopes" in missing_scope["blocked_reasons"]
     assert missing_scope["audit_trace"]["event_type"] == "mcp_security_decision"
 
     write_request = evaluate_mcp_tool_security(
-        tool_name="mcp_security_report",
+        tool_name="erp_check_operation_permission",
         principal=get_ci_safe_mcp_principal(),
         requested_write=True,
-        trace_id="test-day70-write-block",
+        trace_id="test-erp-write-block",
     )
     assert write_request["allowed"] is False
     assert "write_tools_disabled_by_principal" in write_request["blocked_reasons"]
@@ -112,8 +120,8 @@ def test_real_mcp_client_can_call_security_report_tool():
 
     assert payload["tool_name"] == "mcp_security_report"
     assert payload["trace_id"] == "test-day70-security-report-tool"
-    assert payload["summary"]["tool_count"] == 10
-    assert payload["summary"]["allowed_tool_count"] == 10
+    assert payload["summary"]["tool_count"] == 15
+    assert payload["summary"]["allowed_tool_count"] == 15
     assert payload["summary"]["denied_tool_count"] == 0
     assert payload["summary"]["external_servers_executed_in_ci"] is False
     assert payload["summary"]["write_tools_enabled_in_ci"] is False
@@ -135,7 +143,7 @@ def test_real_mcp_client_can_read_security_report_resource():
 
     assert payload["resource"] == "agent-api://mcp/security-report"
     report = payload["security_report"]
-    assert report["summary"]["tool_count"] == 10
-    assert report["summary"]["allowed_tool_count"] == 10
+    assert report["summary"]["tool_count"] == 15
+    assert report["summary"]["allowed_tool_count"] == 15
     assert report["summary"]["external_servers_executed_in_ci"] is False
     assert report["safety"]["audit_trace_enabled"] is True

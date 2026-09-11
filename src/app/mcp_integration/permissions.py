@@ -5,6 +5,15 @@ from dataclasses import dataclass, field
 from src.app.mcp_integration.registry import MCPToolSpec
 
 
+ERP_DIAGNOSIS_READ_SCOPES: tuple[str, ...] = (
+    "mcp:erp:user_access:read",
+    "mcp:erp:document:read",
+    "mcp:erp:permission:read",
+    "mcp:erp:approval:read",
+    "mcp:erp:transfer:read",
+)
+
+
 @dataclass(frozen=True)
 class MCPPrincipal:
     principal_id: str
@@ -40,6 +49,21 @@ CI_SAFE_MCP_PRINCIPAL = MCPPrincipal(
         "mcp:security:read",
         "mcp:endpoints:read",
         "mcp:resources:read",
+        *ERP_DIAGNOSIS_READ_SCOPES,
+    ),
+    allow_external_servers=False,
+    allow_write_tools=False,
+    allow_live_neo4j=False,
+    allow_network=False,
+)
+
+
+ERP_DIAGNOSIS_MCP_PRINCIPAL = MCPPrincipal(
+    principal_id="erp-diagnosis-readonly-principal",
+    scopes=(
+        "mcp:tools:list",
+        "mcp:resources:read",
+        *ERP_DIAGNOSIS_READ_SCOPES,
     ),
     allow_external_servers=False,
     allow_write_tools=False,
@@ -50,6 +74,12 @@ CI_SAFE_MCP_PRINCIPAL = MCPPrincipal(
 
 def get_ci_safe_mcp_principal() -> MCPPrincipal:
     return CI_SAFE_MCP_PRINCIPAL
+
+
+def get_erp_diagnosis_mcp_principal() -> MCPPrincipal:
+    """Return the least-privilege principal used by the ERP reference workflow."""
+
+    return ERP_DIAGNOSIS_MCP_PRINCIPAL
 
 
 def authorize_mcp_tool(

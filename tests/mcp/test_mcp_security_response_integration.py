@@ -21,7 +21,10 @@ def _run_tool_function_names() -> list[str]:
     )
 
 
-def test_all_mcp_tool_wrappers_are_security_wrapped():
+def test_platform_mcp_tool_wrappers_are_security_wrapped():
+    # The ten original platform wrappers still live in mcp_integration.tools.
+    # ERP business wrappers live in business.erp_diagnosis.mcp_tools and perform
+    # their own authorization + security-decision + audit pipeline.
     function_names = _run_tool_function_names()
 
     assert len(function_names) == 10
@@ -55,11 +58,11 @@ def test_mcp_security_report_tool_includes_nested_security_decision_without_recu
     )
 
     assert payload["tool_name"] == "mcp_security_report"
-    assert payload["summary"]["tool_count"] == 10
+    assert payload["summary"]["tool_count"] == 15
     assert payload["security_decision"]["tool_name"] == "mcp_security_report"
     assert payload["security_decision"]["allowed"] is True
     assert payload["security_audit_trace"]["target_id"] == "mcp_security_report"
-    assert payload["result"]["summary"]["tool_count"] == 10
+    assert payload["result"]["summary"]["tool_count"] == 15
     assert payload["result"]["safety"]["audit_trace_enabled"] is True
 
 
@@ -75,9 +78,6 @@ def test_real_mcp_client_security_response_for_all_registered_tools():
 
     assert listed_names == sorted(list_mcp_tool_names())
 
-    # Keep this client test focused on lightweight system tools.
-    # Core RAG / GraphRAG / Multi-Agent wrappers are covered by the wrapper installation test
-    # and existing Day67-Day70 MCP contract tests.
     for tool_name in [
         "mcp_registry_summary",
         "mcp_marketplace_discovery",

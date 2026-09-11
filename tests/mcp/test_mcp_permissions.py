@@ -1,7 +1,9 @@
 from src.app.mcp_integration.permissions import (
+    ERP_DIAGNOSIS_READ_SCOPES,
     MCPPrincipal,
     authorize_mcp_tool,
     get_ci_safe_mcp_principal,
+    get_erp_diagnosis_mcp_principal,
     serialize_authorization_decision,
 )
 from src.app.mcp_integration.registry import get_mcp_tool_spec
@@ -14,6 +16,7 @@ def test_ci_safe_principal_allows_core_read_tools():
         "agentic_rag_query",
         "graph_fusion_retrieve",
         "multi_agent_eval_trace",
+        "erp_check_operation_permission",
     ]:
         decision = authorize_mcp_tool(
             principal=principal,
@@ -23,6 +26,45 @@ def test_ci_safe_principal_allows_core_read_tools():
         assert decision.allowed is True
         assert decision.reason == "allowed"
         assert decision.enforced_dry_run is False
+
+
+def test_erp_diagnosis_principal_has_only_erp_read_scopes():
+    principal = get_erp_diagnosis_mcp_principal()
+
+    assert principal.scopes == (
+        "mcp:tools:list",
+        "mcp:resources:read",
+        *ERP_DIAGNOSIS_READ_SCOPES,
+    )
+    assert principal.allow_external_servers is False
+    assert principal.allow_write_tools is False
+    assert principal.allow_live_neo4j is False
+    assert principal.allow_network is False
+
+    for tool_name in [
+        "erp_get_user_access_profile",
+        "erp_get_document_context",
+        "erp_check_operation_permission",
+        "erp_get_approval_context",
+        "erp_get_transfer_context",
+    ]:
+        decision = authorize_mcp_tool(
+            principal=principal,
+            tool_spec=get_mcp_tool_spec(tool_name),
+        )
+        assert decision.allowed is True
+
+
+def test_erp_diagnosis_principal_cannot_call_platform_system_tool():
+    principal = get_erp_diagnosis_mcp_principal()
+    decision = authorize_mcp_tool(
+        principal=principal,
+        tool_spec=get_mcp_tool_spec("mcp_security_report"),
+    )
+
+    assert decision.allowed is False
+    assert decision.reason == "missing_required_scopes"
+    assert decision.denied_scopes == ("mcp:security:read",)
 
 
 def test_permission_denies_missing_scope():

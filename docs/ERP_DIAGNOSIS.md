@@ -25,9 +25,7 @@ The ERP reference app intentionally reuses only the Agent-API capabilities that 
 
 GraphRAG, Neo4j, and Multi-Agent remain platform capabilities, but they are **not required by the ERP diagnosis main path**.
 
-## 3. Day-1 domain contract
-
-### Root Cause Codes
+## 3. Controlled root-cause taxonomy
 
 The controlled taxonomy is defined in `src/app/business/erp_diagnosis/root_causes.py`:
 
@@ -43,8 +41,6 @@ The controlled taxonomy is defined in `src/app/business/erp_diagnosis/root_cause
 - `NO_ISSUE_DETECTED`
 
 The workflow may return more than one root-cause code when multiple independent checks fail. The final response must preserve evidence rather than forcing a single unsupported explanation.
-
-### Diagnosis result shape
 
 The controlled response contract includes:
 
@@ -88,9 +84,11 @@ GET /transfer-rules/resolve?document_id=...&target_document_type=...
 
 There are deliberately no role-update, permission-grant, approval-bind, or other write endpoints.
 
-## 5. Frozen MCP tool design for Day 2
+The FastAPI example service and the MCP tools share the same domain contract. MCP tools depend on the `ERPReadService` port rather than directly depending on the synthetic repository. The default `SyntheticERPReadService` is in-process and CI-safe, so CI does not require a network call to port 8010. A later HTTP or real-enterprise adapter can replace this implementation without changing MCP tool contracts or the diagnosis workflow.
 
-The ERP business boundary will expose exactly five read-only MCP tools in the first implementation:
+## 5. MCP business-tool boundary
+
+The first ERP reference implementation exposes exactly five read-only MCP tools:
 
 ```text
 erp_get_user_access_profile(user_id)
@@ -102,30 +100,77 @@ erp_get_transfer_context(document_id, target_document_type)
 
 Why these five:
 
-1. They map to stable business facts rather than UI actions.
+1. They map to stable business facts instead of UI actions.
 2. They are composable but not excessively granular.
-3. Permission diagnosis remains deterministic and returns evidence fields instead of forcing the LLM to infer RBAC rules from prose.
+3. Permission diagnosis stays deterministic: role, organization scope, data permission, and document state are evaluated by business logic instead of being guessed by the LLM.
 4. Static policy lookup remains an Agentic-RAG responsibility rather than being mixed into real-time ERP tools.
 5. No write tool is registered, so least privilege is enforced structurally before runtime policy checks.
 
-## 6. Security direction
+The MCP registry therefore grows from 10 platform tools to 15 total tools. The five ERP tools are category `erp`, read-only, CI-safe, do not require Neo4j, and do not require network access in the synthetic implementation.
 
-Day 2 will add ERP-specific MCP scopes and authorization. The intended design is defense in depth:
+## 6. ERP MCP scopes and least privilege
+
+Each ERP tool owns one explicit scope:
+
+```text
+erp_get_user_access_profile      -> mcp:erp:user_access:read
+erp_get_document_context         -> mcp:erp:document:read
+erp_check_operation_permission   -> mcp:erp:permission:read
+erp_get_approval_context         -> mcp:erp:approval:read
+erp_get_transfer_context         -> mcp:erp:transfer:read
+```
+
+The ERP workflow uses a dedicated principal:
+
+```text
+erp-diagnosis-readonly-principal
+```
+
+It receives the two protocol-level discovery scopes (`mcp:tools:list`, `mcp:resources:read`) plus those five ERP read scopes. It does not receive RAG, GraphRAG, system-management, external-server, write, live-Neo4j, or network privileges.
+
+The broader `ci-safe-principal` also contains the ERP read scopes only so the standard MCP registry/security-report regression path can validate all registered tools in CI.
+
+Security remains defense in depth:
 
 ```text
 Tool exposure layer
   -> only read-only ERP tools exist
 Scope layer
-  -> principal must own explicit ERP read scopes
+  -> principal must own the exact ERP read scope
 Runtime security policy
   -> write/network/destructive requests remain blocked
 Audit layer
-  -> store trace_id, tool name, decision, redacted argument summary/fingerprint, and result status
+  -> record only minimum diagnostic metadata
 ```
 
-Raw business records and full user prompts should not be copied wholesale into security audit events.
+Prompt instructions are not treated as authorization.
 
-## 7. Fallback boundary
+## 7. Audit design
+
+ERP tool calls emit `erp_mcp_tool_audit` events into the existing trace store.
+
+The audit event stores:
+
+- `trace_id` through the trace-store envelope;
+- MCP tool name;
+- principal id;
+- allow/deny decision and authorization reason;
+- argument **names**, not argument values;
+- HMAC-SHA256 parameter fingerprint;
+- outcome (`completed`, `not_found`, `denied`, `dependency_error`, or `invalid_request`);
+- minimal result summary such as permission reason codes.
+
+The audit event does **not** copy raw user ids, document ids, prompts, role lists, organization lists, or full business payloads.
+
+`ERP_AUDIT_HMAC_KEY` may be supplied by the environment. The committed fallback key exists only because this repository contains synthetic data; a real integration must load the HMAC key from a secret store.
+
+## 8. Tool result and audit data are intentionally different
+
+The Agent still needs structured ERP facts in the MCP tool result so it can diagnose the request. For example, the permission tool can return role, organization-scope, data-permission, and state-check results.
+
+The **audit log** is deliberately smaller. This distinction prevents observability from becoming an accidental copy of sensitive business records.
+
+## 9. Fallback boundary
 
 A key business rule is:
 
@@ -133,4 +178,18 @@ A key business rule is:
 
 Static policy retrieval may have a safe degraded path. Real-time facts such as user roles, organization scope, document state, or approval binding must not be guessed from RAG when the business dependency is unavailable.
 
-When a real-time ERP dependency cannot be read, the workflow should return `DEPENDENCY_UNAVAILABLE` rather than fabricating a diagnosis.
+When a real-time ERP dependency cannot be read, the MCP wrapper returns `dependency_unavailable`; the later diagnosis workflow will map that to `DEPENDENCY_UNAVAILABLE` rather than fabricating a diagnosis.
+
+## 10. Next step
+
+The next implementation stage builds the LangGraph diagnosis workflow and ERP policy knowledge base on top of this MCP boundary. The workflow will combine:
+
+```text
+real-time ERP facts from MCP
++
+static ERP policy evidence from Agentic RAG
++
+controlled Root Cause Codes
+```
+
+GraphRAG, Neo4j, and Multi-Agent will remain outside the ERP main path unless a future business requirement actually needs them.

@@ -14,10 +14,11 @@ from src.app.mcp_integration.client import (
 from src.app.mcp_integration.permissions import (
     MCPPrincipal,
     get_ci_safe_mcp_principal,
+    get_erp_diagnosis_mcp_principal,
 )
 
 
-EXPECTED_DAY69_TOOLS = {
+EXPECTED_TOOLS = {
     "agentic_rag_query",
     "graph_fusion_retrieve",
     "multi_agent_eval_trace",
@@ -28,9 +29,14 @@ EXPECTED_DAY69_TOOLS = {
     "mcp_security_report",
     "mcp_endpoint_coverage_report",
     "mcp_endpoint_probe",
+    "erp_get_user_access_profile",
+    "erp_get_document_context",
+    "erp_check_operation_permission",
+    "erp_get_approval_context",
+    "erp_get_transfer_context",
 }
 
-EXPECTED_DAY69_RESOURCES = {
+EXPECTED_RESOURCES = {
     "agent-api://mcp/tool-registry",
     "agent-api://mcp/marketplace",
     "agent-api://graph/schema",
@@ -56,6 +62,17 @@ def test_build_client_config_from_internal_marketplace_server():
     assert config.source == "marketplace"
     assert config.command == "python"
     assert config.args == ("-m", "src.app.mcp_integration.server")
+
+
+def test_erp_readonly_principal_can_access_internal_mcp_server_boundary():
+    config = build_mcp_client_config_from_marketplace(
+        server_id="agent-api-local",
+        principal=get_erp_diagnosis_mcp_principal(),
+    )
+
+    assert config.server_id == "agent-api-local"
+    assert config.trust_level == "internal"
+    assert config.ci_safe is True
 
 
 def test_build_client_config_denies_external_server_for_ci_safe_principal():
@@ -100,7 +117,7 @@ def test_mcp_client_wrapper_can_list_tools_from_local_server():
 
     tool_names = asyncio.run(wrapper.list_tools())
 
-    assert set(tool_names) == EXPECTED_DAY69_TOOLS
+    assert set(tool_names) == EXPECTED_TOOLS
 
 
 def test_mcp_client_wrapper_can_list_resources_from_local_server():
@@ -112,7 +129,7 @@ def test_mcp_client_wrapper_can_list_resources_from_local_server():
 
     resource_uris = asyncio.run(wrapper.list_resources())
 
-    assert set(resource_uris) == EXPECTED_DAY69_RESOURCES
+    assert set(resource_uris) == EXPECTED_RESOURCES
 
 
 def test_mcp_client_wrapper_can_call_registry_summary_tool():
@@ -134,7 +151,7 @@ def test_mcp_client_wrapper_can_call_registry_summary_tool():
     payload = extract_json_content(result)
 
     assert payload["tool_name"] == "mcp_registry_summary"
-    assert payload["summary"]["tool_count"] == 10
+    assert payload["summary"]["tool_count"] == 15
     assert payload["summary"]["server_count"] == 3
     assert payload["summary"]["external_servers_enabled_by_default"] == []
 
@@ -169,10 +186,10 @@ def test_mcp_client_wrapper_discovers_capabilities():
     assert capability["server_id"] == "agent-api-local"
     assert capability["transport"] == "stdio"
     assert capability["trust_level"] == "internal"
-    assert capability["tool_count"] == 10
+    assert capability["tool_count"] == 15
     assert capability["resource_count"] == 9
-    assert set(capability["tool_names"]) == EXPECTED_DAY69_TOOLS
-    assert set(capability["resource_uris"]) == EXPECTED_DAY69_RESOURCES
+    assert set(capability["tool_names"]) == EXPECTED_TOOLS
+    assert set(capability["resource_uris"]) == EXPECTED_RESOURCES
 
 
 def test_mcp_client_wrapper_rejects_non_stdio_transport():

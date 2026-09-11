@@ -6,7 +6,7 @@ from src.app.mcp_integration.registry import (
 )
 
 
-EXPECTED_DAY68_TOOL_NAMES = [
+EXPECTED_TOOL_NAMES = [
     "agentic_rag_query",
     "graph_fusion_retrieve",
     "multi_agent_eval_trace",
@@ -17,16 +17,19 @@ EXPECTED_DAY68_TOOL_NAMES = [
     "mcp_security_report",
     "mcp_endpoint_coverage_report",
     "mcp_endpoint_probe",
+    "erp_get_user_access_profile",
+    "erp_get_document_context",
+    "erp_check_operation_permission",
+    "erp_get_approval_context",
+    "erp_get_transfer_context",
 ]
 
 
-def test_mcp_registry_contains_day68_core_tools():
-    tool_names = list_mcp_tool_names()
-
-    assert tool_names == EXPECTED_DAY68_TOOL_NAMES
+def test_mcp_registry_contains_platform_and_erp_reference_tools():
+    assert list_mcp_tool_names() == EXPECTED_TOOL_NAMES
 
 
-def test_mcp_registry_core_tools_are_read_only_and_ci_safe():
+def test_mcp_registry_registered_tools_are_read_only_and_ci_safe():
     specs = list_mcp_tool_specs()
 
     assert all(spec.read_only for spec in specs)
@@ -43,7 +46,7 @@ def test_mcp_registry_records_graph_tool_neo4j_boundary():
     assert graph_tool.required_scopes == ("mcp:graph:read",)
 
 
-def test_mcp_registry_records_day68_verification_and_eval_tools():
+def test_mcp_registry_records_verification_and_eval_tools():
     answer_verify = get_mcp_tool_spec("answer_verify")
     rag_backend_eval = get_mcp_tool_spec("rag_backend_eval")
     registry_summary = get_mcp_tool_spec("mcp_registry_summary")
@@ -61,12 +64,33 @@ def test_mcp_registry_records_day68_verification_and_eval_tools():
     assert registry_summary.requires_neo4j is False
 
 
+def test_mcp_registry_records_erp_least_privilege_scopes():
+    expected = {
+        "erp_get_user_access_profile": "mcp:erp:user_access:read",
+        "erp_get_document_context": "mcp:erp:document:read",
+        "erp_check_operation_permission": "mcp:erp:permission:read",
+        "erp_get_approval_context": "mcp:erp:approval:read",
+        "erp_get_transfer_context": "mcp:erp:transfer:read",
+    }
+
+    for tool_name, scope in expected.items():
+        spec = get_mcp_tool_spec(tool_name)
+        assert spec.category == "erp"
+        assert spec.risk_level == "medium"
+        assert spec.read_only is True
+        assert spec.requires_network is False
+        assert spec.requires_neo4j is False
+        assert spec.default_ci_safe is True
+        assert spec.required_scopes == (scope,)
+
+
 def test_mcp_registry_summary_is_stable():
     summary = summarize_mcp_tool_registry()
 
-    assert summary["tool_count"] == 10
-    assert summary["tool_names"] == EXPECTED_DAY68_TOOL_NAMES
+    assert summary["tool_count"] == 15
+    assert summary["tool_names"] == EXPECTED_TOOL_NAMES
     assert summary["categories"] == [
+        "erp",
         "evaluation",
         "graphrag",
         "multi_agent",

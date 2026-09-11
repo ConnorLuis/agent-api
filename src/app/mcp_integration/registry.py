@@ -12,6 +12,7 @@ MCPToolCategory = Literal[
     "evaluation",
     "verification",
     "system",
+    "erp",
 ]
 
 MCPRiskLevel = Literal[
@@ -164,6 +165,71 @@ CORE_MCP_TOOL_SPECS: tuple[MCPToolSpec, ...] = (
         requires_neo4j=False,
         default_ci_safe=True,
         required_scopes=("mcp:endpoints:read",),
+    ),
+    MCPToolSpec(
+        name="erp_get_user_access_profile",
+        description=(
+            "Read a synthetic ERP user's active state, roles, organization scope, and data-permission profile."
+        ),
+        category="erp",
+        risk_level="medium",
+        read_only=True,
+        requires_network=False,
+        requires_neo4j=False,
+        default_ci_safe=True,
+        required_scopes=("mcp:erp:user_access:read",),
+    ),
+    MCPToolSpec(
+        name="erp_get_document_context",
+        description=(
+            "Read synthetic ERP document context and the deterministic operation policy for the requested action."
+        ),
+        category="erp",
+        risk_level="medium",
+        read_only=True,
+        requires_network=False,
+        requires_neo4j=False,
+        default_ci_safe=True,
+        required_scopes=("mcp:erp:document:read",),
+    ),
+    MCPToolSpec(
+        name="erp_check_operation_permission",
+        description=(
+            "Evaluate synthetic ERP role, organization-scope, data-permission, and document-state checks for an operation."
+        ),
+        category="erp",
+        risk_level="medium",
+        read_only=True,
+        requires_network=False,
+        requires_neo4j=False,
+        default_ci_safe=True,
+        required_scopes=("mcp:erp:permission:read",),
+    ),
+    MCPToolSpec(
+        name="erp_get_approval_context",
+        description=(
+            "Read the synthetic ERP approval-flow binding and whether an active approver can be resolved."
+        ),
+        category="erp",
+        risk_level="medium",
+        read_only=True,
+        requires_network=False,
+        requires_neo4j=False,
+        default_ci_safe=True,
+        required_scopes=("mcp:erp:approval:read",),
+    ),
+    MCPToolSpec(
+        name="erp_get_transfer_context",
+        description=(
+            "Read whether a synthetic ERP document has an enabled transfer rule to the target document type."
+        ),
+        category="erp",
+        risk_level="medium",
+        read_only=True,
+        requires_network=False,
+        requires_neo4j=False,
+        default_ci_safe=True,
+        required_scopes=("mcp:erp:transfer:read",),
     ),
 )
 
