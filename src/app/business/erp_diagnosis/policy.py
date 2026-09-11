@@ -18,6 +18,20 @@ _POLICY_QUERY_HINTS: dict[RootCauseCode, str] = {
     RootCauseCode.INVALID_DOCUMENT_STATE: "单据状态 document state",
 }
 
+# Route a controlled business diagnosis code to its authoritative policy document
+# before ranking chunks. This prevents unrelated ERP policy files from winning the
+# deterministic hybrid Top-1 merely because they share generic terms such as role,
+# permission, or approval.
+_POLICY_SOURCE_FILTERS: dict[RootCauseCode, str] = {
+    RootCauseCode.ROLE_MISSING: "knowledge/erp/permission_rules.md",
+    RootCauseCode.ORG_SCOPE_DENIED: "knowledge/erp/permission_rules.md",
+    RootCauseCode.DATA_PERMISSION_DENIED: "knowledge/erp/permission_rules.md",
+    RootCauseCode.INVALID_DOCUMENT_STATE: "knowledge/erp/permission_rules.md",
+    RootCauseCode.APPROVAL_FLOW_UNBOUND: "knowledge/erp/approval_rules.md",
+    RootCauseCode.APPROVER_UNRESOLVED: "knowledge/erp/approval_rules.md",
+    RootCauseCode.TRANSFER_RULE_MISSING: "knowledge/erp/transfer_rules.md",
+}
+
 _NON_POLICY_CODES = {
     RootCauseCode.DEPENDENCY_UNAVAILABLE,
     RootCauseCode.INSUFFICIENT_EVIDENCE,
@@ -32,6 +46,10 @@ def build_policy_query(code: RootCauseCode) -> str:
     return f"请检索知识库：{code.value} {hint}"
 
 
+def get_policy_source_filter(code: RootCauseCode) -> str:
+    return _POLICY_SOURCE_FILTERS.get(code, ERP_POLICY_SOURCE_FILTER)
+
+
 def retrieve_erp_policy_evidence(
     root_cause_codes: Iterable[RootCauseCode | str],
     *,
@@ -42,6 +60,13 @@ def retrieve_erp_policy_evidence(
 
     Real-time ERP facts never fall back to this function. It is called only
     after MCP business facts have produced controlled root-cause candidates.
+
+    Because the root-cause taxonomy already identifies the business policy
+    domain, retrieval is first constrained to that authoritative ERP policy
+    document and then ranked inside the document. This is deterministic domain
+    routing, not an LLM-generated citation shortcut: the Agentic-RAG pipeline
+    still performs query analysis, rewrite, retrieval, relevance grading and
+    citation generation within the selected source boundary.
     """
     evidence: list[dict[str, Any]] = []
     citations: list[str] = []
@@ -55,10 +80,11 @@ def retrieve_erp_policy_evidence(
         normalized_codes.append(code)
 
     for code in normalized_codes:
+        source_filter = get_policy_source_filter(code)
         result = invoke_agentic_rag(
             query=build_policy_query(code),
             top_k=top_k,
-            source_filter=ERP_POLICY_SOURCE_FILTER,
+            source_filter=source_filter,
             retrieval_backend="hybrid",
             embedding_provider="deterministic",
             rebuild_index=False,
@@ -67,6 +93,7 @@ def retrieve_erp_policy_evidence(
         retrieval_runs.append(
             {
                 "root_cause_code": code.value,
+                "source_filter": source_filter,
                 "retrieval_needed": result.get("retrieval_needed", False),
                 "retrieval_backend": result.get("retrieval_backend"),
                 "relevance_score": result.get("relevance_score", 0.0),
@@ -99,5 +126,7 @@ def retrieve_erp_policy_evidence(
         "evidence": evidence,
         "retrieval_runs": retrieval_runs,
         "retrieval_backend": "hybrid",
+        # Logical namespace retained for compatibility/reporting. Individual
+        # retrieval runs expose the stricter authoritative source_filter.
         "source_filter": ERP_POLICY_SOURCE_FILTER,
     }
